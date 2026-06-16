@@ -2,116 +2,47 @@
 
 import * as React from "react"
 import { useBetStore } from "@/hooks/use-bet-store"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { ResponsiveModal } from "@/components/ui/responsive-modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { CopyIcon, CheckIcon, Loader2 } from "lucide-react"
+import { useAuthActions } from "@convex-dev/auth/react"
 
 interface ModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function LoginModal({ open, onOpenChange }: ModalProps) {
-  const { login } = useBetStore()
-  const [username, setUsername] = React.useState("")
-  const [password, setPassword] = React.useState("")
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!username.trim()) {
-      toast.error("Please enter a username")
-      return
-    }
-    if (password.length < 4) {
-      toast.error("Password must be at least 4 characters")
-      return
-    }
-
-    setIsSubmitting(true)
-    setTimeout(() => {
-      login(username)
-      toast.success(`Welcome back, ${username}!`)
-      setIsSubmitting(false)
-      onOpenChange(false)
-      setUsername("")
-      setPassword("")
-    }, 800)
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Login to BetixPro</DialogTitle>
-          <DialogDescription>
-            Enter your username and password to log in to your account.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground block" htmlFor="login-username">
-              Username <span className="text-destructive">*</span>
-            </label>
-            <Input
-              id="login-username"
-              placeholder="e.g. jdoe"
-              value={username}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
-              disabled={isSubmitting}
-              required
-              className="focus-visible:ring-primary"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground block" htmlFor="login-password">
-              Password <span className="text-destructive">*</span>
-            </label>
-            <Input
-              id="login-password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-              disabled={isSubmitting}
-              required
-              className="focus-visible:ring-primary"
-            />
-          </div>
-          <DialogFooter className="pt-2">
-            <Button type="submit" disabled={isSubmitting} className="w-full bg-primary text-primary-foreground hover:opacity-90">
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loggin in...
-                </>
-              ) : (
-                "Log In"
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
+// Validation helpers for Kenyan numbers (supports 07..., 01..., +254..., 254...)
+function isValidKenyanPhone(phone: string): boolean {
+  const regex = /^(?:\+254|254|0)?([71]\d{8})$/
+  return regex.test(phone.trim())
 }
 
-export function RegisterModal({ open, onOpenChange }: ModalProps) {
-  const { login } = useBetStore()
-  const [username, setUsername] = React.useState("")
+function normalizeKenyanPhone(phone: string): string {
+  const regex = /^(?:\+254|254|0)?([71]\d{8})$/
+  const match = phone.trim().match(regex)
+  if (match) {
+    return `+254${match[1]}`
+  }
+  return phone.trim()
+}
+
+export function LoginModal({ open, onOpenChange }: ModalProps) {
+  const { signIn } = useAuthActions()
   const [phone, setPhone] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [isSubmitting, setIsSubmitting] = React.useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!username.trim()) {
-      toast.error("Please enter a username")
+    if (!phone.trim()) {
+      toast.error("Please enter your phone number")
       return
     }
-    if (!phone.match(/^(\+254|0)?(7|1)\d{8}$/)) {
-      toast.error("Please enter a valid Kenyan phone number (e.g., 0712345678)")
+    if (!isValidKenyanPhone(phone)) {
+      toast.error("Please enter a valid Kenyan phone number (e.g. 0712345678)")
       return
     }
     if (password.length < 6) {
@@ -119,58 +50,176 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
       return
     }
 
-    setIsSubmitting(true)
-    setTimeout(() => {
-      login(username)
-      toast.success("Account created successfully!")
+    try {
+      setIsSubmitting(true)
+      const normalizedPhone = normalizeKenyanPhone(phone)
+      await signIn("password", {
+        email: normalizedPhone, // We pass phone number as the primary identifier email
+        password,
+        flow: "signIn"
+      })
+      toast.success("Welcome back!")
+      onOpenChange(false)
+      setPhone("")
+      setPassword("")
+    } catch (error) {
+      console.error(error)
+      const errMsg = error instanceof Error ? error.message : "Failed to log in. Please check your credentials."
+      toast.error(errMsg)
+    } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <ResponsiveModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Login to BetixPro"
+      description="Enter your registered phone number and password to access your account."
+    >
+      <form onSubmit={handleSubmit} className="space-y-4 py-2">
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground block" htmlFor="login-phone">
+            Phone Number <span className="text-destructive">*</span>
+          </label>
+          <Input
+            id="login-phone"
+            type="tel"
+            placeholder="e.g. 0712345678"
+            value={phone}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)}
+            disabled={isSubmitting}
+            required
+            className="focus-visible:ring-primary"
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground block" htmlFor="login-password">
+            Password <span className="text-destructive">*</span>
+          </label>
+          <Input
+            id="login-password"
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+            disabled={isSubmitting}
+            required
+            className="focus-visible:ring-primary"
+          />
+        </div>
+        <div className="pt-4 flex flex-col gap-2">
+          <Button type="submit" disabled={isSubmitting} className="w-full bg-primary text-primary-foreground hover:opacity-90 font-semibold">
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Logging in...
+              </>
+            ) : (
+              "Log In"
+            )}
+          </Button>
+        </div>
+      </form>
+    </ResponsiveModal>
+  )
+}
+
+export function RegisterModal({ open, onOpenChange }: ModalProps) {
+  const { signIn } = useAuthActions()
+  const [username, setUsername] = React.useState("")
+  const [phone, setPhone] = React.useState("")
+  const [password, setPassword] = React.useState("")
+  const [confirmPassword, setConfirmPassword] = React.useState("")
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!username.trim()) {
+      toast.error("Please enter a username")
+      return
+    }
+    if (!phone.trim()) {
+      toast.error("Please enter a phone number")
+      return
+    }
+    if (!isValidKenyanPhone(phone)) {
+      toast.error("Please enter a valid Kenyan phone number (e.g. 0712345678)")
+      return
+    }
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters")
+      return
+    }
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match")
+      return
+    }
+
+    try {
+      setIsSubmitting(true)
+      const normalizedPhone = normalizeKenyanPhone(phone)
+      await signIn("password", {
+        email: normalizedPhone, // Store phone number as primary credential identity
+        username: username,
+        password,
+        flow: "signUp"
+      })
+      toast.success("Account created successfully!")
       onOpenChange(false)
       setUsername("")
       setPhone("")
       setPassword("")
-    }, 1000)
+      setConfirmPassword("")
+    } catch (error) {
+      console.error(error)
+      const errMsg = error instanceof Error ? error.message : "Failed to create account. Phone number might be already registered."
+      toast.error(errMsg)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Join BetixPro</DialogTitle>
-          <DialogDescription>
-            Create an account to start tracking your bets and managing your insights.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
+    <ResponsiveModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Join BetixPro"
+      description="Create an account to start tracking your bets and managing your insights."
+    >
+      <form onSubmit={handleSubmit} className="space-y-4 py-2">
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground block" htmlFor="reg-username">
+            Username <span className="text-destructive">*</span>
+          </label>
+          <Input
+            id="reg-username"
+            placeholder="e.g. jdoe"
+            value={username}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
+            disabled={isSubmitting}
+            required
+            className="focus-visible:ring-primary"
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground block" htmlFor="reg-phone">
+            M-Pesa Phone Number <span className="text-destructive">*</span>
+          </label>
+          <Input
+            id="reg-phone"
+            type="tel"
+            placeholder="e.g. 0712345678"
+            value={phone}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)}
+            disabled={isSubmitting}
+            required
+            className="focus-visible:ring-primary"
+          />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground block" htmlFor="reg-username">
-              Username <span className="text-destructive">*</span>
-            </label>
-            <Input
-              id="reg-username"
-              placeholder="e.g. jdoe"
-              value={username}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)}
-              disabled={isSubmitting}
-              required
-              className="focus-visible:ring-primary"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground block" htmlFor="reg-phone">
-              M-Pesa Phone Number <span className="text-destructive">*</span>
-            </label>
-            <Input
-              id="reg-phone"
-              placeholder="e.g. 0712345678"
-              value={phone}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)}
-              disabled={isSubmitting}
-              required
-              className="focus-visible:ring-primary"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground block" htmlFor="reg-password">
+            <label className="text-xs font-semibold text-muted-foreground block" htmlFor="reg-password">
               Password <span className="text-destructive">*</span>
             </label>
             <Input
@@ -184,20 +233,35 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
               className="focus-visible:ring-primary"
             />
           </div>
-          <DialogFooter className="pt-2">
-            <Button type="submit" disabled={isSubmitting} className="w-full bg-primary text-primary-foreground hover:opacity-90">
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating Account...
-                </>
-              ) : (
-                "Create Account"
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-muted-foreground block" htmlFor="reg-confirm-password">
+              Confirm Password <span className="text-destructive">*</span>
+            </label>
+            <Input
+              id="reg-confirm-password"
+              type="password"
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+              disabled={isSubmitting}
+              required
+              className="focus-visible:ring-primary"
+            />
+          </div>
+        </div>
+        <div className="pt-4 flex flex-col gap-2">
+          <Button type="submit" disabled={isSubmitting} className="w-full bg-primary text-primary-foreground hover:opacity-90 font-semibold">
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating Account...
+              </>
+            ) : (
+              "Create Account"
+            )}
+          </Button>
+        </div>
+      </form>
+    </ResponsiveModal>
   )
 }
 
@@ -214,13 +278,14 @@ export function DepositModal({ open, onOpenChange }: ModalProps) {
       toast.error("Minimum deposit amount is KES 10")
       return
     }
-    if (!phone.match(/^(\+254|0)?(7|1)\d{8}$/)) {
-      toast.error("Please enter a valid M-Pesa phone number")
+    if (!isValidKenyanPhone(phone)) {
+      toast.error("Please enter a valid M-Pesa phone number (e.g. 0712345678)")
       return
     }
 
     setIsSubmitting(true)
-    const promise = deposit(parsedAmount, phone)
+    const normalizedPhone = normalizeKenyanPhone(phone)
+    const promise = deposit(parsedAmount, normalizedPhone)
     toast.promise(promise, {
       loading: "Sending M-Pesa STK Push prompt to your phone...",
       success: () => {
@@ -234,53 +299,51 @@ export function DepositModal({ open, onOpenChange }: ModalProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">M-Pesa Deposit</DialogTitle>
-          <DialogDescription>
-            Enter your M-Pesa details. You will receive an STK push prompt on your mobile phone.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground block" htmlFor="dep-amount">
-              Amount (KES) <span className="text-destructive">*</span>
-            </label>
-            <Input
-              id="dep-amount"
-              type="number"
-              min="10"
-              placeholder="e.g. 500"
-              value={amount}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAmount(e.target.value)}
-              disabled={isSubmitting}
-              required
-              className="focus-visible:ring-primary"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground block" htmlFor="dep-phone">
-              M-Pesa Phone Number <span className="text-destructive">*</span>
-            </label>
-            <Input
-              id="dep-phone"
-              placeholder="e.g. 0712345678"
-              value={phone}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)}
-              disabled={isSubmitting}
-              required
-              className="focus-visible:ring-primary"
-            />
-          </div>
-          <DialogFooter className="pt-2">
-            <Button type="submit" disabled={isSubmitting} className="w-full bg-primary text-primary-foreground hover:opacity-90">
-              {isSubmitting ? "Processing..." : "Deposit Instantly"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <ResponsiveModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="M-Pesa Deposit"
+      description="Enter your M-Pesa details. You will receive an STK push prompt on your mobile phone."
+    >
+      <form onSubmit={handleSubmit} className="space-y-4 py-2">
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground block" htmlFor="dep-amount">
+            Amount (KES) <span className="text-destructive">*</span>
+          </label>
+          <Input
+            id="dep-amount"
+            type="number"
+            min="10"
+            placeholder="e.g. 500"
+            value={amount}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAmount(e.target.value)}
+            disabled={isSubmitting}
+            required
+            className="focus-visible:ring-primary"
+          />
+        </div>
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground block" htmlFor="dep-phone">
+            M-Pesa Phone Number <span className="text-destructive">*</span>
+          </label>
+          <Input
+            id="dep-phone"
+            type="tel"
+            placeholder="e.g. 0712345678"
+            value={phone}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPhone(e.target.value)}
+            disabled={isSubmitting}
+            required
+            className="focus-visible:ring-primary"
+          />
+        </div>
+        <div className="pt-4">
+          <Button type="submit" disabled={isSubmitting} className="w-full bg-primary text-primary-foreground hover:opacity-90 font-semibold">
+            {isSubmitting ? "Processing..." : "Deposit Instantly"}
+          </Button>
+        </div>
+      </form>
+    </ResponsiveModal>
   )
 }
 
@@ -314,39 +377,36 @@ export function WithdrawModal({ open, onOpenChange }: ModalProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Withdraw Winnings</DialogTitle>
-          <DialogDescription>
-            Withdraw your winnings directly to your M-Pesa mobile number. (Available: KES {walletBalance.toLocaleString()})
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4 py-2">
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-muted-foreground block" htmlFor="with-amount">
-              Amount (KES) <span className="text-destructive">*</span>
-            </label>
-            <Input
-              id="with-amount"
-              type="number"
-              min="50"
-              placeholder="e.g. 250"
-              value={amount}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAmount(e.target.value)}
-              disabled={isSubmitting}
-              required
-              className="focus-visible:ring-primary"
-            />
-          </div>
-          <DialogFooter className="pt-2">
-            <Button type="submit" disabled={isSubmitting} className="w-full bg-primary text-primary-foreground hover:opacity-90">
-              {isSubmitting ? "Processing..." : "Withdraw Now"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <ResponsiveModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Withdraw Winnings"
+      description={`Withdraw your winnings directly to your M-Pesa mobile number. (Available: KES ${walletBalance.toLocaleString()})`}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4 py-2">
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground block" htmlFor="with-amount">
+            Amount (KES) <span className="text-destructive">*</span>
+          </label>
+          <Input
+            id="with-amount"
+            type="number"
+            min="50"
+            placeholder="e.g. 250"
+            value={amount}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAmount(e.target.value)}
+            disabled={isSubmitting}
+            required
+            className="focus-visible:ring-primary"
+          />
+        </div>
+        <div className="pt-4">
+          <Button type="submit" disabled={isSubmitting} className="w-full bg-primary text-primary-foreground hover:opacity-90 font-semibold">
+            {isSubmitting ? "Processing..." : "Withdraw Now"}
+          </Button>
+        </div>
+      </form>
+    </ResponsiveModal>
   )
 }
 
@@ -366,15 +426,14 @@ export function ShareModal({ open, onOpenChange, matchName }: ShareModalProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px]">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Share Match Details</DialogTitle>
-          <DialogDescription>
-            Share the live odds and details for {matchName} with your friends.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex items-center space-x-2 py-4">
+    <ResponsiveModal
+      open={open}
+      onOpenChange={onOpenChange}
+      title="Share Match Details"
+      description={`Share the live odds and details for ${matchName} with your friends.`}
+    >
+      <div className="space-y-4 py-2">
+        <div className="flex items-center space-x-2">
           <Input
             value={`${shareUrl}?ref=share_match`}
             readOnly
@@ -384,12 +443,12 @@ export function ShareModal({ open, onOpenChange, matchName }: ShareModalProps) {
             {copied ? <CheckIcon className="h-4 w-4 text-green-500" /> : <CopyIcon className="h-4 w-4" />}
           </Button>
         </div>
-        <DialogFooter>
+        <div className="pt-4">
           <Button onClick={() => onOpenChange(false)} className="w-full">
             Done
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </ResponsiveModal>
   )
 }
