@@ -14,15 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { 
-  ChevronRight, 
-  ChevronLeft, 
   Flame, 
   PlusCircle, 
   PlayCircle,
   HelpCircle,
-  CheckCircle,
   Sparkles,
-  Search,
   DollarSign,
   TrendingUp,
   } from "lucide-react"
@@ -42,7 +38,6 @@ export default function Page() {
     setSelectedLeague,
     myBets,
     transactions,
-    walletBalance,
     settleAllBets
   } = useBetStore()
 
