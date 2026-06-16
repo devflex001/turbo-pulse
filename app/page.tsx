@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/sidebar"
 import { MatchCard } from "@/components/match-card"
 import { Betslip } from "@/components/betslip"
 import { BottomNav } from "@/components/bottom-nav"
+import { BanScreen } from "@/components/ban-screen"
 import { MOCK_MATCHES, MOCK_SLIDES, type Match } from "@/lib/mock-data"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,9 +16,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
-import { 
-  Flame, 
-  PlusCircle, 
+import { useConvexAuth, useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import {
+  Flame,
+  PlusCircle,
   PlayCircle,
   HelpCircle,
   Sparkles,
@@ -225,6 +228,18 @@ export default function Page() {
       setContactEmail("")
       setContactMsg("")
     }, 1200)
+  }
+
+  // Check if user is banned
+  const { isAuthenticated } = useConvexAuth()
+  const banStatus = useQuery(
+    api.adminUsers.getMyBanStatus,
+    isAuthenticated ? {} : "skip"
+  )
+
+  // Show ban screen for banned users
+  if (isAuthenticated && banStatus) {
+    return <BanScreen />
   }
 
   return (

@@ -133,6 +133,8 @@ export const resetDatabase = mutation({
     await clearTable("authSessions");           // refs users
     await clearTable("authAccounts");           // refs users
     await clearTable("authRateLimits");         // standalone
+    await clearTable("banAppeals");             // refs userBans
+    await clearTable("userBans");               // refs users + admins
     await clearTable("admins");                 // refs users
     await clearTable("users");                  // root
 

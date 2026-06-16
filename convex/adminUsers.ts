@@ -2,13 +2,14 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { MutationCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Throws if the caller is not a logged-in admin. Returns the admin doc. */
-async function requireAdmin(ctx: { db: (typeof ctx)["db"]; auth: (typeof ctx)["auth"] }) {
-  const userId = await getAuthUserId(ctx as Parameters<typeof getAuthUserId>[0]);
+async function requireAdmin(ctx: MutationCtx) {
+  const userId = await getAuthUserId(ctx);
   if (!userId) throw new Error("Not authenticated");
 
   const admin = await ctx.db

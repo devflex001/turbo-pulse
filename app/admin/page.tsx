@@ -8,6 +8,7 @@ import { api } from "@/convex/_generated/api"
 import { useBetStore } from "@/hooks/use-bet-store"
 import { useTheme } from "next-themes"
 import { Input } from "@/components/ui/input"
+import { AdminUsersPanel } from "@/components/admin-users-panel"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -677,6 +678,8 @@ export default function AdminDashboard() {
 
               </div>
             </>
+          ) : activeTab === "users" ? (
+            <AdminUsersPanel />
           ) : (
             <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground gap-3">
               <div className="p-4 bg-muted rounded-full">

@@ -38,7 +38,6 @@ import {
   Ban,
   ShieldCheck,
   Pencil,
-  ChevronLeft,
   ChevronRight,
   Loader2,
   AlertTriangle,
