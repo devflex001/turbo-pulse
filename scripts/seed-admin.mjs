@@ -1,3 +1,4 @@
+import { ConvexClient } from "convex/browser";
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -19,22 +20,16 @@ if (!phone) {
   process.exit(1);
 }
 
-const res = await fetch(
-  `${env.NEXT_PUBLIC_CONVEX_SITE_URL}/api/mutation`,
-  {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      path: "admin:seedAdminByPhone",
-      args: { phone, secret: env.ADMIN_SEED_SECRET },
-    }),
-  },
-);
+const client = new ConvexClient(env.NEXT_PUBLIC_CONVEX_URL);
 
-const data = await res.json();
-if (res.ok) {
+try {
+  const data = await client.mutation("admin:seedAdminByPhone", {
+    phone,
+    secret: env.ADMIN_SEED_SECRET,
+  });
   console.log("Admin seeded successfully:", data);
-} else {
-  console.error("Failed to seed admin:", data);
+  process.exit(0);
+} catch (error) {
+  console.error("Failed to seed admin:", error.message || error);
   process.exit(1);
 }
