@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useBetStore } from "@/hooks/use-bet-store"
+import { useBetStore, type PlacedBet } from "@/hooks/use-bet-store"
 import { Header } from "@/components/header"
 import { Sidebar } from "@/components/sidebar"
 import { MatchCard } from "@/components/match-card"
