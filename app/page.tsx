@@ -635,13 +635,13 @@ export default function Page() {
           {/* 6. HOW IT WORKS TAB */}
           {activeTab === "how-it-works" && (
             <div className="space-y-6">
-              <h2 className="text-lg font-bold text-foreground">How BetixPro Works</h2>
+              <h2 className="text-lg font-bold text-foreground">How BetFlow Works</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="border border-border rounded-lg p-4 space-y-2 bg-card text-card-foreground">
                   <span className="flex items-center justify-center size-7 rounded-full bg-primary text-primary-foreground font-bold text-xs">1</span>
                   <h3 className="font-bold text-sm">Register / Log In</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Set up your BetixPro profile with a username and your M-Pesa number. Your account details and wallet balance sync locally.
+                    Set up your BetFlow profile with a username and your M-Pesa number. Your account details and wallet balance sync locally.
                   </p>
                 </div>
                 <div className="border border-border rounded-lg p-4 space-y-2 bg-card text-card-foreground">
@@ -679,7 +679,7 @@ export default function Page() {
                     <HelpCircle className="size-4 shrink-0 text-primary mt-0.5" /> Is this real-money betting?
                   </h4>
                   <p className="text-xs text-muted-foreground pl-5.5 leading-relaxed">
-                    No. BetixPro is a mock sports betting dashboard built for visual testing, odds compilation simulations, and client demonstrations. No real currency is loaded or transacted.
+                    No. BetFlow is a mock sports betting dashboard built for visual testing, odds compilation simulations, and client demonstrations. No real currency is loaded or transacted.
                   </p>
                 </div>
                 <div className="border border-border p-4 rounded-lg bg-card text-card-foreground space-y-1">
@@ -754,7 +754,7 @@ export default function Page() {
           {/* Footer banner */}
           <footer className="mt-auto pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
             <div className="flex flex-col gap-1 text-center sm:text-left">
-              <span className="font-bold text-foreground text-sm">BetixPro</span>
+              <span className="font-bold text-foreground text-sm">BetFlow</span>
               <span>Smart betting tracker with fast M-Pesa simulations. Play responsibly.</span>
             </div>
             <div className="flex gap-4">

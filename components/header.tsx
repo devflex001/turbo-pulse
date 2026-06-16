@@ -47,10 +47,12 @@ export function Header() {
   const [depositOpen, setDepositOpen] = React.useState(false)
   const [withdrawOpen, setWithdrawOpen] = React.useState(false)
   const [betslipOpen, setBetslipOpen] = React.useState(false)
+  const [showMobileSearch, setShowMobileSearch] = React.useState(false)
 
   const handleLogoClick = () => {
     setActiveTab("home")
     setSearchQuery("")
+    setShowMobileSearch(false)
   }
 
   return (
@@ -59,13 +61,12 @@ export function Header() {
         <div className="flex h-16 items-center justify-between px-4 sm:px-6 md:grid md:grid-cols-3">
           {/* Brand/Logo */}
           <div className="flex items-center gap-2 cursor-pointer md:justify-self-start" onClick={handleLogoClick}>
-            <span className="text-xl font-bold tracking-tight text-foreground flex items-center gap-1.5">
-              <span className="bg-primary text-primary-foreground font-black px-2 py-0.5 rounded text-sm tracking-wider">PRO</span>
-              BetixPro
+            <span className="text-xl font-bold tracking-tight text-foreground">
+              BetFlow
             </span>
           </div>
 
-          {/* Search bar */}
+          {/* Search bar (Desktop) */}
           <div className="hidden md:flex relative max-w-md w-full justify-self-center">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input
@@ -86,31 +87,50 @@ export function Header() {
             )}
           </div>
 
-          {/* User Operations */}
-          <div className="flex items-center justify-end gap-3 md:justify-self-end">
-            {/* Search toggler for mobile */}
-            <div className="md:hidden relative w-36">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-                className="pl-8 h-8 w-full text-xs bg-muted/40"
-              />
-              {searchQuery && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0.5 top-1/2 -translate-y-1/2 size-6 text-muted-foreground hover:text-foreground"
-                  onClick={() => setSearchQuery("")}
-                >
-                  <X className="size-3" />
-                </Button>
-              )}
+          {/* User Operations / Actions */}
+          <div className="flex items-center justify-end gap-2 sm:gap-3 md:justify-self-end">
+            {/* Search Icon toggler for mobile */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden text-muted-foreground hover:text-foreground size-8 rounded-full"
+              onClick={() => setShowMobileSearch(!showMobileSearch)}
+            >
+              {showMobileSearch ? <X className="size-4" /> : <Search className="size-4" />}
+            </Button>
+
+            {/* Betslip Sheet trigger for mobile/tablet (always accessible) */}
+            <div className="xl:hidden">
+              <Sheet open={betslipOpen} onOpenChange={setBetslipOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="relative h-8 px-2 sm:px-2.5 text-xs font-semibold border-border flex items-center gap-1"
+                  >
+                    <span className="hidden sm:inline">Betslip</span>
+                    <span className="sm:hidden">Slip</span>
+                    {betslip.length > 0 && (
+                      <span className="absolute -top-1.5 -right-1.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground border border-background">
+                        {betslip.length}
+                      </span>
+                    )}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="w-full sm:max-w-md p-0 flex flex-col gap-0 border-l border-border bg-card">
+                  <SheetHeader className="p-4 border-b border-border bg-muted/20">
+                    <SheetTitle className="text-lg font-bold">Betslip Manager</SheetTitle>
+                    <SheetDescription className="text-xs">
+                      Review your selections and place your accumulator or single bets.
+                    </SheetDescription>
+                  </SheetHeader>
+                  <Betslip onClose={() => setBetslipOpen(false)} />
+                </SheetContent>
+              </Sheet>
             </div>
 
             {user ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 {/* Wallet Balance Display */}
                 <div className="hidden sm:flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-md text-xs font-semibold border border-border">
                   <Wallet className="size-3.5 text-primary" />
@@ -121,42 +141,16 @@ export function Header() {
                 <Button
                   onClick={() => setDepositOpen(true)}
                   size="sm"
-                  className="bg-primary text-primary-foreground font-semibold px-3 h-8 text-xs hover:opacity-90 flex items-center gap-1"
+                  className="bg-primary text-primary-foreground font-semibold px-2.5 sm:px-3 h-8 text-xs hover:opacity-90 flex items-center gap-1"
                 >
-                  <ArrowUpRight className="size-3" /> Deposit
+                  <ArrowUpRight className="size-3.5" />
+                  <span className="hidden sm:inline">Deposit</span>
                 </Button>
-
-                {/* Betslip Sheet trigger for mobile/desktop toggle if preferred */}
-                <Sheet open={betslipOpen} onOpenChange={setBetslipOpen}>
-                  <SheetTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="relative h-8 px-2.5 text-xs font-medium border-border"
-                    >
-                      Betslip
-                      {betslip.length > 0 && (
-                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground">
-                          {betslip.length}
-                        </span>
-                      )}
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent className="w-full sm:max-w-md p-0 flex flex-col gap-0 border-l border-border bg-card">
-                    <SheetHeader className="p-4 border-b border-border bg-muted/20">
-                      <SheetTitle className="text-lg font-bold">Betslip Manager</SheetTitle>
-                      <SheetDescription className="text-xs">
-                        Review your selections and place your accumulator or single bets.
-                      </SheetDescription>
-                    </SheetHeader>
-                    <Betslip onClose={() => setBetslipOpen(false)} />
-                  </SheetContent>
-                </Sheet>
 
                 {/* User menu dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="size-8 rounded-full border border-border hover:bg-muted/50">
+                    <Button variant="ghost" size="icon" className="size-8 rounded-full border border-border hover:bg-muted/50 shrink-0">
                       <User className="size-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -193,19 +187,19 @@ export function Header() {
                 </DropdownMenu>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <Button
                   variant="ghost"
                   onClick={() => setLoginOpen(true)}
                   size="sm"
-                  className="h-8 text-xs font-semibold hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                  className="h-8 px-2 sm:px-3 text-xs font-semibold hover:bg-muted/50 text-muted-foreground hover:text-foreground"
                 >
                   Log In
                 </Button>
                 <Button
                   onClick={() => setRegisterOpen(true)}
                   size="sm"
-                  className="bg-primary text-primary-foreground font-semibold px-4 h-8 text-xs hover:opacity-90"
+                  className="bg-primary text-primary-foreground font-semibold px-3 sm:px-4 h-8 text-xs hover:opacity-90"
                 >
                   Register
                 </Button>
@@ -213,6 +207,32 @@ export function Header() {
             )}
           </div>
         </div>
+
+        {/* Collapsible Mobile Search Card */}
+        {showMobileSearch && (
+          <div className="md:hidden border-t border-border bg-background p-3 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                placeholder="Search teams, leagues or match IDs..."
+                value={searchQuery}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-8 focus-visible:ring-primary h-9 w-full bg-muted/40 border-muted text-xs"
+                autoFocus
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 size-7 text-muted-foreground hover:text-foreground"
+                  onClick={() => setSearchQuery("")}
+                >
+                  <X className="size-3.5" />
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Modal Dialog wrappers */}

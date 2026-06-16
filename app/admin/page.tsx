@@ -167,7 +167,7 @@ export default function AdminDashboard() {
       new Promise((resolve) => setTimeout(resolve, 1200)),
       {
         loading: "Compiling transactions logs...",
-        success: "betixpro_transactions_export.csv downloaded successfully!",
+        success: "betflow_transactions_export.csv downloaded successfully!",
         error: "Export compilation failed.",
       }
     )
@@ -206,7 +206,7 @@ export default function AdminDashboard() {
           {!sidebarCollapsed && (
             <span className="text-sm font-bold tracking-tight text-foreground flex items-center gap-1.5 select-none">
               <span className="bg-primary text-primary-foreground font-black px-1.5 py-0.5 rounded text-xs">WORKSPACE</span>
-              BetixPro
+              BetFlow
             </span>
           )}
           <Button 
@@ -646,7 +646,7 @@ export default function AdminDashboard() {
               </div>
               <h2 className="text-sm font-bold text-foreground capitalize">{activeTab} Panel</h2>
               <p className="text-xs max-w-sm">
-                This section of the BetixPro admin workspace is mock-represented. Use the Dashboard tab to manage metrics and transaction logs.
+                This section of the BetFlow admin workspace is mock-represented. Use the Dashboard tab to manage metrics and transaction logs.
               </p>
             </div>
           )}

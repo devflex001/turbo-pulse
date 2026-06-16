@@ -17,7 +17,7 @@ export interface Match {
 export const MOCK_SLIDES = [
   {
     id: "slide-1",
-    title: "BetixPro Picks",
+    title: "BetFlow Picks",
     subtitle: "Bet Smarter, Win Bigger",
     description: "Get real-time insights and boosted odds on today's top football matches.",
     cta: "Explore Highlights"

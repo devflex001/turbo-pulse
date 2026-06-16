@@ -75,7 +75,7 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
     <ResponsiveModal
       open={open}
       onOpenChange={onOpenChange}
-      title="Login to BetixPro"
+      title="Login to BetFlow"
       description="Enter your registered phone number and password to access your account."
     >
       <form onSubmit={handleSubmit} className="space-y-4 py-2">
@@ -196,7 +196,7 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
     <ResponsiveModal
       open={open}
       onOpenChange={onOpenChange}
-      title="Join BetixPro"
+      title="Join BetFlow"
       description="Create an account to start tracking your bets and managing your insights."
     >
       <form onSubmit={handleSubmit} className="space-y-4 py-2">
@@ -457,7 +457,7 @@ interface ShareModalProps extends ModalProps {
 
 export function ShareModal({ open, onOpenChange, matchName }: ShareModalProps) {
   const [copied, setCopied] = React.useState(false)
-  const shareUrl = typeof window !== "undefined" ? window.location.href : "https://betixpro.com/user"
+  const shareUrl = typeof window !== "undefined" ? window.location.href : "https://betflow.com/user"
 
   const handleCopy = () => {
     navigator.clipboard.writeText(shareUrl + "?ref=share_match")
