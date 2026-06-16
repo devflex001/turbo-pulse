@@ -1,6 +1,9 @@
 "use client"
 
 import * as React from "react"
+import { useQuery } from "convex/react"
+import { useAuthActions } from "@convex-dev/auth/react"
+import { api } from "@/convex/_generated/api"
 
 export interface Selection {
   id: string          // unique identifier, e.g., matchId-outcome
@@ -165,13 +168,14 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
     }
     return SEED_TRANSACTIONS
   })
-  const [user, setUser] = React.useState<{ username: string } | null>(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("bet_user")
-      if (stored) return JSON.parse(stored)
-    }
-    return null
-  })
+  const convexUser = useQuery(api.users.currentUser)
+  const { signOut } = useAuthActions()
+
+  const user = React.useMemo(() => {
+    if (!convexUser) return null
+    return { username: convexUser.name || convexUser.phone || "User" }
+  }, [convexUser])
+
   const [activeTab, setActiveTabState] = React.useState<string>("home")
   const [searchQuery, setSearchQuery] = React.useState<string>("")
   const [selectedSport, setSelectedSport] = React.useState<string>("all")
@@ -217,16 +221,12 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
     })
   }
 
-  const login = (username: string) => {
-    const newUser = { username }
-    setUser(newUser)
-    localStorage.setItem("bet_user", JSON.stringify(newUser))
-    addNewUserCount() // register a new user registration in statistics
+  const login = (_username: string) => {
+    // Handled by Convex Auth
   }
 
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem("bet_user")
+  const logout = async () => {
+    await signOut()
     setBetslip([])
   }
 
