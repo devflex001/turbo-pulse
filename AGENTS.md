@@ -52,7 +52,7 @@ Allowed:
 * Table
 * Data Table
 * Form
-* Card (only when justified)
+* Card
 * Tabs
 * Dropdown Menu
 * Popover
