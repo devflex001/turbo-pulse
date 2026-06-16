@@ -430,53 +430,58 @@ export default function AdminDashboard() {
                 </p>
               </div>
 
-              {/* Metric Cards — 1 col on mobile, 3 on md+ */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-card border border-border text-card-foreground shadow-sm">
-                  <span className="text-[10px] font-bold text-muted-foreground tracking-wider uppercase">
-                    Total Users
+              {/* Metric Cards — always 3-across, compact on mobile */}
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                {/* Users */}
+                <div className="flex flex-col gap-1 p-2.5 sm:p-4 rounded-xl bg-card border border-border text-card-foreground shadow-sm min-w-0">
+                  <span className="text-[9px] sm:text-[10px] font-bold text-muted-foreground tracking-wider uppercase truncate">
+                    Users
                   </span>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-2xl font-extrabold font-mono">
+                  <div className="flex items-baseline gap-1 flex-wrap">
+                    <span className="text-lg sm:text-2xl font-extrabold font-mono leading-none">
                       {adminStats.totalUsers}
                     </span>
                     <Badge
                       variant="outline"
-                      className="text-[9px] font-bold bg-emerald-500/10 text-emerald-600 border-none px-1 rounded-sm"
+                      className="text-[8px] sm:text-[9px] font-bold bg-emerald-500/10 text-emerald-600 border-none px-1 rounded-sm hidden sm:inline-flex"
                     >
                       +1.2%
                     </Badge>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-card border border-border text-card-foreground shadow-sm">
-                  <span className="text-[10px] font-bold text-muted-foreground tracking-wider uppercase">
-                    Total Deposits
+                {/* Deposits */}
+                <div className="flex flex-col gap-1 p-2.5 sm:p-4 rounded-xl bg-card border border-border text-card-foreground shadow-sm min-w-0">
+                  <span className="text-[9px] sm:text-[10px] font-bold text-muted-foreground tracking-wider uppercase truncate">
+                    Deposits
                   </span>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-extrabold font-mono">
-                      KES {adminStats.totalDeposits.toLocaleString()}
+                  <div className="flex items-baseline gap-1 min-w-0">
+                    <span className="text-sm sm:text-2xl font-extrabold font-mono leading-none truncate">
+                      <span className="hidden sm:inline">KES </span>
+                      {adminStats.totalDeposits.toLocaleString()}
                     </span>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-1.5 p-4 rounded-xl bg-card border border-border text-card-foreground shadow-sm">
-                  <span className="text-[10px] font-bold text-muted-foreground tracking-wider uppercase">
-                    Active Bets
+                {/* Active Bets */}
+                <div className="flex flex-col gap-1 p-2.5 sm:p-4 rounded-xl bg-card border border-border text-card-foreground shadow-sm min-w-0">
+                  <span className="text-[9px] sm:text-[10px] font-bold text-muted-foreground tracking-wider uppercase truncate">
+                    Bets
                   </span>
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-2xl font-extrabold font-mono">
+                  <div className="flex items-baseline gap-1 flex-wrap">
+                    <span className="text-lg sm:text-2xl font-extrabold font-mono leading-none">
                       {adminStats.activeBets}
                     </span>
                     <Badge
                       variant="outline"
-                      className="text-[9px] font-bold bg-sky-500/10 text-sky-600 border-none px-1 rounded-sm"
+                      className="text-[8px] sm:text-[9px] font-bold bg-sky-500/10 text-sky-600 border-none px-1 rounded-sm"
                     >
                       Live
                     </Badge>
                   </div>
                 </div>
               </div>
+
 
               {/* Charts — 1 col on mobile, 2 on lg+ */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
