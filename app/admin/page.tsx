@@ -87,7 +87,7 @@ export default function AdminDashboard() {
   // Redirect non-admin users after checking status
   React.useEffect(() => {
     if (adminStatus && !adminStatus.isAdmin) {
-      router.push("/admin/login")
+      router.push("/")
     }
   }, [adminStatus, router])
 

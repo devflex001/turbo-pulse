@@ -12,7 +12,7 @@ export default convexAuthNextjsMiddleware(async (request, { convexAuth }) => {
   }
 
   if (!(await convexAuth.isAuthenticated())) {
-    return nextjsMiddlewareRedirect(request, "/admin/login");
+    return nextjsMiddlewareRedirect(request, "/");
   }
 });
 
