@@ -143,8 +143,9 @@ export default function AdminDashboard() {
     },
   }
 
+  
   const userChartConfig = {
-    count: {
+    count: { 
       label: "New Registrations",
       color: "var(--primary)",
     },
