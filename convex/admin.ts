@@ -90,3 +90,31 @@ export const seedAdminByPhone = mutation({
     return { success: true };
   },
 });
+
+/**
+ * Wipes all admin records from the admins table.
+ * Run via: pnpm db:reset  (calls `npx convex run admin:resetDatabase`)
+ * Optionally pass a secret when calling from a client.
+ */
+export const resetDatabase = mutation({
+  args: {
+    secret: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    if (args.secret !== undefined && args.secret !== process.env.ADMIN_SEED_SECRET) {
+      throw new Error("Invalid reset secret");
+    }
+
+    let deleted = 0;
+    while (true) {
+      const batch = await ctx.db.query("admins").take(50);
+      if (batch.length === 0) break;
+      for (const doc of batch) {
+        await ctx.db.delete(doc._id);
+        deleted++;
+      }
+    }
+
+    return { success: true, deleted };
+  },
+});

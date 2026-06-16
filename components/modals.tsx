@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import { useBetStore } from "@/hooks/use-bet-store"
 import { ResponsiveModal } from "@/components/ui/responsive-modal"
 import { Button } from "@/components/ui/button"
@@ -8,6 +9,8 @@ import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { CopyIcon, CheckIcon, Loader2, Eye, EyeOff } from "lucide-react"
 import { useAuthActions } from "@convex-dev/auth/react"
+import { useConvexAuth, useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 
 interface ModalProps {
   open: boolean
@@ -31,10 +34,37 @@ function normalizeKenyanPhone(phone: string): string {
 
 export function LoginModal({ open, onOpenChange }: ModalProps) {
   const { signIn } = useAuthActions()
+  const router = useRouter()
   const [phone, setPhone] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [showPassword, setShowPassword] = React.useState(false)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+  // After signIn resolves, poll admin status to decide where to route
+  const [checkingRole, setCheckingRole] = React.useState(false)
+  const { isAuthenticated } = useConvexAuth()
+  const adminStatus = useQuery(
+    api.admin.getAdminStatus,
+    checkingRole && isAuthenticated ? {} : "skip"
+  )
+
+  // When adminStatus resolves after login, route accordingly
+  React.useEffect(() => {
+    if (!checkingRole) return
+    if (adminStatus === undefined) return // still loading
+
+    setCheckingRole(false)
+    setIsSubmitting(false)
+    onOpenChange(false)
+    setPhone("")
+    setPassword("")
+
+    if (adminStatus.isAdmin) {
+      toast.success("Good to see you again, boss")
+      router.push("/admin")
+    } else {
+      toast.success("Welcome back!")
+    }
+  }, [adminStatus, checkingRole, onOpenChange, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,14 +89,11 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
         password,
         flow: "signIn"
       })
-      toast.success("Welcome back!")
-      onOpenChange(false)
-      setPhone("")
-      setPassword("")
+      // Trigger role check — the useEffect above handles the routing
+      setCheckingRole(true)
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : "Failed to log in. Please check your credentials."
       toast.error(errMsg)
-    } finally {
       setIsSubmitting(false)
     }
   }
@@ -132,8 +159,12 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
           </div>
         </div>
         <div className="pt-2 flex flex-col gap-2">
-          <Button type="submit" disabled={isSubmitting} className="w-full bg-primary text-primary-foreground hover:opacity-90 font-semibold">
-            {isSubmitting ? (
+          <Button type="submit" disabled={isSubmitting || checkingRole} className="w-full bg-primary text-primary-foreground hover:opacity-90 font-semibold">
+            {checkingRole ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying...
+              </>
+            ) : isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Logging in...
               </>

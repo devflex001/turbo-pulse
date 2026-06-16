@@ -10,7 +10,21 @@
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
-    "seed:admin": "node scripts/seed-admin.mjs"
+
+    "convex:dev": "npx convex dev",
+    "convex:deploy": "npx convex deploy",
+    "convex:codegen": "npx convex codegen",
+    "convex:dashboard": "npx convex dashboard",
+    "convex:logs": "npx convex logs",
+    "convex:env": "npx convex env list",
+    "convex:env:set": "npx convex env set",
+    "convex:import": "npx convex import",
+    "convex:export": "npx convex export",
+    "db:reset": "npx convex run admin:resetDatabase",
+
+    "seed:admin": "node scripts/seed-admin.mjs",
+
+    "dev:all": "concurrently \"npm run dev\" \"npm run convex:dev\""
   },
   "dependencies": {
     "@auth/core": "0.37.0",

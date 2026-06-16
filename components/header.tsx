@@ -20,7 +20,8 @@ import {
   History, 
   ArrowUpRight, 
   ArrowDownLeft,
-  X 
+  X,
+  LayoutDashboard
 } from "lucide-react"
 import { 
   LoginModal, 
@@ -30,6 +31,8 @@ import {
 } from "./modals"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Betslip } from "./betslip"
+import { useRoleRouter } from "@/hooks/use-role-router"
+import { useRouter } from "next/navigation"
 
 export function Header() {
   const { 
@@ -41,6 +44,10 @@ export function Header() {
     setActiveTab,
     betslip
   } = useBetStore()
+
+  // Role-based routing: admins are redirected to /admin on auth
+  const { isAdmin } = useRoleRouter()
+  const router = useRouter()
 
   const [loginOpen, setLoginOpen] = React.useState(false)
   const [registerOpen, setRegisterOpen] = React.useState(false)
@@ -158,10 +165,18 @@ export function Header() {
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex flex-col space-y-1">
                         <p className="text-sm font-semibold leading-none">{user.username}</p>
-                        <p className="text-xs leading-none text-muted-foreground">Registered User</p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                          {isAdmin ? "Administrator" : "Registered User"}
+                        </p>
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
+                    {isAdmin && (
+                      <DropdownMenuItem onClick={() => router.push("/admin")} className="text-primary focus:text-primary">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        <span>Admin Dashboard</span>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem className="sm:hidden flex items-center justify-between text-xs py-2">
                       <span className="flex items-center gap-2"><Wallet className="size-3.5" /> Balance:</span>
                       <span className="font-semibold">KES {walletBalance.toLocaleString()}</span>
