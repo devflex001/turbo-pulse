@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { toast } from "sonner"
 import { 
   Flame, 
@@ -226,18 +227,18 @@ export default function Page() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
       {/* Dynamic Header */}
       <Header />
 
       {/* Main Grid: Sidebar (240px) | Main Area (flex-1) | Betslip (320px) on desktop */}
-      <div className="flex-1 flex max-w-[1400px] w-full mx-auto">
+      <div className="flex-1 flex max-w-[1400px] w-full mx-auto overflow-hidden">
         
         {/* Left Sidebar */}
-        <Sidebar className="hidden lg:flex w-60 shrink-0" />
+        <Sidebar className="hidden lg:flex w-60 shrink-0 h-full" />
 
         {/* Main Content Area */}
-        <main className="flex-1 min-w-0 p-4 sm:p-6 flex flex-col gap-6">
+        <main className="flex-1 min-w-0 p-4 sm:p-6 overflow-y-auto h-full flex flex-col gap-6 scrollbar-thin">
           
           {/* Sub Navigation Sports/Leagues bar */}
           {activeTab === "home" && (
@@ -314,6 +315,19 @@ export default function Page() {
                   <p className="text-xs text-muted-foreground max-w-md hidden sm:block leading-relaxed">
                     {MOCK_SLIDES[slideIndex].description}
                   </p>
+                  <div className="pt-2">
+                    <Button 
+                      size="sm" 
+                      className="h-8 text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90"
+                      onClick={() => {
+                        if (slideIndex === 0) setActiveTab("home");
+                        else if (slideIndex === 1) setActiveTab("home"); 
+                        else if (slideIndex === 2) setActiveTab("featured");
+                      }}
+                    >
+                      {MOCK_SLIDES[slideIndex].cta}
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Bottom carousel controls */}
@@ -416,60 +430,66 @@ export default function Page() {
 
           {/* 4. CUSTOM EVENTS TAB */}
           {activeTab === "custom" && (
-            <div className="space-y-6">
-              <div className="space-y-1.5">
-                <h2 className="text-lg font-bold text-foreground">Custom Fixtures Lab</h2>
-                <p className="text-xs text-muted-foreground">
-                  Create your own custom matches, set mock odds, and add them to the selection pool to test slip returns.
-                </p>
-              </div>
-
-              <form onSubmit={handleAddCustomMatch} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 border border-border p-4 rounded-lg bg-card text-card-foreground">
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-home">Home Team Name</label>
-                  <Input id="c-home" placeholder="e.g. Real Madrid" value={customHome} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomHome(e.target.value)} required />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-away">Away Team Name</label>
-                  <Input id="c-away" placeholder="e.g. Barcelona" value={customAway} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomAway(e.target.value)} required />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-sport">Sport Type</label>
-                  <Select value={customSport} onValueChange={(v: "football" | "basketball" | "tennis") => setCustomSport(v)}>
-                    <SelectTrigger id="c-sport" className="w-full">
-                      <SelectValue placeholder="Football" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="football">Football</SelectItem>
-                      <SelectItem value="basketball">Basketball</SelectItem>
-                      <SelectItem value="tennis">Tennis</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-league">League Name</label>
-                  <Input id="c-league" placeholder="e.g. Custom League" value={customLeague} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomLeague(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-odds1">Home Win Odds (1)</label>
-                  <Input id="c-odds1" type="number" step="0.01" min="1.01" value={customOdds1} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomOdds1(e.target.value)} required />
-                </div>
-                {customSport === "football" && (
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-oddsX">Draw Odds (X)</label>
-                    <Input id="c-oddsX" type="number" step="0.01" min="1.01" value={customOddsX} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomOddsX(e.target.value)} />
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-odds2">Away Win Odds (2)</label>
-                  <Input id="c-odds2" type="number" step="0.01" min="1.01" value={customOdds2} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomOdds2(e.target.value)} required />
-                </div>
-                <div className="sm:col-span-2 lg:col-span-3 pt-2">
-                  <Button type="submit" className="w-full bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-1.5">
-                    <PlusCircle className="size-4" /> Add Match to Board
-                  </Button>
-                </div>
-              </form>
+            <div className="space-y-6 max-w-4xl">
+              <Card className="border border-border bg-card">
+                <CardHeader>
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <PlusCircle className="size-4 text-primary" />
+                    <span>Custom Fixtures Lab</span>
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Create your own custom matches, set mock odds, and add them to the selection pool to test slip returns.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleAddCustomMatch} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-home">Home Team Name</label>
+                      <Input id="c-home" placeholder="e.g. Real Madrid" value={customHome} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomHome(e.target.value)} required />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-away">Away Team Name</label>
+                      <Input id="c-away" placeholder="e.g. Barcelona" value={customAway} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomAway(e.target.value)} required />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-sport">Sport Type</label>
+                      <Select value={customSport} onValueChange={(v: "football" | "basketball" | "tennis") => setCustomSport(v)}>
+                        <SelectTrigger id="c-sport" className="w-full">
+                          <SelectValue placeholder="Football" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="football">Football</SelectItem>
+                          <SelectItem value="basketball">Basketball</SelectItem>
+                          <SelectItem value="tennis">Tennis</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-league">League Name</label>
+                      <Input id="c-league" placeholder="e.g. Custom League" value={customLeague} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomLeague(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-odds1">Home Win Odds (1)</label>
+                      <Input id="c-odds1" type="number" step="0.01" min="1.01" value={customOdds1} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomOdds1(e.target.value)} required />
+                    </div>
+                    {customSport === "football" && (
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-oddsX">Draw Odds (X)</label>
+                        <Input id="c-oddsX" type="number" step="0.01" min="1.01" value={customOddsX} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomOddsX(e.target.value)} />
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-odds2">Away Win Odds (2)</label>
+                      <Input id="c-odds2" type="number" step="0.01" min="1.01" value={customOdds2} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCustomOdds2(e.target.value)} required />
+                    </div>
+                    <div className="sm:col-span-2 lg:col-span-3 pt-2">
+                      <Button type="submit" className="w-full bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-1.5">
+                        <PlusCircle className="size-4" /> Add Match to Board
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
             </div>
           )}
 
@@ -693,38 +713,41 @@ export default function Page() {
           {/* 8. CONTACT US TAB */}
           {activeTab === "contact" && (
             <div className="space-y-6 max-w-xl">
-              <div className="space-y-1">
-                <h2 className="text-lg font-bold text-foreground">Contact Support</h2>
-                <p className="text-xs text-muted-foreground">
-                  Have inquiries or need help testing features? Send us a message and our support team will reply within 24 hours.
-                </p>
-              </div>
-
-              <form onSubmit={handleContactSubmit} className="border border-border p-5 rounded-lg bg-card text-card-foreground space-y-4">
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-name">Full Name <span className="text-destructive">*</span></label>
-                  <Input id="c-name" placeholder="John Doe" value={contactName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setContactName(e.target.value)} required />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-email">Email Address <span className="text-destructive">*</span></label>
-                  <Input id="c-email" type="email" placeholder="john@example.com" value={contactEmail} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setContactEmail(e.target.value)} required />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-msg">Message / Description <span className="text-destructive">*</span></label>
-                  <textarea
-                    id="c-msg"
-                    rows={4}
-                    placeholder="Describe your inquiry..."
-                    value={contactMsg}
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setContactMsg(e.target.value)}
-                    required
-                    className="w-full text-sm p-3 rounded-md bg-transparent border border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary placeholder:text-muted-foreground"
-                  />
-                </div>
-                <Button type="submit" disabled={isSendingContact} className="w-full bg-primary text-primary-foreground font-semibold">
-                  {isSendingContact ? "Sending..." : "Submit Message"}
-                </Button>
-              </form>
+              <Card className="border border-border bg-card">
+                <CardHeader>
+                  <CardTitle className="text-sm font-bold">Contact Support</CardTitle>
+                  <CardDescription className="text-xs">
+                    Have inquiries or need help testing features? Send us a message and our support team will reply within 24 hours.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleContactSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-name">Full Name <span className="text-destructive">*</span></label>
+                      <Input id="c-name" placeholder="John Doe" value={contactName} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setContactName(e.target.value)} required />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-email">Email Address <span className="text-destructive">*</span></label>
+                      <Input id="c-email" type="email" placeholder="john@example.com" value={contactEmail} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setContactEmail(e.target.value)} required />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-msg">Message / Description <span className="text-destructive">*</span></label>
+                      <textarea
+                        id="c-msg"
+                        rows={4}
+                        placeholder="Describe your inquiry..."
+                        value={contactMsg}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setContactMsg(e.target.value)}
+                        required
+                        className="w-full text-sm p-3 rounded-md bg-transparent border border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary placeholder:text-muted-foreground"
+                      />
+                    </div>
+                    <Button type="submit" disabled={isSendingContact} className="w-full bg-primary text-primary-foreground font-semibold">
+                      {isSendingContact ? "Sending..." : "Submit Message"}
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
             </div>
           )}
 

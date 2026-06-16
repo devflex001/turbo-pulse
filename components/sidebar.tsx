@@ -70,7 +70,7 @@ export function Sidebar({ className }: SidebarProps) {
                 className={cn(
                   "w-full justify-between font-normal text-sm px-3 py-2 h-9",
                   isActive 
-                    ? "bg-accent text-accent-foreground font-medium" 
+                    ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary font-semibold" 
                     : "hover:bg-accent/50 text-muted-foreground hover:text-foreground"
                 )}
                 onClick={() => handleTabClick(item.id)}
@@ -104,7 +104,7 @@ export function Sidebar({ className }: SidebarProps) {
                 className={cn(
                   "w-full justify-between font-normal text-sm px-3 py-2 h-9",
                   isSportActive 
-                    ? "bg-accent text-accent-foreground font-medium" 
+                    ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary font-semibold" 
                     : "hover:bg-accent/50 text-muted-foreground hover:text-foreground"
                 )}
                 onClick={() => handleTabClick(sport.id)}
@@ -135,7 +135,7 @@ export function Sidebar({ className }: SidebarProps) {
                 className={cn(
                   "w-full justify-start gap-2.5 font-normal text-sm px-3 py-2 h-9",
                   isActive 
-                    ? "bg-accent text-accent-foreground font-medium" 
+                    ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary font-semibold" 
                     : "hover:bg-accent/50 text-muted-foreground hover:text-foreground"
                 )}
                 onClick={() => handleTabClick(item.id)}
