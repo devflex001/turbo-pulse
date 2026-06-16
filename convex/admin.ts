@@ -52,3 +52,41 @@ export const seedAdmin = mutation({
     return { success: true };
   },
 });
+
+export const seedAdminByPhone = mutation({
+  args: {
+    phone: v.string(),
+    secret: v.string(),
+  },
+  handler: async (ctx, args) => {
+    if (args.secret !== process.env.ADMIN_SEED_SECRET) {
+      throw new Error("Invalid seed secret");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("phone", (q) => q.eq("phone", args.phone))
+      .unique();
+
+    if (!user) {
+      throw new Error(`No user found with phone ${args.phone}`);
+    }
+
+    const existingAdmin = await ctx.db
+      .query("admins")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .unique();
+
+    if (existingAdmin) {
+      return { success: true, message: "User is already an admin" };
+    }
+
+    await ctx.db.insert("admins", {
+      userId: user._id,
+      email: user.email ?? "",
+      addedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
