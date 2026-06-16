@@ -60,8 +60,6 @@ type UserWithBan = {
   _id: Id<"users">
   _creationTime: number
   phone?: string
-  email?: string
-  name?: string
   activeBan: ActiveBan | null
 }
 
@@ -256,32 +254,30 @@ interface EditDrawerProps {
 function EditDrawer({ user, open, onClose }: EditDrawerProps) {
   const editUser = useMutation(api.adminUsers.editUser)
   const [phone, setPhone] = React.useState("")
-  const [email, setEmail] = React.useState("")
-  const [name, setName] = React.useState("")
   const [loading, setLoading] = React.useState(false)
 
   // Pre-populate when drawer opens
   React.useEffect(() => {
     if (user && open) {
       setPhone(user.phone ?? "")
-      setEmail(user.email ?? "")
-      setName(user.name ?? "")
     }
   }, [user, open])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!user) return
+    if (!phone.trim()) {
+      toast.error("Phone number is required")
+      return
+    }
 
     try {
       setLoading(true)
       await editUser({
         targetUserId: user._id,
-        phone: phone.trim() || undefined,
-        email: email.trim() || undefined,
-        name: name.trim() || undefined,
+        phone: phone.trim(),
       })
-      toast.success("User updated successfully")
+      toast.success("Phone number updated")
       onClose()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to update user")
@@ -297,24 +293,24 @@ function EditDrawer({ user, open, onClose }: EditDrawerProps) {
           <DrawerHeader className="text-left">
             <DrawerTitle className="flex items-center gap-2 text-base">
               <Pencil className="size-4 text-primary" />
-              Edit User
+              Edit Phone Number
             </DrawerTitle>
             <DrawerDescription>
-              Update profile details for{" "}
+              Update phone number for{" "}
               <span className="font-mono font-semibold text-foreground">
-                {user?.phone ?? user?.email ?? user?._id}
+                {user?.phone ?? user?._id}
               </span>
               .
             </DrawerDescription>
           </DrawerHeader>
 
-          <form onSubmit={handleSubmit} className="px-6 space-y-4">
+          <form id="edit-user-form" onSubmit={handleSubmit} className="px-6 space-y-4">
             <div className="space-y-2">
               <label
                 className="text-xs font-semibold text-muted-foreground block"
                 htmlFor="edit-phone"
               >
-                Phone Number
+                Phone Number <span className="text-destructive">*</span>
               </label>
               <Input
                 id="edit-phone"
@@ -324,42 +320,8 @@ function EditDrawer({ user, open, onClose }: EditDrawerProps) {
                 onChange={(e) => setPhone(e.target.value)}
                 disabled={loading}
                 className="focus-visible:ring-primary text-sm"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label
-                className="text-xs font-semibold text-muted-foreground block"
-                htmlFor="edit-email"
-              >
-                Email Address
-              </label>
-              <Input
-                id="edit-email"
-                type="email"
-                placeholder="e.g. user@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
-                className="focus-visible:ring-primary text-sm"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label
-                className="text-xs font-semibold text-muted-foreground block"
-                htmlFor="edit-name"
-              >
-                Display Name
-              </label>
-              <Input
-                id="edit-name"
-                type="text"
-                placeholder="e.g. Jane Doe"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={loading}
-                className="focus-visible:ring-primary text-sm"
+                required
+                autoFocus
               />
             </div>
           </form>
@@ -367,9 +329,9 @@ function EditDrawer({ user, open, onClose }: EditDrawerProps) {
           <DrawerFooter className="pt-4">
             <Button
               type="submit"
-              form="edit-form"
+              form="edit-user-form"
               className="w-full font-semibold"
-              disabled={loading}
+              disabled={loading || !phone.trim()}
             >
               {loading ? (
                 <>
@@ -388,6 +350,13 @@ function EditDrawer({ user, open, onClose }: EditDrawerProps) {
               disabled={loading}
             >
               Cancel
+            </Button>
+          </DrawerFooter>
+        </div>
+      </DrawerContent>
+    </Drawer>
+  )
+}
             </Button>
           </DrawerFooter>
         </div>
@@ -423,14 +392,14 @@ export function AdminUsersPanel() {
   async function handleUnban(user: UserWithBan) {
     try {
       await unbanUser({ targetUserId: user._id })
-      toast.success(`${user.phone ?? user.email ?? "User"} has been unbanned`)
+      toast.success(`${user.phone ?? user._id.slice(-8)} has been unbanned`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to unban user")
     }
   }
 
   const displayName = (u: UserWithBan) =>
-    u.name ?? u.phone ?? u.email ?? u._id.slice(-8)
+    u.phone ?? u._id.slice(-8)
 
   return (
     <div className="space-y-4">

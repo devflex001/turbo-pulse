@@ -228,23 +228,15 @@ export const unbanUser = mutation({
 export const editUser = mutation({
   args: {
     targetUserId: v.id("users"),
-    phone: v.optional(v.string()),
-    email: v.optional(v.string()),
-    name: v.optional(v.string()),
+    phone: v.string(),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
 
-    const patch: Record<string, string> = {};
-    if (args.phone !== undefined) patch.phone = args.phone;
-    if (args.email !== undefined) patch.email = args.email;
-    if (args.name !== undefined) patch.name = args.name;
+    const phone = args.phone.trim();
+    if (!phone) throw new Error("Phone number is required");
 
-    if (Object.keys(patch).length === 0) {
-      throw new Error("No fields to update");
-    }
-
-    await ctx.db.patch(args.targetUserId, patch);
+    await ctx.db.patch(args.targetUserId, { phone });
     return { success: true };
   },
 });
