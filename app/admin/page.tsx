@@ -244,7 +244,6 @@ export default function AdminDashboard() {
         <div className="flex items-center justify-between px-4">
           {!sidebarCollapsed && (
             <span className="text-sm font-bold tracking-tight text-foreground flex items-center gap-1.5 select-none">
-              <span className="bg-primary text-primary-foreground font-black px-1.5 py-0.5 rounded text-xs">WORKSPACE</span>
               BetFlow
             </span>
           )}
