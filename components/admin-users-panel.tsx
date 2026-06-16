@@ -150,7 +150,7 @@ function BanDrawer({ user, open, onClose }: BanDrawerProps) {
     }
   }
 
-  const displayId = user?.phone ?? user?.email ?? user?._id ?? ""
+  const displayId = user?.phone ?? user?._id ?? ""
 
   return (
     <Drawer open={open} onOpenChange={(v) => !v && onClose()}>
@@ -356,6 +356,7 @@ function EditDrawer({ user, open, onClose }: EditDrawerProps) {
       </DrawerContent>
     </Drawer>
   )
+}
 
 // ─── Main Users Panel ─────────────────────────────────────────────────────────
 
