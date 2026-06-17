@@ -125,7 +125,7 @@ export function Sidebar({ className }: SidebarProps) {
 
       <div className="px-4">
         <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          PayHero Services
+          Services
         </h2>
         <div className="space-y-1">
           <Button
@@ -135,14 +135,6 @@ export function Sidebar({ className }: SidebarProps) {
           >
             <ArrowUpRight className="size-4 text-emerald-500" />
             <span>Deposit Funds</span>
-          </Button>
-          <Button
-            variant="ghost"
-            className="h-9 w-full justify-start gap-2.5 px-3 text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-            onClick={() => router.push("/test-payhero")}
-          >
-            <Activity className="size-4 text-indigo-500" />
-            <span>PayHero Console</span>
           </Button>
         </div>
       </div>

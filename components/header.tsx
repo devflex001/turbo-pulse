@@ -190,10 +190,6 @@ export function Header() {
                       <ArrowUpRight className="mr-2 h-4 w-4 text-emerald-500" />
                       <span>Deposit (M-Pesa)</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => router.push("/test-payhero")}>
-                      <LayoutDashboard className="mr-2 h-4 w-4 text-indigo-500" />
-                      <span>PayHero API Console</span>
-                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setWithdrawOpen(true)}>
                       <ArrowDownLeft className="mr-2 h-4 w-4 text-rose-500" />
                       <span>Withdraw Winnings</span>

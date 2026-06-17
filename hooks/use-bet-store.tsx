@@ -61,24 +61,6 @@ interface BetStoreContextType {
   addToBetslip: (selection: Selection) => void
   removeFromBetslip: (id: string) => void
   clearBetslip: () => void
-  deposit: (amount: number, phone: string, options?: {
-    provider?: string
-    network_code?: string
-    channel_id?: number
-    account_id?: number
-    external_reference?: string
-    callback_url?: string
-  }) => Promise<boolean>
-  withdraw: (amount: number, options?: {
-    phone?: string
-    channel?: string
-    network_code?: string
-    channel_id?: number
-    account_id?: number
-    external_reference?: string
-    callback_url?: string
-    account_number?: string
-  }) => Promise<boolean>
   placeBet: (stake: number) => boolean
   login: () => void
   logout: () => void
@@ -286,134 +268,6 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
     setBetslip([])
   }
 
-  const deposit = async (
-    amount: number,
-    phone: string,
-    options?: {
-      provider?: string
-      network_code?: string
-      channel_id?: number
-      account_id?: number
-      external_reference?: string
-      callback_url?: string
-    }
-  ): Promise<boolean> => {
-    try {
-      const payload = {
-        amount,
-        phone_number: phone,
-        provider: options?.provider || "m-pesa",
-        network_code: options?.network_code || "63902",
-        channel_id: options?.channel_id || 100,
-        account_id: options?.account_id || 5,
-        external_reference: options?.external_reference || "ext_" + Math.random().toString(36).substr(2, 9),
-        callback_url: options?.callback_url || "https://your-callback-url.com/webhook",
-      }
-
-      const response = await fetch("/api/payhero/payments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-
-      const data = await response.json()
-      if (!response.ok || !data.success) {
-        console.error("PayHero payments call failed:", data)
-        return false
-      }
-
-      // Create a pending transaction
-      const newTx: Transaction = {
-        id: data.reference || "TX-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
-        type: "deposit",
-        amount,
-        phone,
-        time: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + ", " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        status: "pending",
-      }
-
-      // Save transactions
-      const updatedTxs = [newTx, ...transactions]
-      saveTx(updatedTxs)
-
-      // Simulate a status update after 12 seconds representing the user confirming the prompt
-      setTimeout(() => {
-        // Find if transaction is still pending before auto-crediting
-        const stored = localStorage.getItem("bet_transactions")
-        if (stored) {
-          const list: Transaction[] = JSON.parse(stored)
-          const tx = list.find((t) => t.id === newTx.id)
-          if (tx && tx.status === "pending") {
-            updateAdminTransactionStatus(newTx.id, "success")
-          }
-        }
-      }, 12000)
-
-      return true
-    } catch (error) {
-      console.error("Error in deposit execution:", error)
-      return false
-    }
-  }
-
-  const withdraw = async (
-    amount: number,
-    options?: {
-      phone?: string
-      channel?: string
-      network_code?: string
-      channel_id?: number
-      account_id?: number
-      external_reference?: string
-      callback_url?: string
-      account_number?: string
-    }
-  ): Promise<boolean> => {
-    if (amount > walletBalance) return false
-    try {
-      const payload = {
-        amount,
-        phone_number: options?.phone || "+254708344101",
-        channel: options?.channel || "mobile",
-        network_code: options?.network_code || "63902",
-        channel_id: options?.channel_id || 1523,
-        account_id: options?.account_id || 5,
-        external_reference: options?.external_reference || "ext_" + Math.random().toString(36).substr(2, 9),
-        callback_url: options?.callback_url || "https://your-callback-url.com/webhook",
-        account_number: options?.account_number || "",
-      }
-
-      const response = await fetch("/api/payhero/withdraw", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-
-      const data = await response.json()
-      if (!response.ok || data.status !== "QUEUED") {
-        console.error("PayHero withdraw call failed:", data)
-        return false
-      }
-
-      // Deduct balance and create a transaction
-      const newBalance = walletBalance - amount
-      saveBalance(newBalance)
-
-      const newTx: Transaction = {
-        id: data.merchant_reference || "TX-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
-        type: "withdrawal",
-        amount,
-        time: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + ", " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        status: "success",
-      }
-      saveTx([newTx, ...transactions])
-      return true
-    } catch (error) {
-      console.error("Error in withdraw execution:", error)
-      return false
-    }
-  }
-
   const placeBet = (stake: number): boolean => {
     if (stake <= 0 || betslip.length === 0) return false
     if (stake > walletBalance) return false
@@ -519,8 +373,6 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
         addToBetslip,
         removeFromBetslip,
         clearBetslip,
-        deposit,
-        withdraw,
         placeBet,
         login,
         logout,

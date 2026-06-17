@@ -200,3 +200,12 @@ export const listOddsByMatch = query({
       .take(4000);
   },
 });
+
+export const listAllMarketNamesAndOdds = query({
+  args: {},
+  handler: async (ctx) => {
+    const odds = await ctx.db.query("sportsOdds").take(150);
+    return odds.map(o => ({ marketName: o.marketName, marketKey: o.marketKey, outcomeName: o.outcomeName, outcomeAlias: o.outcomeAlias }));
+  }
+});
+

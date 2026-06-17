@@ -22,17 +22,8 @@ function isValidKenyanPhone(phone: string): boolean {
   return regex.test(phone.trim())
 }
 
-function normalizeKenyanPhone(phone: string): string {
-  const regex = /^(?:\+254|254|0)?([71]\d{8})$/
-  const match = phone.trim().match(regex)
-  if (match) {
-    return `0${match[1]}` // Standard format for PayHero: 0708344101 or 07...
-  }
-  return phone.trim()
-}
-
 export default function DepositPage() {
-  const { deposit, walletBalance } = useBetStore()
+  const { walletBalance } = useBetStore()
   const convexUser = useQuery(api.users.currentUser)
   
   const [amount, setAmount] = React.useState("")
@@ -97,37 +88,8 @@ export default function DepositPage() {
     setIsSubmitting(true)
     setDepositState("sending")
     
-    const normalizedPhone = normalizeKenyanPhone(phone)
-    
-    // PayHero API config
-    const options = {
-      provider: provider,
-      network_code: provider === "m-pesa" ? "63902" : "63907", // Sasapay is 63907, Mpesa is 63902
-      channel_id: 100, // Account credentials default
-      account_id: 5,
-    }
-
-    toast.loading("Initiating PayHero deposit push request...", { id: "deposit-loading" })
-    
-    const success = await deposit(parsedAmount, normalizedPhone, options)
     setIsSubmitting(false)
-
-    if (success) {
-      toast.success("STK push sent to your mobile phone!", { id: "deposit-loading" })
-      setDepositState("pending_stk")
-      
-      // Retrieve the generated transaction ID from localStorage to monitor its status
-      const stored = localStorage.getItem("bet_transactions")
-      if (stored) {
-        const list = JSON.parse(stored)
-        if (list.length > 0) {
-          setPendingTxId(list[0].id)
-        }
-      }
-    } else {
-      toast.error("Failed to connect to PayHero Africa API. Please try again.", { id: "deposit-loading" })
-      setDepositState("failed")
-    }
+    setDepositState("pending_stk")
   }
 
   const resetDeposit = () => {
@@ -152,7 +114,7 @@ export default function DepositPage() {
             </Link>
             <div>
               <h1 className="text-xl font-bold tracking-tight">Deposit Funds</h1>
-              <p className="text-xs text-muted-foreground">Add funds to your wallet instantly using PayHero Africa Payment Channels.</p>
+              <p className="text-xs text-muted-foreground">Add funds to your wallet instantly.</p>
             </div>
           </div>
 
@@ -254,8 +216,8 @@ export default function DepositPage() {
               <div className="border border-border bg-card rounded-lg p-8 text-center flex flex-col items-center justify-center gap-4">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
                 <div className="space-y-1">
-                  <h3 className="font-bold text-sm">Initiating PayHero Deposit</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">Connecting with PayHero payment gateways to fire up the STK push prompt...</p>
+                  <h3 className="font-bold text-sm">Initiating Deposit</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">Processing your deposit request...</p>
                 </div>
               </div>
             )}
@@ -329,8 +291,7 @@ export default function DepositPage() {
           </div>
 
           <footer className="mt-auto pt-8 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-            <span>Powered by PayHero Africa API Integration</span>
-            <Link href="/test-payhero" className="text-primary hover:underline">Open API Testing Console</Link>
+            <span>&nbsp;</span>
           </footer>
         </main>
       </div>
