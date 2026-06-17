@@ -255,7 +255,7 @@ export function MarketsBrowser({
       )}
 
       {selectedMarket && !odds && (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,180px),1fr))] gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <Skeleton className="h-14 w-full" />
           <Skeleton className="h-14 w-full" />
           <Skeleton className="h-14 w-full" />
@@ -264,7 +264,7 @@ export function MarketsBrowser({
       )}
 
       {odds && odds.length > 0 && (
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,180px),1fr))] gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {[...odds]
             .sort((a, b) => compareFormattedOdds(a, b, match) || sortOdds(a, b))
             .map(renderOddButton)}
@@ -310,24 +310,21 @@ export function MarketsBrowser({
         if (!marketOdds.length) return null
 
         return (
-          <section key={market.marketKey} className="rounded-lg border border-border bg-card">
-            <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-              <div className="min-w-0">
-                <h3 className="truncate text-sm font-bold leading-tight">{market.name}</h3>
-                <p className="truncate text-xs text-muted-foreground">
-                  {market.marketTypes.length > 0
-                    ? market.marketTypes.join(", ")
-                    : market.marketType || "Other"}
-                </p>
+            <section key={market.marketKey} className="rounded-lg border border-border bg-card">
+              <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+                <div className="min-w-0">
+                  <h3 className="truncate text-sm font-bold leading-tight">{market.name}</h3>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {market.marketTypes.length > 0
+                      ? market.marketTypes.join(", ")
+                      : market.marketType || "Other"}
+                  </p>
+                </div>
               </div>
-              <span className="shrink-0 rounded-md border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground">
-                {marketOdds.length} odds
-              </span>
-            </div>
 
-            <div className="grid grid-cols-[repeat(auto-fit,minmax(112px,1fr))] gap-2 p-3">
-              {marketOdds.map(renderOddButton)}
-            </div>
+              <div className="grid grid-cols-3 gap-2 p-3">
+                {marketOdds.map(renderOddButton)}
+              </div>
           </section>
         )
       })}
