@@ -166,6 +166,7 @@ export function MarketsBrowser({
       marketName: odd.marketName,
       outcomeName: odd.outcomeName,
       specifiers: odd.specifiers,
+      matchStartTime: match.startTime,
     })
   }
 

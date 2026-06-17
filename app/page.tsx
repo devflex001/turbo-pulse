@@ -4,26 +4,23 @@ import * as React from "react"
 import Image from "next/image"
 import { useConvexAuth, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import { useBetStore, type PlacedBet } from "@/hooks/use-bet-store"
+import { useBetStore } from "@/hooks/use-bet-store"
 import { Header } from "@/components/header"
 import { Sidebar } from "@/components/sidebar"
 import { MatchCard } from "@/components/match-card"
 import { Betslip } from "@/components/betslip"
+import { MyBetsPanel } from "@/components/my-bets-panel"
 import { BottomNav } from "@/components/bottom-nav"
 import { BanScreen } from "@/components/ban-screen"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
 import {
-  DollarSign,
   Flame,
   HelpCircle,
   PlayCircle,
-  Sparkles,
-  TrendingUp,
 } from "lucide-react"
 import type { SportsMatchWithOdds } from "@/components/markets-panel"
 
@@ -56,10 +53,6 @@ const SLIDES = [
     imageAlt: "Football stadium at night with floodlights",
   },
 ]
-
-function getRandomOutcome(): boolean {
-  return Math.random() > 0.4
-}
 
 function titleCase(value: string) {
   return value
@@ -99,10 +92,6 @@ export default function Page() {
     setSelectedSport,
     selectedLeague,
     setSelectedLeague,
-    myBets,
-    transactions,
-    settleAllBets,
-    settleSingleBet,
   } = useBetStore()
 
   const { isAuthenticated } = useConvexAuth()
@@ -162,25 +151,6 @@ export default function Page() {
         .map(([id, count]) => ({ id, label: titleCase(id), count })),
     ]
   }, [allMatches])
-
-  const handleSettleBet = async (betId: string) => {
-    const bet = myBets.find((b) => b.id === betId)
-    if (!bet || bet.status !== "active") return
-
-    const won = getRandomOutcome()
-    const status = won ? "won" : "lost"
-
-    try {
-      await settleSingleBet(betId, status)
-      if (won) {
-        toast.success(`Bet won! KES ${bet.potentialReturn.toLocaleString()} credited to your wallet!`)
-      } else {
-        toast.error("Bet settled: lost. Better luck next time!")
-      }
-    } catch (e) {
-      toast.error("Failed to settle bet.")
-    }
-  }
 
   const handleContactSubmit = (event: React.FormEvent) => {
     event.preventDefault()
@@ -385,125 +355,7 @@ export default function Page() {
             </div>
           )}
 
-          {activeTab === "mybets" && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between flex-wrap gap-3">
-                <div className="space-y-1">
-                  <h2 className="text-lg font-bold text-foreground">My Betting Hub</h2>
-                  <p className="text-xs text-muted-foreground">
-                    Track active and settled slips.
-                  </p>
-                </div>
-                {myBets.some((bet) => bet.status === "active") && (
-                  <Button onClick={settleAllBets} size="sm" className="font-bold flex items-center gap-1">
-                    <Sparkles className="size-3" /> Settle All Bets
-                  </Button>
-                )}
-              </div>
-
-              <Tabs defaultValue="slips" className="w-full">
-                <TabsList className="bg-muted border border-border p-0.5">
-                  <TabsTrigger value="slips" className="text-xs font-semibold">
-                    Active & Settled Slips
-                  </TabsTrigger>
-                  <TabsTrigger value="transactions" className="text-xs font-semibold">
-                    Transaction History
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="slips" className="space-y-4 mt-4">
-                  {myBets.length > 0 ? (
-                    <div className="space-y-4">
-                      {myBets.map((bet) => (
-                        <div key={bet.id} className="border border-border rounded-lg bg-card text-card-foreground p-4 space-y-3 text-xs">
-                          <div className="flex items-center justify-between border-b border-border pb-2 flex-wrap gap-2">
-                            <span className="font-mono text-muted-foreground font-semibold">{bet.id}</span>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-muted-foreground">{bet.time}</span>
-                              <Badge variant={bet.status === "lost" ? "destructive" : bet.status === "won" ? "default" : "secondary"} className="font-bold text-[9px] px-2 py-0.5 uppercase">
-                                {bet.status}
-                              </Badge>
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            {bet.selections.map((selection, index) => (
-                              <div key={`${selection.id}-${index}`} className="flex justify-between items-center bg-muted/40 p-2 rounded text-[11px]">
-                                <div className="space-y-0.5 max-w-[80%]">
-                                  <p className="font-semibold text-foreground truncate">{selection.matchName}</p>
-                                  <p className="text-[10px] text-muted-foreground">
-                                    {selection.market}: <span className="font-bold text-foreground">{selection.selectionName}</span>
-                                  </p>
-                                </div>
-                                <span className="font-bold font-mono text-primary">@{selection.odds.toFixed(2)}</span>
-                              </div>
-                            ))}
-                          </div>
-
-                          <div className="flex justify-between items-center pt-2 border-t border-border flex-wrap gap-2 text-xs">
-                            <div className="flex gap-4 text-muted-foreground">
-                              <span>Stake: <strong className="text-foreground font-mono">KES {bet.stake}</strong></span>
-                              <span>Total Odds: <strong className="text-foreground font-mono">@{bet.totalOdds.toFixed(2)}</strong></span>
-                              <span>Return: <strong className="text-foreground font-mono text-primary font-bold">KES {bet.potentialReturn.toLocaleString()}</strong></span>
-                            </div>
-
-                            {bet.status === "active" && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-[10px] font-semibold border-primary/50 text-primary hover:bg-primary hover:text-primary-foreground"
-                                onClick={() => handleSettleBet(bet.id)}
-                              >
-                                Mock Settle Bet
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 border border-dashed border-border rounded-lg text-muted-foreground text-xs">
-                      You haven&apos;t placed any bets yet.
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="transactions" className="space-y-4 mt-4">
-                  {transactions.length > 0 ? (
-                    <div className="border border-border rounded-lg bg-card text-card-foreground overflow-hidden">
-                      <div className="divide-y divide-border">
-                        {transactions.map((tx) => (
-                          <div key={tx.id} className="flex items-center justify-between p-3.5 text-xs">
-                            <div className="flex items-center gap-3">
-                              <span className={`p-1.5 rounded ${tx.type === "deposit" ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600"}`}>
-                                {tx.type === "deposit" ? <TrendingUp className="size-4" /> : <DollarSign className="size-4" />}
-                              </span>
-                              <div>
-                                <p className="font-semibold text-foreground capitalize">{tx.type} via M-Pesa</p>
-                                <p className="text-[10px] text-muted-foreground font-mono">{tx.id} • {tx.time}</p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className={`font-bold font-mono ${tx.type === "deposit" ? "text-emerald-600" : "text-rose-600"}`}>
-                                {tx.type === "deposit" ? "+" : "-"} KES {tx.amount.toLocaleString()}
-                              </p>
-                              <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border-none text-[8px] uppercase tracking-wider font-bold">
-                                {tx.status}
-                              </Badge>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 border border-dashed border-border rounded-lg text-muted-foreground text-xs">
-                      No transaction records found.
-                    </div>
-                  )}
-                </TabsContent>
-              </Tabs>
-            </div>
-          )}
+          {activeTab === "mybets" && <MyBetsPanel />}
 
           {activeTab === "how-it-works" && (
             <div className="space-y-6">
@@ -593,7 +445,7 @@ export default function Page() {
           </footer>
         </main>
 
-        <aside className="hidden xl:flex w-80 shrink-0 border-l border-border bg-card">
+        <aside className="hidden xl:flex w-80 shrink-0 border-l border-border bg-card flex-col h-full min-h-0">
           <Betslip />
         </aside>
       </div>

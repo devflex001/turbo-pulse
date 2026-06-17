@@ -29,6 +29,7 @@ export const getMyBets = query({
     return bets.map((b) => ({
       ...b,
       id: b._id,
+      placedAt: b.placedAt,
       time:
         new Date(b.placedAt).toLocaleDateString("en-GB", {
           day: "numeric",
@@ -89,6 +90,7 @@ export const placeBet = mutation({
         marketName: v.optional(v.string()),
         outcomeName: v.optional(v.string()),
         specifiers: v.optional(v.string()),
+        matchStartTime: v.optional(v.number()),
       })
     ),
     totalOdds: v.number(),
@@ -267,6 +269,52 @@ export const settleSingleBet = mutation({
         });
       }
     }
+    return { success: true };
+  },
+});
+
+const CANCEL_WINDOW_MS = 5 * 60 * 1000;
+
+export const cancelBet = mutation({
+  args: {
+    betId: v.id("bets"),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const bet = await ctx.db.get(args.betId);
+    if (!bet) throw new Error("Bet not found");
+    if (bet.userId !== userId) throw new Error("Unauthorized");
+    if (bet.status !== "active") throw new Error("Bet is not active");
+
+    const startTimes = bet.selections
+      .map((selection) => selection.matchStartTime)
+      .filter((time): time is number => typeof time === "number" && time > 0);
+
+    if (startTimes.length === 0) {
+      throw new Error("Match start times unavailable for cancellation");
+    }
+
+    const cancelDeadline = Math.min(...startTimes) - CANCEL_WINDOW_MS;
+    if (Date.now() >= cancelDeadline) {
+      throw new Error("Cancellation window has closed");
+    }
+
+    await ctx.db.patch(args.betId, { status: "cancelled" });
+
+    let wallet = await ctx.db
+      .query("wallets")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique();
+    const currentBalance = wallet ? wallet.balance : 1000;
+
+    if (wallet) {
+      await ctx.db.patch(wallet._id, { balance: currentBalance + bet.stake });
+    } else {
+      await ctx.db.insert("wallets", { userId, balance: 1000 + bet.stake });
+    }
+
     return { success: true };
   },
 });

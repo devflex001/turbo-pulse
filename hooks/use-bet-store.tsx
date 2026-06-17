@@ -20,16 +20,18 @@ export interface Selection {
   marketName?: string
   outcomeName?: string
   specifiers?: string
+  matchStartTime?: number
 }
 
 export interface PlacedBet {
   id: string
   time: string
+  placedAt?: number
   selections: Selection[]
   totalOdds: number
   stake: number
   potentialReturn: number
-  status: "active" | "won" | "lost"
+  status: "active" | "won" | "lost" | "cancelled"
 }
 
 export interface Transaction {
@@ -73,6 +75,7 @@ interface BetStoreContextType {
   updateAdminTransactionStatus: (txId: string, status: "success" | "pending" | "failed", errorDetail?: string) => void | Promise<void>
   addNewUserCount: () => void
   settleSingleBet: (betId: string, status: "won" | "lost") => void | Promise<void>
+  cancelBet: (betId: string) => Promise<boolean>
 }
 
 const BetStoreContext = React.createContext<BetStoreContextType | undefined>(undefined)
@@ -167,6 +170,7 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
   const placeBetMutation = useMutation(api.bets.placeBet)
   const settleSingleBetMutation = useMutation(api.bets.settleSingleBet)
   const settleAllBetsMutation = useMutation(api.bets.settleAllBets)
+  const cancelBetMutation = useMutation(api.bets.cancelBet)
   const updateTransactionStatusMutation = useMutation(api.bets.updateTransactionStatus)
 
   const user = React.useMemo(() => {
@@ -364,6 +368,7 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
             marketName: sel.marketName,
             outcomeName: sel.outcomeName,
             specifiers: sel.specifiers,
+            matchStartTime: sel.matchStartTime,
           })),
           totalOdds,
           stake,
@@ -390,6 +395,7 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
       const newBet: PlacedBet = {
         id: "BET-" + Math.random().toString(36).substr(2, 9).toUpperCase(),
         time: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + ", " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        placedAt: Date.now(),
         selections: [...betslip],
         totalOdds,
         stake,
@@ -489,6 +495,41 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const cancelBet = async (betId: string): Promise<boolean> => {
+    if (convexUser) {
+      try {
+        await cancelBetMutation({ betId: betId as any })
+        return true
+      } catch (err) {
+        console.error(err)
+        return false
+      }
+    }
+
+    const bet = myBets.find((b) => b.id === betId)
+    if (!bet || bet.status !== "active") return false
+
+    const startTimes = bet.selections
+      .map((s) => s.matchStartTime)
+      .filter((t): t is number => typeof t === "number" && t > 0)
+    if (startTimes.length === 0) return false
+
+    const cancelDeadline = Math.min(...startTimes) - 5 * 60 * 1000
+    if (Date.now() >= cancelDeadline) return false
+
+    saveBalance(walletBalance + bet.stake)
+    saveBets(
+      myBets.map((b) =>
+        b.id === betId ? { ...b, status: "cancelled" as const } : b
+      )
+    )
+    saveAdminStats({
+      ...adminStats,
+      activeBets: Math.max(0, adminStats.activeBets - 1),
+    })
+    return true
+  }
+
   return (
     <BetStoreContext.Provider
       value={{
@@ -516,6 +557,7 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
         updateAdminTransactionStatus,
         addNewUserCount,
         settleSingleBet,
+        cancelBet,
       }}
     >
       {children}

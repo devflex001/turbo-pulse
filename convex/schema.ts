@@ -198,6 +198,7 @@ const schema = defineSchema({
         marketName: v.optional(v.string()),
         outcomeName: v.optional(v.string()),
         specifiers: v.optional(v.string()),
+        matchStartTime: v.optional(v.number()),
       })
     ),
     totalOdds: v.number(),

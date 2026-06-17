@@ -123,14 +123,16 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
 
       {/* Betslip Mobile Drawer/Sheet */}
       <Sheet open={betslipOpen} onOpenChange={setBetslipOpen}>
-        <SheetContent side="bottom" className="h-[80vh] rounded-t-2xl p-0 flex flex-col gap-0 border-t border-border bg-card">
+        <SheetContent side="bottom" className="h-[85vh] max-h-[720px] rounded-t-2xl p-0 flex flex-col gap-0 border-t border-border bg-card">
           <SheetHeader className="p-4 border-b border-border bg-muted/20">
             <SheetTitle className="text-lg font-bold">Betslip Manager</SheetTitle>
             <SheetDescription className="text-xs">
-              Review your selections and place your accumulator or single bets.
+              Review selections and place your bet.
             </SheetDescription>
           </SheetHeader>
-          <Betslip onClose={() => setBetslipOpen(false)} />
+          <div className="flex-1 min-h-0 flex flex-col">
+            <Betslip onClose={() => setBetslipOpen(false)} />
+          </div>
         </SheetContent>
       </Sheet>
 
