@@ -95,6 +95,10 @@ export function MarketsBrowser({
     api.sportsData.listMarkets,
     queryEnabled ? { sourceMatchId: match.sourceMatchId } : "skip"
   ) as SportsMarket[] | undefined
+  const allOdds = useQuery(
+    api.sportsData.listOddsByMatch,
+    queryEnabled && mode === "page" ? { sourceMatchId: match.sourceMatchId } : "skip"
+  ) as SportsOdd[] | undefined
 
   const categories = React.useMemo(() => {
     const names = (markets ?? []).map(marketCategory)
@@ -125,6 +129,18 @@ export function MarketsBrowser({
       ? { sourceMatchId: match.sourceMatchId, marketKey: selectedMarket.marketKey }
       : "skip"
   ) as SportsOdd[] | undefined
+  const groupedOdds = React.useMemo(() => {
+    const groups = new Map<string, SportsOdd[]>()
+    for (const odd of allOdds ?? []) {
+      const list = groups.get(odd.marketKey) ?? []
+      list.push(odd)
+      groups.set(odd.marketKey, list)
+    }
+    for (const list of groups.values()) {
+      list.sort(sortOdds)
+    }
+    return groups
+  }, [allOdds])
 
   const matchName = `${match.homeTeam} vs ${match.awayTeam}`
 
@@ -149,6 +165,45 @@ export function MarketsBrowser({
       outcomeName: odd.outcomeName,
       specifiers: odd.specifiers,
     })
+  }
+
+  const renderOddButton = (odd: SportsOdd) => {
+    const selected = betslip.some((item) => item.id === odd.sourceOddId)
+    const outcome = formatOddOutcome(odd, match)
+    const showSpecifier =
+      !outcome.isCode && shouldShowOddSpecifier(odd.specifiers, outcome.code)
+
+    return (
+      <Button
+        key={odd.sourceOddId}
+        variant="outline"
+        className={cn(
+          "h-auto min-h-14 min-w-0 justify-between gap-3 px-3 py-2 text-left hover:border-primary/60",
+          readOnly && "cursor-default hover:bg-background",
+          selected && "border-primary bg-primary text-primary-foreground hover:bg-primary"
+        )}
+        onClick={() => handleOdd(odd)}
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block whitespace-normal break-words text-xs font-semibold leading-snug">
+            {outcome.code}
+          </span>
+          {showSpecifier && (
+            <span
+              className={cn(
+                "mt-0.5 block whitespace-normal break-words text-[10px] leading-snug",
+                selected ? "text-primary-foreground/80" : "text-muted-foreground"
+              )}
+            >
+              {odd.specifiers}
+            </span>
+          )}
+        </span>
+        <span className="shrink-0 rounded border border-border px-2 py-1 font-mono text-xs font-bold">
+          {odd.oddValue.toFixed(2)}
+        </span>
+      </Button>
+    )
   }
 
   const marketList = (
@@ -210,43 +265,9 @@ export function MarketsBrowser({
 
       {odds && odds.length > 0 && (
         <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,180px),1fr))] gap-2">
-          {[...odds].sort((a, b) => compareFormattedOdds(a, b, match) || sortOdds(a, b)).map((odd) => {
-            const selected = betslip.some((item) => item.id === odd.sourceOddId)
-            const outcome = formatOddOutcome(odd, match)
-            const showSpecifier =
-              !outcome.isCode && shouldShowOddSpecifier(odd.specifiers, outcome.code)
-            return (
-              <Button
-                key={odd.sourceOddId}
-                variant="outline"
-                className={cn(
-                  "h-auto min-h-14 min-w-0 justify-between gap-3 px-3 py-2 text-left hover:border-primary/60",
-                  readOnly && "cursor-default hover:bg-background",
-                  selected && "border-primary bg-primary text-primary-foreground hover:bg-primary"
-                )}
-                onClick={() => handleOdd(odd)}
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="block whitespace-normal break-words text-xs font-semibold leading-snug">
-                    {outcome.code}
-                  </span>
-                  {showSpecifier && (
-                    <span
-                      className={cn(
-                        "mt-0.5 block whitespace-normal break-words text-[10px] leading-snug",
-                        selected ? "text-primary-foreground/80" : "text-muted-foreground"
-                      )}
-                    >
-                      {odd.specifiers}
-                    </span>
-                  )}
-                </span>
-                <span className="shrink-0 rounded border border-border px-2 py-1 font-mono text-xs font-bold">
-                  {odd.oddValue.toFixed(2)}
-                </span>
-              </Button>
-            )
-          })}
+          {[...odds]
+            .sort((a, b) => compareFormattedOdds(a, b, match) || sortOdds(a, b))
+            .map(renderOddButton)}
         </div>
       )}
 
@@ -261,6 +282,55 @@ export function MarketsBrowser({
           No odds found for this market.
         </div>
       )}
+    </div>
+  )
+
+  const pageContent = (
+    <div className="space-y-3 p-3 sm:p-4">
+      <div className="rounded-lg border border-border bg-card p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold">{match.homeTeam} vs {match.awayTeam}</p>
+            <p className="truncate text-xs text-muted-foreground">{match.competitionName}</p>
+          </div>
+          <span className="shrink-0 rounded-full border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground">
+            {match.totalMarkets} markets
+          </span>
+        </div>
+      </div>
+
+      {markets && filteredMarkets.length === 0 && (
+        <div className="rounded-lg border border-dashed border-border py-10 text-center text-xs text-muted-foreground">
+          No markets match your search.
+        </div>
+      )}
+
+      {filteredMarkets.map((market) => {
+        const marketOdds = groupedOdds.get(market.marketKey) ?? []
+        if (!marketOdds.length) return null
+
+        return (
+          <section key={market.marketKey} className="rounded-lg border border-border bg-card">
+            <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+              <div className="min-w-0">
+                <h3 className="truncate text-sm font-bold leading-tight">{market.name}</h3>
+                <p className="truncate text-xs text-muted-foreground">
+                  {market.marketTypes.length > 0
+                    ? market.marketTypes.join(", ")
+                    : market.marketType || "Other"}
+                </p>
+              </div>
+              <span className="shrink-0 rounded-md border border-border px-2 py-1 text-[10px] font-semibold text-muted-foreground">
+                {marketOdds.length} odds
+              </span>
+            </div>
+
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(112px,1fr))] gap-2 p-3">
+              {marketOdds.map(renderOddButton)}
+            </div>
+          </section>
+        )
+      })}
     </div>
   )
 
@@ -287,32 +357,16 @@ export function MarketsBrowser({
         </ScrollArea>
       </div>
 
-      <div
-        className={cn(
-          "grid flex-1 min-h-0 grid-cols-1",
-          mode === "sheet"
-            ? "lg:grid-cols-[300px_minmax(0,1fr)]"
-            : "gap-4 p-3 lg:grid-cols-[320px_minmax(0,1fr)] lg:p-4"
-        )}
-      >
-        {mode === "sheet" ? (
-          <>
-            <ScrollArea className="min-h-0 border-b border-border lg:h-full lg:border-b-0 lg:border-r">
-              {marketList}
-            </ScrollArea>
-            <ScrollArea className="min-h-0 lg:h-full">{oddsContent}</ScrollArea>
-          </>
-        ) : (
-          <>
-            <div className="rounded-lg border border-border bg-card text-card-foreground">
-              {marketList}
-            </div>
-            <div className="rounded-lg border border-border bg-card text-card-foreground">
-              {oddsContent}
-            </div>
-          </>
-        )}
-      </div>
+      {mode === "sheet" ? (
+        <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)]">
+          <ScrollArea className="min-h-0 border-b border-border lg:h-full lg:border-b-0 lg:border-r">
+            {marketList}
+          </ScrollArea>
+          <ScrollArea className="min-h-0 lg:h-full">{oddsContent}</ScrollArea>
+        </div>
+      ) : (
+        <div className="min-h-0 flex-1 overflow-y-auto">{pageContent}</div>
+      )}
     </div>
   )
 }

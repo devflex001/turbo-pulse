@@ -186,3 +186,17 @@ export const listOdds = query({
       .take(1000);
   },
 });
+
+export const listOddsByMatch = query({
+  args: {
+    sourceMatchId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("sportsOdds")
+      .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
+        q.eq("sourceMatchId", args.sourceMatchId)
+      )
+      .take(4000);
+  },
+});
