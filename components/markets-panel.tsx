@@ -4,7 +4,11 @@ import * as React from "react"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useBetStore } from "@/hooks/use-bet-store"
-import { compareFormattedOdds, formatOddOutcome } from "@/lib/odds-format"
+import {
+  compareFormattedOdds,
+  formatOddOutcome,
+  shouldShowOddSpecifier,
+} from "@/lib/odds-format"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -207,6 +211,8 @@ export function MarketsBrowser({
           {[...odds].sort((a, b) => compareFormattedOdds(a, b, match) || sortOdds(a, b)).map((odd) => {
             const selected = betslip.some((item) => item.id === odd.sourceOddId)
             const outcome = formatOddOutcome(odd, match)
+            const showSpecifier =
+              !outcome.isCode && shouldShowOddSpecifier(odd.specifiers, outcome.code)
             return (
               <Button
                 key={odd.sourceOddId}
@@ -222,7 +228,7 @@ export function MarketsBrowser({
                   <span className="block whitespace-normal break-words text-xs font-semibold leading-snug">
                     {outcome.code}
                   </span>
-                  {(!outcome.isCode && odd.specifiers) && (
+                  {showSpecifier && (
                     <span
                       className={cn(
                         "mt-0.5 block whitespace-normal break-words text-[10px] leading-snug",

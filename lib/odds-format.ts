@@ -61,6 +61,28 @@ export function compareFormattedOdds(a: OddLike, b: OddLike, match: MatchLike) {
   return 0
 }
 
+export function shouldShowOddSpecifier(specifiers: string, label: string) {
+  if (!specifiers.trim()) return false
+
+  const normalizedLabel = compact(label)
+  const normalizedSpecifiers = compact(specifiers)
+
+  if (!normalizedLabel) return true
+  if (normalizedLabel.includes(normalizedSpecifiers)) return false
+
+  const values = specifiers
+    .split(/[|,;&]/)
+    .map((part) => part.split("=").pop()?.trim() ?? "")
+    .filter(Boolean)
+    .map(compact)
+
+  if (values.length > 0 && values.every((value) => normalizedLabel.includes(value))) {
+    return false
+  }
+
+  return true
+}
+
 export function formatOddOutcome(odd: OddLike, match: MatchLike) {
   if (isOneXTwoMarket(odd)) {
     const code = inferOneXTwoCode(odd, match)
