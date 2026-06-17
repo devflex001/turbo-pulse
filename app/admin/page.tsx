@@ -9,6 +9,7 @@ import { useBetStore } from "@/hooks/use-bet-store"
 import { useTheme } from "next-themes"
 import { Input } from "@/components/ui/input"
 import { AdminUsersPanel } from "@/components/admin-users-panel"
+import { AdminScraperPanel } from "@/components/admin-scraper-panel"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -51,6 +52,7 @@ import {
   Mail,
   BarChart3,
   FileText,
+  Database,
   ChevronRight,
   ChevronLeft,
   MoreHorizontal,
@@ -93,6 +95,7 @@ const coreNavItems = [
 ]
 
 const operationsNavItems = [
+  { id: "scraper", label: "Scraper", icon: Database },
   { id: "events", label: "Events", icon: PlayCircle },
   { id: "custom-events", label: "Custom Events", icon: PlusCircle },
   { id: "risk", label: "Risk", icon: ShieldAlert },
@@ -784,8 +787,10 @@ export default function AdminDashboard() {
           {/* ── Users Tab ── */}
           {activeTab === "users" && <AdminUsersPanel />}
 
+          {activeTab === "scraper" && <AdminScraperPanel />}
+
           {/* ── Placeholder for other tabs ── */}
-          {activeTab !== "dashboard" && activeTab !== "users" && (
+          {activeTab !== "dashboard" && activeTab !== "users" && activeTab !== "scraper" && (
             <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground gap-3">
               <div className="p-4 bg-muted rounded-full">
                 <Sparkles className="size-8 text-primary" />

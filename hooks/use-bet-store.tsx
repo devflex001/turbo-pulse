@@ -12,9 +12,14 @@ export interface Selection {
   team1: string
   team2: string
   market: string      // e.g. "Full Time"
-  selection: "1" | "X" | "2"
+  selection: string
   selectionName: string // e.g. team name or "Draw"
   odds: number
+  sourceOddId?: string
+  marketKey?: string
+  marketName?: string
+  outcomeName?: string
+  specifiers?: string
 }
 
 export interface PlacedBet {

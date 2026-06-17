@@ -10,7 +10,7 @@
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit",
-
+    "test": "vitest run",
     "convex:dev": "npx convex dev",
     "convex:deploy": "npx convex deploy",
     "convex:codegen": "npx convex codegen",
@@ -21,9 +21,7 @@
     "convex:import": "npx convex import",
     "convex:export": "npx convex export",
     "db:reset": "npx convex run admin:resetDatabase",
-
     "seed:admin": "node scripts/seed-admin.mjs",
-
     "dev:all": "concurrently \"pnpm dev\" \"pnpm convex:dev\""
   },
   "dependencies": {
@@ -46,15 +44,18 @@
     "vaul": "^1.1.2"
   },
   "devDependencies": {
+    "@edge-runtime/vm": "^5.0.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "convex-test": "^0.0.53",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.9"
   }
 }

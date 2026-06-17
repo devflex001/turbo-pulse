@@ -127,6 +127,11 @@ export const resetDatabase = mutation({
     }
 
     // Delete in dependency order — children before parents
+    await clearTable("sportsOdds");
+    await clearTable("sportsMarkets");
+    await clearTable("sportsMatches");
+    await clearTable("scrapeRuns");
+    await clearTable("scraperSettings");
     await clearTable("authVerificationCodes"); // refs authAccounts
     await clearTable("authVerifiers");          // refs authSessions
     await clearTable("authRefreshTokens");      // refs authSessions
@@ -141,4 +146,3 @@ export const resetDatabase = mutation({
     return { success: true, deleted: totals };
   },
 });
-
