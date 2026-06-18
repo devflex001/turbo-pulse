@@ -68,9 +68,10 @@ export const seedAdminByPhone = mutation({
       throw new Error("Invalid seed secret");
     }
 
+    // Phone numbers are stored in the email field
     const user = await ctx.db
-      .query("users")
-      .withIndex("phone", (q) => q.eq("phone", args.phone))
+      .query("user")
+      .withIndex("by_email", (q) => q.eq("email", args.phone))
       .unique();
 
     if (!user) {
@@ -88,7 +89,7 @@ export const seedAdminByPhone = mutation({
 
     await ctx.db.insert("admins", {
       userId: user._id,
-      email: user.email ?? "",
+      email: user.email,
       addedAt: Date.now(),
     });
 
@@ -140,16 +141,13 @@ export const resetDatabase = mutation({
     await clearTable("sportsMatches");
     await clearTable("scrapeRuns");
     await clearTable("scraperSettings");
-    await clearTable("authVerificationCodes"); // refs authAccounts
-    await clearTable("authVerifiers");          // refs authSessions
-    await clearTable("authRefreshTokens");      // refs authSessions
-    await clearTable("authSessions");           // refs users
-    await clearTable("authAccounts");           // refs users
-    await clearTable("authRateLimits");         // standalone
-    await clearTable("banAppeals");             // refs userBans
-    await clearTable("userBans");               // refs users + admins
-    await clearTable("admins");                 // refs users
-    await clearTable("users");                  // root
+    await clearTable("verification");    // Better Auth verification
+    await clearTable("session");         // Better Auth session
+    await clearTable("account");         // Better Auth account
+    await clearTable("banAppeals");      // refs userBans
+    await clearTable("userBans");        // refs user + admins
+    await clearTable("admins");          // refs user
+    await clearTable("user");            // root (Better Auth user table)
 
     return { success: true, deleted: totals };
   },
@@ -167,7 +165,7 @@ export const getStats = query({
       .unique();
     if (!admin) return { totalUsers: 311, totalDeposits: 144860, activeBets: 53 };
 
-    const users = await ctx.db.query("users").collect();
+    const users = await ctx.db.query("user").collect();
     const transactions = await ctx.db.query("transactions").collect();
     const bets = await ctx.db.query("bets").collect();
 

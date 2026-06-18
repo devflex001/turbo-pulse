@@ -52,11 +52,11 @@ const schema = defineSchema({
 
   admins: defineTable({
     userId: v.id("user"),
-    phone: v.string(),
+    email: v.string(),
     addedAt: v.number(),
   })
     .index("by_userId", ["userId"])
-    .index("by_phone", ["phone"]),
+    .index("by_email", ["email"]),
 
   /**
    * Tracks bans for users. One active ban per user at a time.
@@ -279,3 +279,5 @@ const schema = defineSchema({
     .index("by_txId", ["txId"])
     .index("by_checkoutRequestID", ["checkoutRequestID"]),
 });
+
+export default schema;
