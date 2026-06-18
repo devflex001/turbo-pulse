@@ -576,17 +576,42 @@ export const runScrape = internalAction({
 
       await mapConcurrent(sourceMatchIds, DETAIL_CONCURRENCY, async (sourceMatchId) => {
         try {
+          await ctx.runMutation(internal.scraper.addLog, {
+            runId,
+            level: "info",
+            message: `Fetching details for match ${sourceMatchId}...`,
+          });
+
           const detail = await kwikbetAdapter.fetchMatchDetails(sourceMatchId);
           const normalized = kwikbetAdapter.normalizeDetail(detail);
+          
+          await ctx.runMutation(internal.scraper.addLog, {
+            runId,
+            level: "info",
+            message: `Processing match: ${normalized.match.homeTeam} vs ${normalized.match.awayTeam}`,
+            metadata: {
+              sourceMatchId,
+              markets: normalized.markets.length,
+              odds: normalized.odds.length,
+            },
+          });
+
           const result = await ctx.runMutation(internal.scraper.upsertMatchDetail, {
             runId,
             match: normalized.match,
             markets: normalized.markets,
             odds: normalized.odds,
           });
+          
           successCount++;
           totalMarketsUpserted += result.marketsUpserted;
           totalOddsUpserted += result.oddsUpserted;
+
+          await ctx.runMutation(internal.scraper.addLog, {
+            runId,
+            level: "success",
+            message: `✓ Match ${sourceMatchId} saved: ${result.marketsUpserted} markets, ${result.oddsUpserted} odds`,
+          });
         } catch (error) {
           failureCount++;
           const errorMsg = error instanceof Error ? error.message : "Unknown error";
@@ -597,7 +622,7 @@ export const runScrape = internalAction({
           await ctx.runMutation(internal.scraper.addLog, {
             runId,
             level: "error",
-            message: `Failed to fetch details for ${sourceMatchId}: ${errorMsg}`,
+            message: `✗ Failed to fetch details for ${sourceMatchId}: ${errorMsg}`,
           });
         }
       });

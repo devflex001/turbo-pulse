@@ -181,6 +181,7 @@ const schema = defineSchema({
     lastScrapedAt: v.number(),
   })
     .index("by_sourceOddId", ["sourceOddId"])
+    .index("by_sourceMatchId", ["sourceMatchId"])
     .index("by_sourceMatchId_and_marketKey_and_priority", [
       "sourceMatchId",
       "marketKey",
