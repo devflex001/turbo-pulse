@@ -6,6 +6,7 @@ import { api } from "@/convex/_generated/api"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Card, CardContent } from "@/components/ui/card"
 import { SmallLoader } from "@/components/small-loader"
 import { toast } from "sonner"
 import { PlayCircle, Save } from "lucide-react"
@@ -200,44 +201,58 @@ export function AdminScraperPanel() {
         </div>
       </div>
 
-      {/* Actions & Status */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex gap-2">
-          <Button 
-            size="sm" 
-            className="h-8 text-xs font-semibold gap-1.5"
-            onClick={handleSave}
-            disabled={saving || isCurrentlyRunning}
-          >
-            <Save className="size-3.5" />
-            Save
-          </Button>
-          <Button 
-            size="sm" 
-            variant="outline"
-            className="h-8 text-xs font-semibold gap-1.5"
-            onClick={handleRunNow}
-            disabled={running || isCurrentlyRunning}
-          >
-            <PlayCircle className="size-3.5" />
-            Run
-          </Button>
-        </div>
+      {/* Actions */}
+      <div className="flex gap-2">
+        <Button 
+          size="sm" 
+          className="h-8 text-xs font-semibold gap-1.5"
+          onClick={handleSave}
+          disabled={saving || isCurrentlyRunning}
+        >
+          <Save className="size-3.5" />
+          Save
+        </Button>
+        <Button 
+          size="sm" 
+          variant="outline"
+          className="h-8 text-xs font-semibold gap-1.5"
+          onClick={handleRunNow}
+          disabled={running || isCurrentlyRunning}
+        >
+          <PlayCircle className="size-3.5" />
+          Run
+        </Button>
+      </div>
 
-        <div className="flex items-center gap-4 text-xs">
-          <div>
-            <span className="text-muted-foreground">Last:</span>{" "}
-            <span className="font-mono">{formatTime(overview.settings.lastRunAt)}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Next:</span>{" "}
-            <span className="font-mono">{formatTime(overview.settings.nextRunAt)}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Sport:</span>{" "}
-            <span className="font-semibold">{sportLabel}</span>
-          </div>
-        </div>
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground font-medium mb-1">Last Run</p>
+            <p className="text-sm font-semibold">{formatTime(overview.settings.lastRunAt)}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground font-medium mb-1">Next Run</p>
+            <p className="text-sm font-semibold">{formatTime(overview.settings.nextRunAt)}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground font-medium mb-1">Sport</p>
+            <p className="text-sm font-semibold">{sportLabel}</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground font-medium mb-1">Fetch Limit</p>
+            <p className="text-sm font-semibold">{matchLimit}</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Recent Runs */}
