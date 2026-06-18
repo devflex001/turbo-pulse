@@ -6,9 +6,44 @@ import { api } from "@/convex/_generated/api"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Skeleton } from "@/components/ui/skeleton"
+import { SmallLoader } from "@/components/small-loader"
 import { toast } from "sonner"
 import { PlayCircle, Save } from "lucide-react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer"
+import { ScraperTerminal } from "@/components/scraper-terminal"
+import { useMediaQuery } from "@/hooks/use-media-query"
+
+// 8 Most popular sports from KwikBet
+const AVAILABLE_SPORTS = [
+  { id: 1, label: "Soccer" },
+  { id: 2, label: "Basketball" },
+  { id: 5, label: "Tennis" },
+  { id: 16, label: "American Football" },
+  { id: 21, label: "Cricket" },
+  { id: 10, label: "Boxing" },
+  { id: 117, label: "MMA" },
+  { id: 12, label: "Rugby" },
+]
+
+const MATCH_LIMITS = [20, 50, 100, 200, 300, 500]
 
 function formatTime(value: number | null) {
   if (!value) return "Never"
@@ -25,33 +60,47 @@ export function AdminScraperPanel() {
   const updateSettings = useMutation(api.scraper.updateSettings)
   const triggerNow = useMutation(api.scraper.triggerNow)
 
-  const [enabledOverride, setEnabledOverride] = React.useState<boolean | null>(null)
-  const [cadenceMinutesOverride, setCadenceMinutesOverride] = React.useState<string | null>(null)
-  const [dateWindowDaysOverride, setDateWindowDaysOverride] = React.useState<string | null>(null)
+  const [selectedSport, setSelectedSport] = React.useState<string>("1")
+  const [cadenceMinutes, setCadenceMinutes] = React.useState<string>("5")
+  const [dateWindowDays, setDateWindowDays] = React.useState<string>("2")
+  const [matchLimit, setMatchLimit] = React.useState<string>("50")
   const [saving, setSaving] = React.useState(false)
   const [running, setRunning] = React.useState(false)
+  const [showTerminal, setShowTerminal] = React.useState(false)
+  const isDesktop = useMediaQuery("(min-width: 768px)")
 
-  const settings = overview?.settings
-  const enabled = enabledOverride ?? settings?.enabled ?? true
-  const cadenceMinutes =
-    cadenceMinutesOverride ?? String(settings?.cadenceMinutes ?? 5)
-  const dateWindowDays =
-    dateWindowDaysOverride ?? String(settings?.dateWindowDays ?? 2)
+  const settings = overview?.settings as any
+  const currentRun = overview?.runs?.[0]
+  const isCurrentlyRunning = currentRun?.status === "running"
+
+  React.useEffect(() => {
+    if (settings) {
+      setSelectedSport(String(settings.selectedSports?.[0] ?? 1))
+      setCadenceMinutes(String(settings.cadenceMinutes ?? 5))
+      setDateWindowDays(String(settings.dateWindowDays ?? 2))
+      setMatchLimit(String(settings.matchLimit ?? 50))
+    }
+  }, [settings])
+
+  React.useEffect(() => {
+    if (isCurrentlyRunning && !showTerminal) {
+      setShowTerminal(true)
+    }
+  }, [isCurrentlyRunning, showTerminal])
 
   const handleSave = async () => {
     setSaving(true)
     try {
       await updateSettings({
-        enabled,
+        enabled: true,
         cadenceMinutes: Number(cadenceMinutes),
         dateWindowDays: Number(dateWindowDays),
+        selectedSports: [selectedSport],
+        matchLimit: Number(matchLimit),
       })
-      setEnabledOverride(null)
-      setCadenceMinutesOverride(null)
-      setDateWindowDaysOverride(null)
-      toast.success("Scraper settings saved")
+      toast.success("Settings saved")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save settings")
+      toast.error(error instanceof Error ? error.message : "Failed to save")
     } finally {
       setSaving(false)
     }
@@ -59,175 +108,225 @@ export function AdminScraperPanel() {
 
   const handleRunNow = async () => {
     setRunning(true)
+    setShowTerminal(true)
     try {
       await triggerNow({})
-      toast.success("Scraper run queued")
+      toast.success("Scraper started")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to queue scraper")
+      toast.error(error instanceof Error ? error.message : "Failed to start")
+      setShowTerminal(false)
     } finally {
       setRunning(false)
     }
   }
 
   if (!overview) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-28 w-full" />
-        <Skeleton className="h-56 w-full" />
-      </div>
-    )
+    return <SmallLoader />
   }
+
+  const sportLabel = AVAILABLE_SPORTS.find(s => String(s.id) === selectedSport)?.label || "Soccer"
 
   return (
     <div className="space-y-5">
-      <div className="space-y-1">
-        <h1 className="text-lg font-bold tracking-tight">Sports Scraper</h1>
-        <p className="text-xs text-muted-foreground">
-          Manage KwikBet fixture ingestion and full market refresh.
-        </p>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-bold tracking-tight">Sports Scraper</h1>
+          <p className="text-xs text-muted-foreground">Manage KwikBet fixture ingestion</p>
+        </div>
+        <Badge variant={isCurrentlyRunning ? "secondary" : "outline"} className="text-[10px] uppercase">
+          {isCurrentlyRunning ? "● Running" : "● Idle"}
+        </Badge>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 border border-border rounded-lg bg-card p-4 space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-bold">Schedule</h2>
-              <p className="text-xs text-muted-foreground">A lightweight cron checks this configuration every minute.</p>
-            </div>
-            <Badge variant={enabled ? "default" : "secondary"} className="text-[10px] uppercase">
-              {enabled ? "Enabled" : "Disabled"}
-            </Badge>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-muted-foreground" htmlFor="scraper-enabled">
-                Enabled
-              </label>
-              <Button
-                id="scraper-enabled"
-                type="button"
-                variant={enabled ? "default" : "outline"}
-                className="w-full h-9 text-xs font-semibold"
-                onClick={() => setEnabledOverride(!enabled)}
-              >
-                {enabled ? "On" : "Off"}
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-muted-foreground" htmlFor="cadence">
-                Cadence Minutes
-              </label>
-              <Input
-                id="cadence"
-                type="number"
-                min="1"
-                max="120"
-                value={cadenceMinutes}
-                onChange={(event) => setCadenceMinutesOverride(event.target.value)}
-                className="h-9 text-xs focus-visible:ring-primary"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-muted-foreground" htmlFor="window">
-                Date Window Days
-              </label>
-              <Input
-                id="window"
-                type="number"
-                min="1"
-                max="14"
-                value={dateWindowDays}
-                onChange={(event) => setDateWindowDaysOverride(event.target.value)}
-                className="h-9 text-xs focus-visible:ring-primary"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" className="h-8 text-xs font-semibold gap-1.5" onClick={handleSave} disabled={saving}>
-              <Save className="size-3.5" />
-              {saving ? "Saving..." : "Save Settings"}
-            </Button>
-            <Button size="sm" variant="outline" className="h-8 text-xs font-semibold gap-1.5" onClick={handleRunNow} disabled={running}>
-              <PlayCircle className="size-3.5" />
-              {running ? "Queuing..." : "Run Now"}
-            </Button>
-          </div>
+      {/* Controls */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground">Sport</label>
+          <Select value={selectedSport} onValueChange={setSelectedSport} disabled={isCurrentlyRunning}>
+            <SelectTrigger className="h-8 text-xs w-full rounded-md">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {AVAILABLE_SPORTS.map((sport) => (
+                <SelectItem key={sport.id} value={String(sport.id)}>
+                  {sport.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        <div className="border border-border rounded-lg bg-card p-4 space-y-3">
-          <h2 className="text-sm font-bold">Current State</h2>
-          <div className="space-y-2 text-xs">
-            <div className="flex justify-between gap-3">
-              <span className="text-muted-foreground">Last run</span>
-              <span className="font-medium text-right">{formatTime(overview.settings.lastRunAt)}</span>
-            </div>
-            <div className="flex justify-between gap-3">
-              <span className="text-muted-foreground">Next run</span>
-              <span className="font-medium text-right">{formatTime(overview.settings.nextRunAt)}</span>
-            </div>
-            <div className="flex justify-between gap-3">
-              <span className="text-muted-foreground">Source</span>
-              <span className="font-mono font-semibold">{overview.settings.source}</span>
-            </div>
-          </div>
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground">Cadence (min)</label>
+          <Input
+            type="number"
+            min="1"
+            max="120"
+            value={cadenceMinutes}
+            onChange={(e) => setCadenceMinutes(e.target.value)}
+            disabled={isCurrentlyRunning}
+            className="h-8 text-xs w-full"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground">Window (days)</label>
+          <Input
+            type="number"
+            min="1"
+            max="14"
+            value={dateWindowDays}
+            onChange={(e) => setDateWindowDays(e.target.value)}
+            disabled={isCurrentlyRunning}
+            className="h-8 text-xs w-full"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground">Match Limit</label>
+          <Select value={matchLimit} onValueChange={setMatchLimit} disabled={isCurrentlyRunning}>
+            <SelectTrigger className="h-8 text-xs w-full rounded-md">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MATCH_LIMITS.map((limit) => (
+                <SelectItem key={limit} value={String(limit)}>
+                  {limit}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      <div className="border border-border rounded-lg bg-card overflow-hidden">
-        <div className="px-4 py-3 border-b border-border">
-          <h2 className="text-sm font-bold">Recent Runs</h2>
+      {/* Actions */}
+      <div className="flex gap-2">
+        <Button 
+          size="sm" 
+          className="h-8 text-xs font-semibold gap-1.5"
+          onClick={handleSave}
+          disabled={saving || isCurrentlyRunning}
+        >
+          <Save className="size-3.5" />
+          Save
+        </Button>
+        <Button 
+          size="sm" 
+          variant="outline"
+          className="h-8 text-xs font-semibold gap-1.5"
+          onClick={handleRunNow}
+          disabled={running || isCurrentlyRunning}
+        >
+          <PlayCircle className="size-3.5" />
+          Run
+        </Button>
+      </div>
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="border rounded-md p-3">
+          <p className="text-[10px] text-muted-foreground mb-1">Last Run</p>
+          <p className="text-xs font-medium">{formatTime(overview.settings.lastRunAt)}</p>
         </div>
 
-        {overview.runs.length > 0 ? (
+        <div className="border rounded-md p-3">
+          <p className="text-[10px] text-muted-foreground mb-1">Next Run</p>
+          <p className="text-xs font-medium">{formatTime(overview.settings.nextRunAt)}</p>
+        </div>
+
+        <div className="border rounded-md p-3">
+          <p className="text-[10px] text-muted-foreground mb-1">Sport</p>
+          <p className="text-xs font-medium">{sportLabel}</p>
+        </div>
+
+        <div className="border rounded-md p-3">
+          <p className="text-[10px] text-muted-foreground mb-1">Fetch Limit</p>
+          <p className="text-xs font-medium">{matchLimit}</p>
+        </div>
+      </div>
+
+      {/* Recent Runs */}
+      {overview.runs.length > 0 && (
+        <div className="border rounded-lg overflow-hidden">
+          <div className="px-4 py-3 border-b bg-muted/50">
+            <p className="text-sm font-semibold">Recent Runs</p>
+          </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs min-w-[720px]">
-              <thead className="border-b border-border text-muted-foreground text-[10px] uppercase">
+            <table className="w-full text-xs">
+              <thead className="border-b bg-muted/30 text-muted-foreground text-[10px] uppercase">
                 <tr>
-                  <th className="px-4 py-2">Started</th>
-                  <th className="px-4 py-2">Status</th>
-                  <th className="px-4 py-2">Trigger</th>
-                  <th className="px-4 py-2">Window</th>
-                  <th className="px-4 py-2">Matches</th>
-                  <th className="px-4 py-2">Markets</th>
-                  <th className="px-4 py-2">Odds</th>
-                  <th className="px-4 py-2">Errors</th>
+                  <th className="px-4 py-2 text-left font-semibold">Time</th>
+                  <th className="px-4 py-2 text-left font-semibold">Status</th>
+                  <th className="px-4 py-2 text-left font-semibold">Sport</th>
+                  <th className="px-4 py-2 text-right font-semibold">Matches</th>
+                  <th className="px-4 py-2 text-right font-semibold">Markets</th>
+                  <th className="px-4 py-2 text-right font-semibold">Odds</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
-                {overview.runs.map((run) => (
-                  <tr key={run._id}>
-                    <td className="px-4 py-3 font-medium">{formatTime(run.startedAt)}</td>
-                    <td className="px-4 py-3">
-                      <Badge
-                        variant={run.status === "success" ? "default" : run.status === "running" ? "secondary" : "destructive"}
-                        className="text-[10px] uppercase"
-                      >
-                        {run.status}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3">{run.triggeredBy}</td>
-                    <td className="px-4 py-3 font-mono">{run.dateFrom} - {run.dateTo}</td>
-                    <td className="px-4 py-3 font-mono">{run.matchesUpserted}/{run.matchesDiscovered}</td>
-                    <td className="px-4 py-3 font-mono">{run.marketsUpserted}</td>
-                    <td className="px-4 py-3 font-mono">{run.oddsUpserted}</td>
-                    <td className="px-4 py-3 max-w-[220px] truncate text-muted-foreground">
-                      {run.errorSummary || (run.failedMatches ? `${run.failedMatches} failed` : "None")}
-                    </td>
-                  </tr>
-                ))}
+              <tbody className="divide-y">
+                {overview.runs.slice(0, 5).map((run: any) => {
+                  const sportNames = (run.selectedSports || [])
+                    .map((sportId: string | number) => {
+                      const sport = AVAILABLE_SPORTS.find(s => String(s.id) === String(sportId))
+                      return sport?.label || String(sportId)
+                    })
+                    .join(", ")
+                  
+                  return (
+                    <tr key={run._id} className="hover:bg-muted/30">
+                      <td className="px-4 py-2.5 font-mono">{formatTime(run.startedAt)}</td>
+                      <td className="px-4 py-2.5">
+                        <Badge
+                          variant={
+                            run.status === "success"
+                              ? "default"
+                              : run.status === "running"
+                              ? "secondary"
+                              : "destructive"
+                          }
+                          className="text-[9px] uppercase"
+                        >
+                          {run.status}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-2.5">{sportNames || "—"}</td>
+                      <td className="px-4 py-2.5 text-right font-mono">
+                        {run.matchesUpserted}/{run.matchesDiscovered}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-mono">{run.marketsUpserted}</td>
+                      <td className="px-4 py-2.5 text-right font-mono">{run.oddsUpserted}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
-        ) : (
-          <div className="p-8 text-center text-xs text-muted-foreground">
-            No scrape runs recorded yet.
-          </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Terminal Modal/Drawer */}
+      {isDesktop ? (
+        <Dialog open={showTerminal} onOpenChange={setShowTerminal}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-sm">Live Activity</DialogTitle>
+            </DialogHeader>
+            <ScraperTerminal runId={currentRun?._id ?? null} isRunning={isCurrentlyRunning} />
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <Drawer open={showTerminal} onOpenChange={setShowTerminal}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle className="text-sm">Live Activity</DrawerTitle>
+            </DrawerHeader>
+            <div className="px-4 pb-4">
+              <ScraperTerminal runId={currentRun?._id ?? null} isRunning={isCurrentlyRunning} />
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )}
     </div>
   )
 }

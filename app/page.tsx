@@ -14,7 +14,7 @@ import { BanScreen } from "@/components/ban-screen"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Skeleton } from "@/components/ui/skeleton"
+import { SmallLoader } from "@/components/small-loader"
 import { toast } from "sonner"
 import {
   Flame,
@@ -58,26 +58,6 @@ function titleCase(value: string) {
     .join(" ")
 }
 
-function MatchSkeletonGrid() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {Array.from({ length: 6 }).map((_, index) => (
-        <div key={index} className="rounded-lg border border-border bg-card p-4 space-y-4">
-          <Skeleton className="h-4 w-2/3" />
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-5/6" />
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <Skeleton className="h-11" />
-            <Skeleton className="h-11" />
-            <Skeleton className="h-11" />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
 
 export default function Page() {
   const {
@@ -181,11 +161,12 @@ export default function Page() {
         <main className="flex-1 min-w-0 p-4 sm:p-6 overflow-y-auto h-full flex flex-col gap-6 scrollbar-thin">
           {(activeTab === "home" || activeTab === "live" || activeTab === "featured") && (
             <div className="flex flex-col gap-3 pb-2 border-b border-border">
-              <div className="flex items-center gap-1 overflow-x-auto pb-1.5 scrollbar-none">
+              <div className="flex items-center gap-1 overflow-x-auto pb-1.5 scrollbar-none min-h-12">
                 {!allMatches ? (
                   <>
-                    <Skeleton className="h-8 w-24 rounded-full" />
-                    <Skeleton className="h-8 w-24 rounded-full" />
+                    <div className="h-8 w-24 rounded-full bg-muted animate-pulse shrink-0" />
+                    <div className="h-8 w-24 rounded-full bg-muted animate-pulse shrink-0" />
+                    <div className="h-8 w-24 rounded-full bg-muted animate-pulse shrink-0" />
                   </>
                 ) : (
                   sportOptions.map((sport) => (
@@ -208,73 +189,80 @@ export default function Page() {
                 )}
               </div>
 
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
-                {(leagues ?? ["All Leagues"]).map((league) => (
-                  <Button
-                    key={league}
-                    variant={selectedLeague === league ? "secondary" : "ghost"}
-                    size="sm"
-                    className="h-7 px-2.5 rounded text-[11px] shrink-0 font-medium"
-                    onClick={() => setSelectedLeague(league)}
-                  >
-                    {league}
-                  </Button>
-                ))}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs min-h-9">
+                {!leagues ? (
+                  <>
+                    <div className="h-7 w-20 rounded bg-muted animate-pulse shrink-0" />
+                    <div className="h-7 w-20 rounded bg-muted animate-pulse shrink-0" />
+                    <div className="h-7 w-20 rounded bg-muted animate-pulse shrink-0" />
+                  </>
+                ) : (
+                  (leagues ?? ["All Leagues"]).map((league) => (
+                    <Button
+                      key={league}
+                      variant={selectedLeague === league ? "secondary" : "ghost"}
+                      size="sm"
+                      className="h-7 px-2.5 rounded text-[11px] shrink-0 font-medium"
+                      onClick={() => setSelectedLeague(league)}
+                    >
+                      {league}
+                    </Button>
+                  ))
+                )}
               </div>
             </div>
           )}
 
           {activeTab === "home" && (
             <>
-              <div className="relative overflow-hidden rounded-lg border border-border bg-card h-44 sm:h-52">
-                <Image
-                  key={SLIDES[slideIndex].id}
-                  src={SLIDES[slideIndex].image}
-                  alt={SLIDES[slideIndex].imageAlt}
-                  fill
-                  priority
-                  className="object-cover object-center transition-opacity duration-500"
-                  sizes="(max-width: 768px) 100vw, 900px"
-                />
-                <div className="absolute inset-0 bg-background/72" aria-hidden="true" />
+              {matches !== undefined && (
+                <div className="relative overflow-hidden rounded-lg border border-border bg-card h-44 sm:h-52">
+                  <Image
+                    key={SLIDES[slideIndex].id}
+                    src={SLIDES[slideIndex].image}
+                    alt={SLIDES[slideIndex].imageAlt}
+                    fill
+                    priority
+                    className="object-cover object-center transition-opacity duration-500"
+                    sizes="(max-width: 768px) 100vw, 900px"
+                  />
+                  <div className="absolute inset-0 bg-background/72" aria-hidden="true" />
 
-                <div className="relative z-10 flex h-full flex-col justify-center p-6 sm:p-8">
-                  <div className="max-w-[80%] space-y-2 select-none">
-                    <Badge className="bg-primary/10 border-primary/30 text-primary font-bold hover:bg-primary/10 tracking-wide text-[9px] uppercase px-1.5 py-0.5">
-                      {SLIDES[slideIndex].title}
-                    </Badge>
-                    <h2 className="text-xl sm:text-2xl font-extrabold text-card-foreground leading-tight tracking-tight">
-                      {SLIDES[slideIndex].subtitle}
-                    </h2>
-                    <div className="pt-2">
-                      <Button
-                        size="sm"
-                        className="h-8 text-xs font-semibold"
-                        onClick={() => setActiveTab(slideIndex === 2 ? "featured" : "home")}
-                      >
-                        {SLIDES[slideIndex].cta}
-                      </Button>
+                  <div className="relative z-10 flex h-full flex-col justify-center p-6 sm:p-8">
+                    <div className="max-w-[80%] space-y-2 select-none">
+                      <Badge className="bg-primary/10 border-primary/30 text-primary font-bold hover:bg-primary/10 tracking-wide text-[9px] uppercase px-1.5 py-0.5">
+                        {SLIDES[slideIndex].title}
+                      </Badge>
+                      <h2 className="text-xl sm:text-2xl font-extrabold text-card-foreground leading-tight tracking-tight">
+                        {SLIDES[slideIndex].subtitle}
+                      </h2>
+                      <div className="pt-2">
+                        <Button
+                          size="sm"
+                          className="h-8 text-xs font-semibold"
+                          onClick={() => setActiveTab(slideIndex === 2 ? "featured" : "home")}
+                        >
+                          {SLIDES[slideIndex].cta}
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1">
-                  {SLIDES.map((slide, index) => (
-                    <span
-                      key={slide.id}
-                      onClick={() => setSlideIndex(index)}
-                      className={`h-1.5 rounded-full cursor-pointer transition-all ${
-                        index === slideIndex ? "w-4 bg-primary" : "w-1.5 bg-muted-foreground/30"
-                      }`}
-                    />
-                  ))}
+                  <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1">
+                    {SLIDES.map((slide, index) => (
+                      <span
+                        key={slide.id}
+                        onClick={() => setSlideIndex(index)}
+                        className={`h-1.5 rounded-full cursor-pointer transition-all ${
+                          index === slideIndex ? "w-4 bg-primary" : "w-1.5 bg-muted-foreground/30"
+                        }`}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {matches === undefined ? (
-                <MatchSkeletonGrid />
-              ) : (
-                <div className="space-y-3">
+              <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
                       <PlayCircle className="size-4 text-muted-foreground" />
@@ -285,7 +273,9 @@ export default function Page() {
                     </Badge>
                   </div>
 
-                  {upcomingMatches.length > 0 ? (
+                  {!matches ? (
+                    <SmallLoader />
+                  ) : upcomingMatches.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {upcomingMatches.map((match) => (
                         <MatchCard key={match.sourceMatchId} match={match} />
@@ -297,7 +287,6 @@ export default function Page() {
                     </div>
                   )}
                 </div>
-              )}
             </>
           )}
 
@@ -307,8 +296,8 @@ export default function Page() {
                 <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
                 Live Sports Betting
               </h2>
-              {matches === undefined ? (
-                <MatchSkeletonGrid />
+              {!matches ? (
+                <SmallLoader />
               ) : displayedMatches.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {displayedMatches.map((match) => (
@@ -329,8 +318,8 @@ export default function Page() {
                 <Flame className="size-4 text-primary fill-current" />
                 Featured Market Highlights
               </h2>
-              {matches === undefined ? (
-                <MatchSkeletonGrid />
+              {!matches ? (
+                <SmallLoader />
               ) : featuredMatches.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {featuredMatches.map((match) => (

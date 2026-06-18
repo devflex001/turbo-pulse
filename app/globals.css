@@ -130,3 +130,16 @@
     @apply font-sans;
     }
 }
+
+@keyframes spin-football {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-football {
+  animation: spin-football 0.9s linear infinite;
+}

@@ -15,9 +15,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { FootballLoader } from "@/components/football-loader"
+import { SmallLoader } from "@/components/small-loader"
 
 type SportsOdd = {
   sourceOddId: string
@@ -218,12 +217,7 @@ export function MarketsBrowser({
   const marketList = (
     <div className="space-y-1 p-3">
       {!markets && (
-        <>
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </>
+        <SmallLoader />
       )}
 
       {filteredMarkets.map((market) => (
@@ -264,12 +258,7 @@ export function MarketsBrowser({
       )}
 
       {selectedMarket && !odds && (
-        <div className="grid grid-cols-3 gap-2">
-          <Skeleton className="h-14 w-full" />
-          <Skeleton className="h-14 w-full" />
-          <Skeleton className="h-14 w-full" />
-          <Skeleton className="h-14 w-full" />
-        </div>
+        <SmallLoader />
       )}
 
       {odds && odds.length > 0 && (
@@ -300,7 +289,7 @@ export function MarketsBrowser({
   const pageContent = (
     <div className="space-y-3 p-3 sm:p-4 pb-24">
       {(!markets || !allOdds) && (
-        <FootballLoader size="large" label="Loading markets…" className="min-h-[50vh]" />
+        <SmallLoader />
       )}
 
       {markets && allOdds && filteredMarkets.length === 0 && (

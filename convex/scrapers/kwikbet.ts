@@ -214,12 +214,12 @@ export function normalizeKwikbetOdds(payload: unknown): NormalizedOdd[] {
 
 export const kwikbetAdapter: ScraperAdapter = {
   sourceKey: KWIKBET_SOURCE,
-  async fetchMatchPages({ date, live, limit, maxPages }) {
+  async fetchMatchPages({ date, live, limit, maxPages, sportIds }) {
     const matches: unknown[] = [];
 
     for (let page = 1; page <= maxPages; page++) {
       const params = new URLSearchParams({
-        sport_id: "1",
+        sport_id: sportIds ? sportIds.join(",") : "1",
         sort_by: "start_time",
         date,
         live: live ? "true" : "false",

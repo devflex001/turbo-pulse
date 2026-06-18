@@ -6,7 +6,7 @@ import { api } from "@/convex/_generated/api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Skeleton } from "@/components/ui/skeleton"
+import { SmallLoader } from "@/components/small-loader"
 import { MarketsPanel, type SportsMatchWithOdds } from "@/components/markets-panel"
 import { ListPlus, Search } from "lucide-react"
 
@@ -137,10 +137,8 @@ export function AdminEventsPanel() {
         </div>
 
         {!matches ? (
-          <div className="p-4 space-y-3">
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
+          <div className="p-4">
+            <SmallLoader />
           </div>
         ) : matches.length > 0 ? (
           <div className="overflow-x-auto">

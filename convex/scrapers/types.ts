@@ -79,6 +79,7 @@ export type ScraperAdapter = {
     live: boolean;
     limit: number;
     maxPages: number;
+    sportIds?: number[];
   }): Promise<unknown[]>;
   fetchMatchDetails(sourceMatchId: string): Promise<unknown>;
   normalizeMatch(payload: unknown): NormalizedMatch;
