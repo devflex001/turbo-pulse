@@ -140,11 +140,11 @@ export function AdminScraperPanel() {
       </div>
 
       {/* Controls */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="space-y-2">
           <label className="text-xs font-semibold text-muted-foreground">Sport</label>
           <Select value={selectedSport} onValueChange={setSelectedSport} disabled={isCurrentlyRunning}>
-            <SelectTrigger className="h-9 text-xs">
+            <SelectTrigger className="h-8 text-xs w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -166,7 +166,7 @@ export function AdminScraperPanel() {
             value={cadenceMinutes}
             onChange={(e) => setCadenceMinutes(e.target.value)}
             disabled={isCurrentlyRunning}
-            className="h-9 text-xs"
+            className="h-8 text-xs w-full"
           />
         </div>
 
@@ -179,14 +179,14 @@ export function AdminScraperPanel() {
             value={dateWindowDays}
             onChange={(e) => setDateWindowDays(e.target.value)}
             disabled={isCurrentlyRunning}
-            className="h-9 text-xs"
+            className="h-8 text-xs w-full"
           />
         </div>
 
         <div className="space-y-2">
           <label className="text-xs font-semibold text-muted-foreground">Match Limit</label>
           <Select value={matchLimit} onValueChange={setMatchLimit} disabled={isCurrentlyRunning}>
-            <SelectTrigger className="h-9 text-xs">
+            <SelectTrigger className="h-8 text-xs w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
