@@ -6,7 +6,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { Doc, Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
 
 /**
  * Create a new transaction record (pending)
@@ -42,7 +42,7 @@ export const createTransaction = mutation({
       amount: args.amount,
       phone: args.phone,
       status: "pending",
-      createdAt: Date.now(),
+      time: Date.now(),
     });
 
     return {
@@ -68,7 +68,7 @@ export const updateTransactionStatus = mutation({
     // Find transaction by checkoutRequestID
     const transactions = await ctx.db
       .query("transactions")
-      .filter((q) => q.eq(q.field("txId"), `DEPOSIT-${args.checkoutRequestID}`))
+      .withIndex("by_txId", (q) => q.eq("txId", `DEPOSIT-${args.checkoutRequestID}`))
       .take(1);
 
     if (transactions.length === 0) {
@@ -121,14 +121,9 @@ export const getWallet = query({
       .take(1);
 
     if (wallets.length === 0) {
-      // Create wallet for new user
-      const walletId = await ctx.db.insert("wallets", {
-        userId,
-        balance: 0,
-      });
-
+      // Return default wallet (creation is deferred)
       return {
-        _id: walletId,
+        _id: null as any,
         userId,
         balance: 0,
       };
@@ -144,7 +139,6 @@ export const getWallet = query({
 export const getTransactionHistory = query({
   args: {
     limit: v.optional(v.number()),
-    cursor: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
@@ -152,21 +146,17 @@ export const getTransactionHistory = query({
       return null;
     }
 
-    const limit = args.limit ?? 10;
+    const limit = args.limit ?? 20;
 
     const transactions = await ctx.db
       .query("transactions")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .order("desc")
-      .take(limit + 1);
-
-    const hasMore = transactions.length > limit;
-    const items = transactions.slice(0, limit);
+      .take(limit);
 
     return {
-      items,
-      hasMore,
-      cursor: hasMore ? items[items.length - 1]._id : null,
+      items: transactions,
+      total: transactions.length,
     };
   },
 });
@@ -199,8 +189,8 @@ export const getTransaction = query({
  * Can be used by other mutations
  */
 export async function updateWalletBalance(
-  ctx: any,
-  userId: Id<"users">,
+  ctx: MutationCtx,
+  userId: any,
   amount: number,
   operation: "add" | "subtract"
 ): Promise<void> {
@@ -209,18 +199,16 @@ export async function updateWalletBalance(
     .withIndex("by_userId", (q) => q.eq("userId", userId))
     .take(1);
 
-  let wallet: Doc<"wallets">;
-
   if (wallets.length === 0) {
     // Create wallet if doesn't exist
-    const walletId = await ctx.db.insert("wallets", {
+    await ctx.db.insert("wallets", {
       userId,
       balance: operation === "add" ? amount : 0,
     });
     return;
   }
 
-  wallet = wallets[0];
+  const wallet = wallets[0];
 
   const newBalance =
     operation === "add"
