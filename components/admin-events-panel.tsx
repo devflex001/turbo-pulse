@@ -137,10 +137,8 @@ export function AdminEventsPanel() {
         </div>
 
         {!matches ? (
-          <div className="p-4 space-y-3">
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
-            <Skeleton className="h-12 w-full" />
+          <div className="p-4">
+            <FootballLoader label="Loading events…" />
           </div>
         ) : matches.length > 0 ? (
           <div className="overflow-x-auto">

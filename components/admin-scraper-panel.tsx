@@ -70,12 +70,7 @@ export function AdminScraperPanel() {
   }
 
   if (!overview) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-28 w-full" />
-        <Skeleton className="h-56 w-full" />
-      </div>
-    )
+    return <FootballLoader size="large" label="Loading scraper…" className="min-h-[40vh]" />
   }
 
   return (

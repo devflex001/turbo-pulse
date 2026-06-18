@@ -217,12 +217,7 @@ export function MarketsBrowser({
   const marketList = (
     <div className="space-y-1 p-3">
       {!markets && (
-        <>
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </>
+        <FootballLoader label="Loading markets…" />
       )}
 
       {filteredMarkets.map((market) => (
@@ -263,12 +258,7 @@ export function MarketsBrowser({
       )}
 
       {selectedMarket && !odds && (
-        <div className="grid grid-cols-3 gap-2">
-          <Skeleton className="h-14 w-full" />
-          <Skeleton className="h-14 w-full" />
-          <Skeleton className="h-14 w-full" />
-          <Skeleton className="h-14 w-full" />
-        </div>
+        <FootballLoader label="Loading odds…" />
       )}
 
       {odds && odds.length > 0 && (

@@ -483,13 +483,9 @@ export function AdminUsersPanel() {
 
       {/* ── Mobile Card List (< sm) ── */}
       <div className="sm:hidden space-y-2">
-        {isLoading &&
-          Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="rounded-lg border border-border p-4 space-y-2">
-              <Skeleton className="h-3 w-1/2 rounded" />
-              <Skeleton className="h-3 w-1/3 rounded" />
-            </div>
-          ))}
+        {isLoading && (
+          <FootballLoader label="Loading users…" />
+        )}
 
         {!isLoading && users.length === 0 && (
           <div className="py-16 text-center text-muted-foreground text-xs">
@@ -586,14 +582,13 @@ export function AdminUsersPanel() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {isLoading &&
-                Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}>
-                    <td className="py-3.5 px-4" colSpan={5}>
-                      <Skeleton className="h-4 w-full rounded" />
-                    </td>
-                  </tr>
-                ))}
+              {isLoading && (
+                <tr>
+                  <td colSpan={5} className="py-8">
+                    <FootballLoader label="Loading users…" />
+                  </td>
+                </tr>
+              )}
 
               {!isLoading && users.length === 0 && (
                 <tr>
