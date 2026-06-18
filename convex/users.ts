@@ -1,5 +1,10 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { query } from "./_generated/server";
+import { components } from "./_generated/api";
+
+async function getAuthUserId(ctx: any) {
+  const user = await components.betterAuth.getCurrentUser(ctx);
+  return user?._id ?? null;
+}
 
 export const currentUser = query({
   args: {},

@@ -2,43 +2,21 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 const schema = defineSchema({
-  // BetterAuth tables
+  // Better Auth tables
   user: defineTable({
-    phone: v.string(),
-    phoneVerified: v.boolean(),
+    email: v.string(),
+    emailVerified: v.boolean(),
     name: v.optional(v.string()),
     image: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
-    .index("by_phone", ["phone"]),
-
-  account: defineTable({
-    userId: v.id("user"),
-    accountId: v.string(),
-    providerId: v.string(),
-    providerAccountId: v.string(),
-    refreshToken: v.optional(v.string()),
-    accessToken: v.optional(v.string()),
-    accessTokenExpiresAt: v.optional(v.number()),
-    refreshTokenExpiresAt: v.optional(v.number()),
-    scope: v.optional(v.string()),
-    idToken: v.optional(v.string()),
-    sessionToken: v.optional(v.string()),
-    password: v.optional(v.string()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  })
-    .index("by_userId", ["userId"])
-    .index("by_providerId_and_providerAccountId", [
-      "providerId",
-      "providerAccountId",
-    ]),
+    .index("by_email", ["email"]),
 
   session: defineTable({
     userId: v.id("user"),
-    token: v.string(),
     expiresAt: v.number(),
+    token: v.string(),
     ipAddress: v.optional(v.string()),
     userAgent: v.optional(v.string()),
     createdAt: v.number(),
@@ -47,13 +25,30 @@ const schema = defineSchema({
     .index("by_userId", ["userId"])
     .index("by_token", ["token"]),
 
-  verification: defineTable({
-    identifier: v.string(),
-    token: v.string(),
-    tokenExpiresAt: v.number(),
+  account: defineTable({
+    userId: v.id("user"),
+    accountId: v.string(),
+    providerId: v.string(),
+    accessToken: v.optional(v.string()),
+    refreshToken: v.optional(v.string()),
+    idToken: v.optional(v.string()),
+    accessTokenExpiresAt: v.optional(v.number()),
+    refreshTokenExpiresAt: v.optional(v.number()),
+    scope: v.optional(v.string()),
+    password: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("by_identifier_and_token", ["identifier", "token"]),
+  })
+    .index("by_userId", ["userId"]),
+
+  verification: defineTable({
+    identifier: v.string(),
+    value: v.string(),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_identifier", ["identifier"]),
 
   admins: defineTable({
     userId: v.id("user"),

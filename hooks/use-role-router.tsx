@@ -2,7 +2,8 @@
 
 import * as React from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { useConvexAuth, useQuery } from "convex/react"
+import { useQuery } from "convex/react"
+import { useSession } from "@/lib/auth-client"
 import { api } from "@/convex/_generated/api"
 
 /**
@@ -16,16 +17,17 @@ import { api } from "@/convex/_generated/api"
 export function useRoleRouter() {
   const router = useRouter()
   const pathname = usePathname()
-  const { isAuthenticated, isLoading: authLoading } = useConvexAuth()
+  const { data: session, isPending } = useSession()
 
   // Only fetch admin status when authenticated
   const adminStatus = useQuery(
     api.admin.getAdminStatus,
-    isAuthenticated ? {} : "skip"
+    session ? {} : "skip"
   )
 
-  const isLoading = authLoading || (isAuthenticated && adminStatus === undefined)
+  const isLoading = isPending || (session && adminStatus === undefined)
   const isAdmin = adminStatus?.isAdmin ?? false
+  const isAuthenticated = !!session
 
   React.useEffect(() => {
     if (isLoading) return

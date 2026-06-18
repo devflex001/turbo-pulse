@@ -1,11 +1,16 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { MutationCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { components } from "./_generated/api";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+async function getAuthUserId(ctx: any) {
+  const user = await components.betterAuth.getCurrentUser(ctx);
+  return user?._id ?? null;
+}
 
 /** Throws if the caller is not a logged-in admin. Returns the admin doc. */
 async function requireAdmin(ctx: MutationCtx) {

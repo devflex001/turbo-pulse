@@ -25,7 +25,8 @@
     "dev:all": "concurrently \"pnpm dev\" \"pnpm convex:dev\""
   },
   "dependencies": {
-    "better-auth": "^0.15.0",
+    "@convex-dev/better-auth": "^0.12.4",
+    "better-auth": "^1.6.19",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.41.0",

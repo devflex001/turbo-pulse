@@ -1,4 +1,3 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import {
@@ -11,6 +10,7 @@ import {
   type QueryCtx,
 } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { components } from "./_generated/api";
 import {
   normalizedMarketValidator,
   normalizedMatchValidator,
@@ -55,6 +55,11 @@ function mapSportsToIds(sportIds: (string | number)[]): number[] {
       return Number.isFinite(numId) ? numId : undefined;
     })
     .filter((id): id is number => id !== undefined);
+}
+
+async function getAuthUserId(ctx: any) {
+  const user = await components.betterAuth.getCurrentUser(ctx);
+  return user?._id ?? null;
 }
 
 async function requireAdmin(ctx: QueryCtx | MutationCtx) {
