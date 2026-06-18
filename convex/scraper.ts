@@ -99,7 +99,7 @@ async function getOrCreateSettings(ctx: MutationCtx, now: number) {
     enabled: true,
     cadenceMinutes: DEFAULT_CADENCE_MINUTES,
     dateWindowDays: DEFAULT_DATE_WINDOW_DAYS,
-    selectedSports: ["football"], // default to football
+    selectedSports: ["1"], // default to soccer
     matchLimit: DEFAULT_PAGE_LIMIT,
     lastRunAt: null,
     nextRunAt: now,
@@ -200,7 +200,7 @@ export const getSettingsForAction = internalQuery({
       enabled: settings?.enabled ?? true,
       cadenceMinutes: settings?.cadenceMinutes ?? DEFAULT_CADENCE_MINUTES,
       dateWindowDays: settings?.dateWindowDays ?? DEFAULT_DATE_WINDOW_DAYS,
-      selectedSports: settings?.selectedSports ?? ["football"],
+      selectedSports: settings?.selectedSports ?? ["1"],
       matchLimit: settings?.matchLimit ?? DEFAULT_PAGE_LIMIT,
     };
   },
