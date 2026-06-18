@@ -97,41 +97,33 @@ function BetCard({
           </div>
         </dl>
 
-        {bet.status === "active" && (
+        {bet.status === "active" && cancelDeadline && (
           <div className="flex items-center gap-3 shrink-0">
-            {cancelDeadline ? (
-              <>
-                <PieCountdown
-                  deadline={cancelDeadline}
-                  start={bet.placedAt}
-                  size={56}
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={!cancellable || isCancelling}
-                  onClick={() => onCancel(bet.id)}
-                  className={cn(
-                    "h-9 text-xs font-semibold shrink-0",
-                    cancellable &&
-                      "border-destructive/40 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                  )}
-                >
-                  {isCancelling ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <>
-                      <XCircle className="size-3.5 mr-1.5" />
-                      Cancel
-                    </>
-                  )}
-                </Button>
-              </>
-            ) : (
-              <p className="text-[10px] text-muted-foreground max-w-[140px] text-right">
-                Cancel unavailable — match times missing for this slip.
-              </p>
-            )}
+            <PieCountdown
+              deadline={cancelDeadline}
+              start={bet.placedAt}
+              size={56}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!cancellable || isCancelling}
+              onClick={() => onCancel(bet.id)}
+              className={cn(
+                "h-9 text-xs font-semibold shrink-0",
+                cancellable &&
+                  "border-destructive/40 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              )}
+            >
+              {isCancelling ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <>
+                  <XCircle className="size-3.5 mr-1.5" />
+                  Cancel
+                </>
+              )}
+            </Button>
           </div>
         )}
       </div>
@@ -171,12 +163,9 @@ export function MyBetsPanel() {
   }
 
   return (
-    <div className="space-y-4 max-w-3xl">
+    <div className="space-y-6 w-full">
       <div className="space-y-1">
         <h2 className="text-lg font-bold text-foreground">My Bets</h2>
-        <p className="text-xs text-muted-foreground">
-          Cancel any active bet up to 5 minutes before the earliest match kicks off.
-        </p>
       </div>
 
       <div className="flex gap-2">
@@ -199,7 +188,7 @@ export function MyBetsPanel() {
       </div>
 
       {visibleBets.length > 0 ? (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {visibleBets.map((bet) => (
             <BetCard
               key={bet.id}
@@ -210,15 +199,10 @@ export function MyBetsPanel() {
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border py-16 text-center">
+        <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border py-16 text-center w-full">
           <Receipt className="size-8 text-muted-foreground/50" />
           <p className="text-sm font-semibold text-foreground">
             {filter === "active" ? "No active bets" : "No settled bets yet"}
-          </p>
-          <p className="text-xs text-muted-foreground max-w-xs">
-            {filter === "active"
-              ? "Add selections from any fixture and place a bet to see it here."
-              : "Won, lost, and cancelled bets will appear here."}
           </p>
         </div>
       )}

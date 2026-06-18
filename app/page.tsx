@@ -30,27 +30,24 @@ const SLIDES = [
     title: "BetFlow Markets",
     subtitle: "Live KwikBet fixtures with full market depth.",
     cta: "Browse Fixtures",
-    image:
-      "https://images.unsplash.com/photo-1574629810360-7abca9b7f6db?auto=format&fit=crop&w=1400&q=85",
-    imageAlt: "Live football match on a stadium pitch",
+    image: "/images/football-hero-live.svg",
+    imageAlt: "Live football match with ball on pitch",
   },
   {
     id: "markets",
     title: "Full Markets",
     subtitle: "Open any fixture to view all available outcomes.",
     cta: "Open Highlights",
-    image:
-      "https://images.unsplash.com/photo-1431326655850-d9714e2805eb?auto=format&fit=crop&w=1400&q=85",
-    imageAlt: "Football on a green pitch under stadium lights",
+    image: "/images/football-hero-markets.svg",
+    imageAlt: "Football on stadium pitch with full market access",
   },
   {
     id: "admin",
     title: "Automated Sync",
     subtitle: "Scraper refresh is controlled from the admin console.",
     cta: "Featured",
-    image:
-      "https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=1400&q=85",
-    imageAlt: "Football stadium at night with floodlights",
+    image: "/images/football-hero-sync.svg",
+    imageAlt: "Automated football odds sync dashboard",
   },
 ]
 
