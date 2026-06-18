@@ -42,6 +42,8 @@ export const createTransaction = mutation({
       amount: args.amount,
       phone: args.phone,
       status: "pending",
+      checkoutRequestID: args.checkoutRequestID,
+      merchantRequestID: args.merchantRequestID,
       time: Date.now(),
     });
 
@@ -55,6 +57,7 @@ export const createTransaction = mutation({
 
 /**
  * Update transaction status after callback from M-Pesa
+ * This is called from the HTTP callback endpoint
  */
 export const updateTransactionStatus = mutation({
   args: {
@@ -68,10 +71,13 @@ export const updateTransactionStatus = mutation({
     // Find transaction by checkoutRequestID
     const transactions = await ctx.db
       .query("transactions")
-      .withIndex("by_txId", (q) => q.eq("txId", `DEPOSIT-${args.checkoutRequestID}`))
+      .withIndex("by_checkoutRequestID", (q) =>
+        q.eq("checkoutRequestID", args.checkoutRequestID)
+      )
       .take(1);
 
     if (transactions.length === 0) {
+      console.error(`Transaction not found: ${args.checkoutRequestID}`);
       throw new Error(`Transaction not found: ${args.checkoutRequestID}`);
     }
 
@@ -83,17 +89,21 @@ export const updateTransactionStatus = mutation({
           ? "pending"
           : "failed";
 
-    // Update transaction record
+    // Update transaction record with M-Pesa response
     await ctx.db.patch(transaction._id, {
       status,
-      txId: args.mpesaReceiptNumber
-        ? `DEPOSIT-${args.mpesaReceiptNumber}`
-        : transaction.txId,
+      resultCode: args.resultCode,
+      resultDesc: args.resultDesc,
+      mpesaReceiptNumber: args.mpesaReceiptNumber || undefined,
+      updatedAt: Date.now(),
     });
+
+    console.log(`[Transaction] Updated ${transaction._id}: status=${status}, code=${args.resultCode}`);
 
     // If successful, update wallet balance
     if (status === "success" && args.amount) {
       await updateWalletBalance(ctx, transaction.userId, args.amount, "add");
+      console.log(`[Wallet] Credited ${transaction.userId} with KES ${args.amount}`);
     }
 
     return {
@@ -130,6 +140,40 @@ export const getWallet = query({
     }
 
     return wallets[0];
+  },
+});
+
+/**
+ * Get latest transaction for real-time status updates
+ */
+export const getLatestTransaction = query({
+  args: {
+    checkoutRequestID: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const transactions = await ctx.db
+      .query("transactions")
+      .withIndex("by_checkoutRequestID", (q) =>
+        q.eq("checkoutRequestID", args.checkoutRequestID)
+      )
+      .take(1);
+
+    if (transactions.length === 0) {
+      return null;
+    }
+
+    const tx = transactions[0];
+    return {
+      _id: tx._id,
+      status: tx.status,
+      resultCode: tx.resultCode,
+      resultDesc: tx.resultDesc,
+      mpesaReceiptNumber: tx.mpesaReceiptNumber,
+      amount: tx.amount,
+      type: tx.type,
+      time: tx.time,
+      updatedAt: tx.updatedAt,
+    };
   },
 });
 

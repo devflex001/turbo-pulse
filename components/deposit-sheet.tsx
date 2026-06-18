@@ -43,11 +43,18 @@ export function DepositSheet() {
   const [amount, setAmount] = React.useState("")
   const [phone, setPhone] = React.useState("")
   const [stage, setStage] = React.useState<DepositStage>("idle")
-  const [pollInterval, setPollInterval] = React.useState<NodeJS.Timeout | null>(null)
   const [transactionResult, setTransactionResult] = React.useState<TransactionResult | null>(
     null
   )
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
+  const [checkoutRequestID, setCheckoutRequestID] = React.useState<string | null>(null)
+  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null)
+
+  // Query latest transaction status from database
+  const latestTransaction = useQuery(
+    api.mpesa.getLatestTransaction,
+    checkoutRequestID ? { checkoutRequestID } : "skip"
+  )
 
   React.useEffect(() => {
     if (currentUser?.phone) {
@@ -61,11 +68,71 @@ export function DepositSheet() {
     }
   }, [currentUser])
 
+  // Listen to database updates from M-Pesa callback
+  React.useEffect(() => {
+    if (!latestTransaction) return
+    if (stage === "idle" || stage === "initiating" || stage === "complete") return
+
+    console.log("[Real-time DB] Update:", latestTransaction)
+
+    const resultCode = latestTransaction.resultCode || "1032"
+    const feedback = getMPesaFeedback(resultCode)
+
+    // Handle different status codes
+    if (resultCode === "0") {
+      // Success
+      setStage("complete")
+      setTransactionResult({
+        resultCode: "0",
+        resultDesc: latestTransaction.resultDesc || "Payment completed successfully",
+        mpesaReceiptNumber: latestTransaction.mpesaReceiptNumber,
+        amount: latestTransaction.amount,
+        timestamp: latestTransaction.updatedAt || Date.now(),
+      })
+      toast.success(feedback.message)
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    } else if (resultCode === "1") {
+      // User cancelled
+      setStage("complete")
+      setTransactionResult({
+        resultCode: "1",
+        resultDesc: latestTransaction.resultDesc || feedback.message,
+        timestamp: latestTransaction.updatedAt || Date.now(),
+      })
+      toast.error(feedback.message)
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    } else if (resultCode === "1032" || feedback.status === "pending") {
+      // Still waiting for user - no action needed
+      console.log("[Real-time DB] Still pending user confirmation...")
+    } else {
+      // Other error codes
+      setStage("complete")
+      setTransactionResult({
+        resultCode: resultCode,
+        resultDesc: latestTransaction.resultDesc || feedback.message,
+        timestamp: latestTransaction.updatedAt || Date.now(),
+      })
+      toast.error(feedback.message)
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [latestTransaction, stage])
+
   React.useEffect(() => {
     return () => {
-      if (pollInterval) clearInterval(pollInterval)
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
     }
-  }, [pollInterval])
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -117,8 +184,9 @@ export function DepositSheet() {
       }
 
       const data = await response.json()
+      setCheckoutRequestID(data.CheckoutRequestID)
 
-      // Step 2: Create transaction record
+      // Step 2: Create transaction record in database
       await createTransaction({
         type: "deposit",
         amount: parsedAmount,
@@ -130,74 +198,21 @@ export function DepositSheet() {
       // Step 3: Transition to pending user action
       setStage("pending_user_action")
 
-      // Step 4: Poll for transaction status
-      let attempts = 0
-      const maxAttempts = 30
-
-      const interval = setInterval(async () => {
-        attempts++
-
-        try {
-          const statusResponse = await fetch(
-            `/api/mpesa/query-status?checkoutRequestID=${data.CheckoutRequestID}&merchantRequestID=${data.MerchantRequestID}`
-          )
-
-          if (!statusResponse.ok) {
-            return // Retry
-          }
-
-          const statusData = await statusResponse.json()
-          const resultCode = String(statusData.ResultCode)
-          const feedback = getMPesaFeedback(resultCode)
-
-          // Update UI based on result
-          if (resultCode === "0") {
-            // Success
-            setStage("complete")
-            setTransactionResult({
-              resultCode: "0",
-              resultDesc: "Payment completed successfully",
-              mpesaReceiptNumber: statusData.MpesaReceiptNumber,
-              amount: parsedAmount,
-              timestamp: Date.now(),
-            })
-            clearInterval(interval)
-            setPollInterval(null)
-            toast.success(`Deposit of KES ${parsedAmount} completed!`)
-            return
-          } else if (resultCode === "1") {
-            // User cancelled
-            setStage("complete")
-            setTransactionResult({
-              resultCode: "1",
-              resultDesc: statusData.ResultDesc || "Transaction cancelled by user",
-              timestamp: Date.now(),
-            })
-            clearInterval(interval)
-            setPollInterval(null)
-            toast.info("Deposit cancelled")
-            return
-          } else if (resultCode === "2" || feedback.status === "timeout") {
-            // Timeout waiting for user
-            if (attempts >= maxAttempts) {
-              setStage("complete")
-              setTransactionResult({
-                resultCode: "2",
-                resultDesc: "Request timed out. No response received.",
-                timestamp: Date.now(),
-              })
-              clearInterval(interval)
-              setPollInterval(null)
-              toast.error("Transaction timed out")
-              return
-            }
-          }
-        } catch (error) {
-          console.error("Status poll error:", error)
+      // Step 4: Set 60-second timeout as fallback
+      // M-Pesa callback will update the database immediately when user responds
+      const timeoutId = setTimeout(() => {
+        if (stage === "pending_user_action") {
+          setStage("complete")
+          setTransactionResult({
+            resultCode: "2",
+            resultDesc: "Request timed out - No response from M-Pesa",
+            timestamp: Date.now(),
+          })
+          toast.error("Transaction timeout after 60 seconds")
         }
-      }, 2000)
+      }, 60000)
 
-      setPollInterval(interval)
+      timeoutRef.current = timeoutId
     } catch (error) {
       console.error("Deposit error:", error)
       setErrorMessage("Failed to initiate deposit")
@@ -210,8 +225,11 @@ export function DepositSheet() {
     setStage("idle")
     setTransactionResult(null)
     setErrorMessage(null)
-    if (pollInterval) clearInterval(pollInterval)
-    setPollInterval(null)
+    setCheckoutRequestID(null)
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
   }
 
   // Render based on stage
@@ -314,4 +332,3 @@ export function DepositSheet() {
     />
   )
 }
-

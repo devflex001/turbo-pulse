@@ -76,9 +76,21 @@ export class MPesaService {
     }
 
     try {
-      const auth = Buffer.from(
-        `${this.config.consumerKey}:${this.config.consumerSecret}`
-      ).toString("base64");
+      const consumerKey = this.config.consumerKey.trim();
+      const consumerSecret = this.config.consumerSecret.trim();
+
+      if (!consumerKey || !consumerSecret) {
+        throw new Error(
+          "Consumer key or secret is empty. Check environment variables."
+        );
+      }
+
+      const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString(
+        "base64"
+      );
+
+      console.log(`[M-Pesa] Requesting token from: ${this.baseUrl}/oauth/v1/generate`);
+      console.log(`[M-Pesa] Using sandbox mode: ${this.baseUrl === SANDBOX_BASE_URL}`);
 
       const response = await fetch(
         `${this.baseUrl}/oauth/v1/generate?grant_type=client_credentials`,
@@ -87,25 +99,41 @@ export class MPesaService {
           headers: {
             Authorization: `Basic ${auth}`,
             "Content-Type": "application/json",
+            Accept: "application/json",
           },
         }
       );
 
       if (!response.ok) {
         const errorBody = await response.text();
-        console.error(`M-Pesa auth failed: ${response.status} - ${errorBody}`);
+        console.error(`[M-Pesa] Auth failed: ${response.status}`);
+        console.error(`[M-Pesa] Error body:`, errorBody);
+
+        if (response.status === 403) {
+          throw new Error(
+            `Access Denied (403). Check that consumer key and secret are correct and the app is approved by Safaricom.`
+          );
+        }
+
         throw new Error(
-          `Failed to get access token: ${response.status} ${response.statusText}`
+          `Failed to get access token: ${response.status} ${response.statusText} - ${errorBody}`
         );
       }
 
       const data = (await response.json()) as AccessTokenResponse;
+      
+      if (!data.access_token) {
+        throw new Error("No access token in response");
+      }
+
       this.accessToken = data.access_token;
       this.tokenExpiry = Date.now() + data.expires_in * 1000;
 
+      console.log(`[M-Pesa] Token obtained successfully. Expires in ${data.expires_in}s`);
+
       return data.access_token;
     } catch (error) {
-      console.error("M-Pesa token error:", error);
+      console.error("[M-Pesa] Token error:", error);
       throw error;
     }
   }
@@ -181,37 +209,54 @@ export class MPesaService {
     merchantRequestID: string,
     checkoutRequestID: string
   ): Promise<TransactionQueryResponse> {
-    const token = await this.getAccessToken();
+    try {
+      const token = await this.getAccessToken();
 
-    const timestamp = this.generateTimestamp();
-    const password = Buffer.from(
-      `${this.config.businessCode}${this.config.passkey}${timestamp}`
-    ).toString("base64");
+      const timestamp = this.generateTimestamp();
+      const password = Buffer.from(
+        `${this.config.businessCode}${this.config.passkey}${timestamp}`
+      ).toString("base64");
 
-    const payload = {
-      BusinessShortCode: this.config.businessCode,
-      Password: password,
-      Timestamp: timestamp,
-      CheckoutRequestID: checkoutRequestID,
-    };
+      const payload = {
+        BusinessShortCode: this.config.businessCode,
+        Password: password,
+        Timestamp: timestamp,
+        CheckoutRequestID: checkoutRequestID,
+      };
 
-    const response = await fetch(
-      `${this.baseUrl}/mpesa/stkpushquery/v1/query`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
+      console.log(`[M-Pesa] Querying status for: ${checkoutRequestID}`);
+
+      const response = await fetch(
+        `${this.baseUrl}/mpesa/stkpushquery/v1/query`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.error(`[M-Pesa] Query failed: ${response.status}`);
+        console.error(`[M-Pesa] Error body:`, errorBody);
+
+        throw new Error(
+          `Query failed: ${response.status} ${response.statusText} - ${errorBody}`
+        );
       }
-    );
 
-    if (!response.ok) {
-      throw new Error(`Query failed: ${response.statusText}`);
+      const data = (await response.json()) as TransactionQueryResponse;
+
+      console.log(`[M-Pesa] Query result code: ${data.ResultCode}`);
+
+      return data;
+    } catch (error) {
+      console.error("[M-Pesa] Query error:", error);
+      throw error;
     }
-
-    return (await response.json()) as TransactionQueryResponse;
   }
 
   /**
