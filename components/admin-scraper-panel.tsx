@@ -6,7 +6,7 @@ import { api } from "@/convex/_generated/api"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { PageLoader } from "@/components/page-loader"
+import { SmallLoader } from "@/components/small-loader"
 import { toast } from "sonner"
 import { PlayCircle, Save } from "lucide-react"
 
@@ -70,7 +70,7 @@ export function AdminScraperPanel() {
   }
 
   if (!overview) {
-    return <PageLoader />
+    return <SmallLoader />
   }
 
   return (
