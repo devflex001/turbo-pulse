@@ -148,58 +148,76 @@ export class MPesaService {
     accountReference: string,
     transactionDesc: string
   ): Promise<STKPushResponse> {
-    const token = await this.getAccessToken();
+    try {
+      const token = await this.getAccessToken();
 
-    // Format phone number to 254XXXXXXXXX
-    const formattedPhone = this.formatPhoneNumber(phoneNumber);
+      // Format phone number to 254XXXXXXXXX
+      const formattedPhone = this.formatPhoneNumber(phoneNumber);
 
-    // Generate timestamp (format: YYYYMMDDHHmmss)
-    const timestamp = this.generateTimestamp();
+      // Generate timestamp (format: YYYYMMDDHHmmss)
+      const timestamp = this.generateTimestamp();
 
-    // Generate password: Base64(BusinessCode + Passkey + Timestamp)
-    const password = Buffer.from(
-      `${this.config.businessCode}${this.config.passkey}${timestamp}`
-    ).toString("base64");
+      // Generate password: Base64(BusinessCode + Passkey + Timestamp)
+      const password = Buffer.from(
+        `${this.config.businessCode}${this.config.passkey}${timestamp}`
+      ).toString("base64");
 
-    const payload = {
-      BusinessShortCode: this.config.businessCode,
-      Password: password,
-      Timestamp: timestamp,
-      TransactionType: "CustomerPayBillOnline",
-      Amount: Math.floor(amount),
-      PartyA: formattedPhone,
-      PartyB: this.config.shortcode,
-      PhoneNumber: formattedPhone,
-      CallBackURL: this.config.callbackUrl,
-      AccountReference: accountReference,
-      TransactionDesc: transactionDesc,
-    };
+      const payload = {
+        BusinessShortCode: this.config.businessCode,
+        Password: password,
+        Timestamp: timestamp,
+        TransactionType: "CustomerPayBillOnline",
+        Amount: Math.floor(amount),
+        PartyA: formattedPhone,
+        PartyB: this.config.shortcode,
+        PhoneNumber: formattedPhone,
+        CallBackURL: this.config.callbackUrl,
+        AccountReference: "STAR-HELLA", // This shows on phone
+        TransactionDesc: "STAR-HELLA Betting", // This is the description
+      };
 
-    const response = await fetch(
-      `${this.baseUrl}/mpesa/stkpush/v1/processrequest`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      }
-    );
+      console.log("[M-Pesa] Initiating STK Push:", {
+        phone: formattedPhone,
+        amount: Math.floor(amount),
+        accountReference: "STAR-HELLA",
+      });
 
-    if (!response.ok) {
-      throw new Error(`STK Push failed: ${response.statusText}`);
-    }
-
-    const data = (await response.json()) as STKPushResponse;
-
-    if (data.ResponseCode !== "0") {
-      throw new Error(
-        `STK Push error: ${data.ResponseDescription} (${data.ResponseCode})`
+      const response = await fetch(
+        `${this.baseUrl}/mpesa/stkpush/v1/processrequest`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        }
       );
-    }
 
-    return data;
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.error(`[M-Pesa] STK Push failed: ${response.status}`);
+        console.error(`[M-Pesa] Error body:`, errorBody);
+        throw new Error(
+          `STK Push failed: ${response.status} ${response.statusText} - ${errorBody}`
+        );
+      }
+
+      const data = (await response.json()) as STKPushResponse;
+
+      if (data.ResponseCode !== "0") {
+        throw new Error(
+          `STK Push error: ${data.ResponseDescription} (${data.ResponseCode})`
+        );
+      }
+
+      console.log("[M-Pesa] STK Push successful:", data.CheckoutRequestID);
+
+      return data;
+    } catch (error) {
+      console.error("[M-Pesa] STK Push error:", error);
+      throw error;
+    }
   }
 
   /**

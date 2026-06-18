@@ -9,7 +9,7 @@ auth.addHttpRoutes(http);
 
 /**
  * M-Pesa STK Push Callback Endpoint
- * POST /api/mpesa/callback
+ * POST /mpesa/callback
  * 
  * Receives notification when user completes or cancels STK prompt
  * This is the primary way to know transaction status (real-time)
@@ -19,12 +19,13 @@ http.route({
   method: "POST",
   handler: httpAction(async (ctx, req) => {
     try {
+      console.log("[M-Pesa Callback] ===== CALLBACK RECEIVED =====");
+      
       const body = await req.json();
-
-      console.log("[M-Pesa Callback] Received:", JSON.stringify(body, null, 2));
+      console.log("[M-Pesa Callback] Full body:", JSON.stringify(body, null, 2));
 
       if (!body.Body?.stkCallback) {
-        console.warn("[M-Pesa Callback] Invalid callback format");
+        console.warn("[M-Pesa Callback] Invalid callback format - missing stkCallback");
         return new Response(
           JSON.stringify({
             ResultCode: 1,
@@ -46,7 +47,9 @@ http.route({
         CallbackMetadata,
       } = callback;
 
-      console.log(`[M-Pesa Callback] Result Code: ${ResultCode}, Result Desc: ${ResultDesc}`);
+      console.log(`[M-Pesa Callback] CheckoutRequestID: ${CheckoutRequestID}`);
+      console.log(`[M-Pesa Callback] Result Code: ${ResultCode}`);
+      console.log(`[M-Pesa Callback] Result Desc: ${ResultDesc}`);
 
       // Parse metadata if transaction was successful
       let mpesaReceiptNumber = undefined;
@@ -56,6 +59,8 @@ http.route({
 
       if (ResultCode === 0 && CallbackMetadata?.Item) {
         const metadata = CallbackMetadata.Item;
+        console.log(`[M-Pesa Callback] Metadata items: ${metadata.length}`);
+        
         for (const item of metadata) {
           console.log(`[M-Pesa Callback] Metadata: ${item.Name} = ${item.Value}`);
           
@@ -74,9 +79,13 @@ http.route({
         }
       }
 
+      console.log(`[M-Pesa Callback] Parsed data - Receipt: ${mpesaReceiptNumber}, Amount: ${amount}`);
+
       // Update transaction status in database
       try {
-        await ctx.runMutation(api.mpesa.updateTransactionStatus, {
+        console.log(`[M-Pesa Callback] Updating transaction in database...`);
+        
+        const result = await ctx.runMutation(api.mpesa.updateTransactionStatus, {
           checkoutRequestID: CheckoutRequestID,
           resultCode: String(ResultCode),
           resultDesc: ResultDesc,
@@ -84,11 +93,14 @@ http.route({
           amount,
         });
 
-        console.log(`[M-Pesa Callback] Transaction updated successfully: ${CheckoutRequestID}`);
+        console.log(`[M-Pesa Callback] Transaction updated successfully:`, result);
       } catch (dbError) {
         console.error("[M-Pesa Callback] Failed to update transaction:", dbError);
+        console.error("[M-Pesa Callback] Error details:", JSON.stringify(dbError));
         // Still return success to M-Pesa even if DB update fails
       }
+
+      console.log("[M-Pesa Callback] ===== CALLBACK PROCESSED =====");
 
       // Return success response to M-Pesa
       return new Response(
@@ -102,7 +114,10 @@ http.route({
         }
       );
     } catch (error) {
+      console.error("[M-Pesa Callback] ===== CALLBACK ERROR =====");
       console.error("[M-Pesa Callback] Error:", error);
+      console.error("[M-Pesa Callback] Error stack:", error instanceof Error ? error.stack : "No stack");
+      
       return new Response(
         JSON.stringify({
           ResultCode: 1,
