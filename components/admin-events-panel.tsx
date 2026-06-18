@@ -6,7 +6,7 @@ import { api } from "@/convex/_generated/api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Skeleton } from "@/components/ui/skeleton"
+import { FootballLoader } from "@/components/football-loader"
 import { MarketsPanel, type SportsMatchWithOdds } from "@/components/markets-panel"
 import { ListPlus, Search } from "lucide-react"
 

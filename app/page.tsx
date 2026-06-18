@@ -14,7 +14,7 @@ import { BanScreen } from "@/components/ban-screen"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Skeleton } from "@/components/ui/skeleton"
+import { FootballLoader } from "@/components/football-loader"
 import { toast } from "sonner"
 import {
   Flame,
@@ -59,24 +59,7 @@ function titleCase(value: string) {
 }
 
 function MatchSkeletonGrid() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {Array.from({ length: 6 }).map((_, index) => (
-        <div key={index} className="rounded-lg border border-border bg-card p-4 space-y-4">
-          <Skeleton className="h-4 w-2/3" />
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-5/6" />
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <Skeleton className="h-11" />
-            <Skeleton className="h-11" />
-            <Skeleton className="h-11" />
-          </div>
-        </div>
-      ))}
-    </div>
-  )
+  return <FootballLoader size="large" label="Loading matches…" className="min-h-[40vh]" />
 }
 
 export default function Page() {
@@ -183,10 +166,7 @@ export default function Page() {
             <div className="flex flex-col gap-3 pb-2 border-b border-border">
               <div className="flex items-center gap-1 overflow-x-auto pb-1.5 scrollbar-none">
                 {!allMatches ? (
-                  <>
-                    <Skeleton className="h-8 w-24 rounded-full" />
-                    <Skeleton className="h-8 w-24 rounded-full" />
-                  </>
+                  <FootballLoader label="Loading sports…" className="py-1" />
                 ) : (
                   sportOptions.map((sport) => (
                     <Button
