@@ -18,6 +18,12 @@ import {
 } from "./scraperValidators";
 import { KWIKBET_SOURCE, kwikbetAdapter } from "./scrapers/kwikbet";
 
+const DEFAULT_CADENCE_MINUTES = 5;
+const DEFAULT_DATE_WINDOW_DAYS = 2;
+const DEFAULT_PAGE_LIMIT = 50;
+const DEFAULT_MAX_PAGES = 20;
+const DETAIL_CONCURRENCY = 4;
+
 // Sport ID mapping for KwikBet API
 const SPORT_ID_MAP: Record<string, number> = {
   football: 1,
@@ -77,6 +83,7 @@ async function getOrCreateSettings(ctx: MutationCtx, now: number) {
     cadenceMinutes: DEFAULT_CADENCE_MINUTES,
     dateWindowDays: DEFAULT_DATE_WINDOW_DAYS,
     selectedSports: ["football"], // default to football
+    matchLimit: DEFAULT_PAGE_LIMIT,
     lastRunAt: null,
     nextRunAt: now,
     updatedAt: now,
@@ -124,6 +131,7 @@ export const updateSettings = mutation({
     cadenceMinutes: v.number(),
     dateWindowDays: v.number(),
     selectedSports: v.array(v.string()),
+    matchLimit: v.number(),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
@@ -131,6 +139,7 @@ export const updateSettings = mutation({
     const now = Date.now();
     const cadenceMinutes = Math.max(1, Math.min(120, Math.floor(args.cadenceMinutes)));
     const dateWindowDays = Math.max(1, Math.min(14, Math.floor(args.dateWindowDays)));
+    const matchLimit = Math.max(10, Math.min(500, Math.floor(args.matchLimit)));
     const selectedSports = args.selectedSports.length > 0 ? args.selectedSports : ["football"];
     const settings = await getOrCreateSettings(ctx, now);
 
@@ -139,6 +148,7 @@ export const updateSettings = mutation({
       cadenceMinutes,
       dateWindowDays,
       selectedSports,
+      matchLimit,
       nextRunAt: args.enabled ? now + cadenceMinutes * 60_000 : settings.nextRunAt,
       updatedAt: now,
     });
@@ -174,6 +184,7 @@ export const getSettingsForAction = internalQuery({
       cadenceMinutes: settings?.cadenceMinutes ?? DEFAULT_CADENCE_MINUTES,
       dateWindowDays: settings?.dateWindowDays ?? DEFAULT_DATE_WINDOW_DAYS,
       selectedSports: settings?.selectedSports ?? ["football"],
+      matchLimit: settings?.matchLimit ?? DEFAULT_PAGE_LIMIT,
     };
   },
 });

@@ -14,7 +14,10 @@ interface ScraperTerminalProps {
 }
 
 export function ScraperTerminal({ runId, isRunning = false }: ScraperTerminalProps) {
-  const logs = useQuery(runId ? api.scraper.getLogs : null, runId ? { runId } : "skip")
+  const logs = useQuery(
+    runId ? (api.scraper.getLogs as any) : null, 
+    runId ? { runId } : "skip"
+  )
   const scrollAreaRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
@@ -91,7 +94,7 @@ export function ScraperTerminal({ runId, isRunning = false }: ScraperTerminalPro
             $ Waiting for logs...
           </div>
         ) : (
-          logs.map((log) => {
+          logs.map((log: any) => {
             const time = new Date(log.timestamp).toLocaleTimeString("en-US", {
               hour12: false,
               hour: "2-digit",

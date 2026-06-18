@@ -52,6 +52,7 @@ const schema = defineSchema({
     cadenceMinutes: v.number(),
     dateWindowDays: v.number(),
     selectedSports: v.array(v.string()), // e.g., ["football", "basketball", "tennis"]
+    matchLimit: v.number(), // max matches per date to fetch
     lastRunAt: v.union(v.number(), v.null()),
     nextRunAt: v.number(),
     updatedAt: v.number(),

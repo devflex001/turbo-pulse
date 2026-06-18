@@ -50,7 +50,7 @@ export function AdminScraperPanel() {
     cadenceMinutesOverride ?? String(settings?.cadenceMinutes ?? 5)
   const dateWindowDays =
     dateWindowDaysOverride ?? String(settings?.dateWindowDays ?? 2)
-  const selectedSports = selectedSportsOverride ?? settings?.selectedSports ?? ["football"]
+  const selectedSports = selectedSportsOverride ?? (settings as any)?.selectedSports ?? ["football"]
 
   const currentRun = overview?.runs?.[0]
   const isCurrentlyRunning = currentRun?.status === "running"
@@ -90,9 +90,9 @@ export function AdminScraperPanel() {
   }
 
   const toggleSport = (sportId: string) => {
-    const current = selectedSports
+    const current = selectedSports as string[]
     if (current.includes(sportId)) {
-      setSelectedSportsOverride(current.filter((s) => s !== sportId))
+      setSelectedSportsOverride(current.filter((s: string) => s !== sportId))
     } else {
       setSelectedSportsOverride([...current, sportId])
     }
@@ -317,3 +317,4 @@ export function AdminScraperPanel() {
       </Tabs>
     </div>
   )
+}
