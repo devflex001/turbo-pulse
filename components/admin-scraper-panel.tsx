@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { SmallLoader } from "@/components/small-loader"
 import { toast } from "sonner"
-import { PlayCircle, Save, ChevronDown, X } from "lucide-react"
+import { PlayCircle, Save } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -19,23 +19,19 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
   Drawer,
   DrawerContent,
-  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
-import { Card, CardContent } from "@/components/ui/card"
 import { ScraperTerminal } from "@/components/scraper-terminal"
 import { useMediaQuery } from "@/hooks/use-media-query"
-import type { Id } from "@/convex/_generated/dataModel"
 
-// 8 Most popular sports with correct IDs from KwikBet
+// 8 Most popular sports from KwikBet
 const AVAILABLE_SPORTS = [
   { id: 1, label: "Soccer" },
   { id: 2, label: "Basketball" },
@@ -47,33 +43,16 @@ const AVAILABLE_SPORTS = [
   { id: 12, label: "Rugby" },
 ]
 
-const MATCH_LIMITS = [
-  { value: "20", label: "20" },
-  { value: "50", label: "50" },
-  { value: "100", label: "100" },
-  { value: "200", label: "200" },
-  { value: "300", label: "300" },
-  { value: "500", label: "500" },
-]
+const MATCH_LIMITS = [20, 50, 100, 200, 300, 500]
 
-interface RunDetail {
-  _id: Id<"scrapeRuns">
-  _creationTime: number
-  source: string
-  status: string
-  triggeredBy: string
-  startedAt: number
-  finishedAt: number | null
-  durationMs: number | null
-  dateFrom: string
-  dateTo: string
-  selectedSports?: string[]
-  matchesDiscovered: number
-  matchesUpserted: number
-  marketsUpserted: number
-  oddsUpserted: number
-  failedMatches: number
-  errorSummary: string | null
+function formatTime(value: number | null) {
+  if (!value) return "Never"
+  return new Date(value).toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  })
 }
 
 export function AdminScraperPanel() {
@@ -81,31 +60,28 @@ export function AdminScraperPanel() {
   const updateSettings = useMutation(api.scraper.updateSettings)
   const triggerNow = useMutation(api.scraper.triggerNow)
 
-  const [selectedSport, setSelectedSport] = React.useState<string>("")
-  const [cadenceMinutes, setCadenceMinutes] = React.useState<string>("")
-  const [dateWindowDays, setDateWindowDays] = React.useState<string>("")
-  const [matchLimit, setMatchLimit] = React.useState<string>("")
+  const [selectedSport, setSelectedSport] = React.useState<string>("1")
+  const [cadenceMinutes, setCadenceMinutes] = React.useState<string>("5")
+  const [dateWindowDays, setDateWindowDays] = React.useState<string>("2")
+  const [matchLimit, setMatchLimit] = React.useState<string>("50")
   const [saving, setSaving] = React.useState(false)
   const [running, setRunning] = React.useState(false)
   const [showTerminal, setShowTerminal] = React.useState(false)
-  const [selectedRun, setSelectedRun] = React.useState<RunDetail | null>(null)
   const isDesktop = useMediaQuery("(min-width: 768px)")
 
   const settings = overview?.settings as any
   const currentRun = overview?.runs?.[0]
   const isCurrentlyRunning = currentRun?.status === "running"
 
-  // Initialize form with settings
   React.useEffect(() => {
     if (settings) {
-      setSelectedSport(String(settings.selectedSports?.[0] ?? settings.selectedSports?.[0] ?? 1))
+      setSelectedSport(String(settings.selectedSports?.[0] ?? 1))
       setCadenceMinutes(String(settings.cadenceMinutes ?? 5))
       setDateWindowDays(String(settings.dateWindowDays ?? 2))
       setMatchLimit(String(settings.matchLimit ?? 50))
     }
   }, [settings])
 
-  // Auto-open terminal when scraper starts running
   React.useEffect(() => {
     if (isCurrentlyRunning && !showTerminal) {
       setShowTerminal(true)
@@ -124,7 +100,7 @@ export function AdminScraperPanel() {
       })
       toast.success("Settings saved")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to save settings")
+      toast.error(error instanceof Error ? error.message : "Failed to save")
     } finally {
       setSaving(false)
     }
@@ -137,7 +113,7 @@ export function AdminScraperPanel() {
       await triggerNow({})
       toast.success("Scraper started")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to start scraper")
+      toast.error(error instanceof Error ? error.message : "Failed to start")
       setShowTerminal(false)
     } finally {
       setRunning(false)
@@ -150,349 +126,178 @@ export function AdminScraperPanel() {
 
   const sportLabel = AVAILABLE_SPORTS.find(s => String(s.id) === selectedSport)?.label || "Soccer"
 
-  const TerminalContent = (
-    <ScraperTerminal 
-      runId={currentRun?._id ?? null} 
-      isRunning={isCurrentlyRunning} 
-    />
-  )
-
-  const formatTime = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString([], {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
-
   return (
-    <div className="w-full max-w-full space-y-4 py-4 px-4 sm:px-6">
-      {/* Header Card */}
-      <Card className="border border-border">
-        <CardContent className="pt-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex-1">
-              <h1 className="text-lg font-bold">Sports Scraper</h1>
-              <p className="text-xs text-muted-foreground mt-1">Configure and monitor match scraping</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge 
-                variant={isCurrentlyRunning ? "secondary" : "outline"}
-                className="text-xs uppercase whitespace-nowrap"
-              >
-                {isCurrentlyRunning ? "● Running" : "● Idle"}
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Controls Card */}
-      <Card className="border border-border">
-        <CardContent className="pt-4 space-y-4">
-          {/* Row 1: Sport, Cadence, Window, Match Limit (Mobile friendly) */}
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* Sport */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground block">Sport</label>
-              <Select 
-                value={selectedSport} 
-                onValueChange={setSelectedSport} 
-                disabled={isCurrentlyRunning}
-              >
-                <SelectTrigger className="h-9 text-xs rounded-md">
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  {AVAILABLE_SPORTS.map((sport) => (
-                    <SelectItem key={sport.id} value={String(sport.id)}>
-                      {sport.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Cadence */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground block">Cadence (min)</label>
-              <Input
-                type="number"
-                min="1"
-                max="120"
-                value={cadenceMinutes}
-                onChange={(e) => setCadenceMinutes(e.target.value)}
-                disabled={isCurrentlyRunning}
-                className="h-9 text-xs rounded-md focus-visible:ring-primary"
-              />
-            </div>
-
-            {/* Window */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground block">Window (days)</label>
-              <Input
-                type="number"
-                min="1"
-                max="14"
-                value={dateWindowDays}
-                onChange={(e) => setDateWindowDays(e.target.value)}
-                disabled={isCurrentlyRunning}
-                className="h-9 text-xs rounded-md focus-visible:ring-primary"
-              />
-            </div>
-
-            {/* Match Limit */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground block">Match Limit</label>
-              <Select 
-                value={matchLimit} 
-                onValueChange={setMatchLimit} 
-                disabled={isCurrentlyRunning}
-              >
-                <SelectTrigger className="h-9 text-xs rounded-md">
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MATCH_LIMITS.map((limit) => (
-                    <SelectItem key={limit.value} value={limit.value}>
-                      {limit.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Row 2: Buttons */}
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Button 
-              size="sm" 
-              className="h-9 text-xs font-semibold gap-1.5 flex-1 sm:flex-none"
-              onClick={handleSave}
-              disabled={saving || isCurrentlyRunning}
-            >
-              <Save className="size-3.5" />
-              Save
-            </Button>
-            <Button 
-              size="sm" 
-              variant="outline"
-              className="h-9 text-xs font-semibold gap-1.5 flex-1 sm:flex-none"
-              onClick={handleRunNow}
-              disabled={running || isCurrentlyRunning}
-            >
-              <PlayCircle className="size-3.5" />
-              Run
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Status Row - Compact Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="border border-border">
-          <CardContent className="p-3">
-            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Last Run</p>
-            <p className="font-mono text-xs font-medium mt-1">
-              {overview.settings.lastRunAt 
-                ? new Date(overview.settings.lastRunAt).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : "—"}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border border-border">
-          <CardContent className="p-3">
-            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Next Run</p>
-            <p className="font-mono text-xs font-medium mt-1">
-              {new Date(overview.settings.nextRunAt).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border border-border">
-          <CardContent className="p-3">
-            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Sport</p>
-            <p className="font-semibold text-xs mt-1 truncate">{sportLabel}</p>
-          </CardContent>
-        </Card>
-        <Card className="border border-border">
-          <CardContent className="p-3">
-            <p className="text-[10px] text-muted-foreground uppercase font-semibold">Fetch Limit</p>
-            <p className="font-mono text-xs font-medium mt-1">{matchLimit}</p>
-          </CardContent>
-        </Card>
+    <div className="space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-bold tracking-tight">Sports Scraper</h1>
+          <p className="text-xs text-muted-foreground">Manage KwikBet fixture ingestion</p>
+        </div>
+        <Badge variant={isCurrentlyRunning ? "secondary" : "outline"} className="text-[10px] uppercase">
+          {isCurrentlyRunning ? "● Running" : "● Idle"}
+        </Badge>
       </div>
 
-      {/* Recent Activity Table - Clickable */}
+      {/* Controls */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground">Sport</label>
+          <Select value={selectedSport} onValueChange={setSelectedSport} disabled={isCurrentlyRunning}>
+            <SelectTrigger className="h-9 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {AVAILABLE_SPORTS.map((sport) => (
+                <SelectItem key={sport.id} value={String(sport.id)}>
+                  {sport.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground">Cadence (min)</label>
+          <Input
+            type="number"
+            min="1"
+            max="120"
+            value={cadenceMinutes}
+            onChange={(e) => setCadenceMinutes(e.target.value)}
+            disabled={isCurrentlyRunning}
+            className="h-9 text-xs"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground">Window (days)</label>
+          <Input
+            type="number"
+            min="1"
+            max="14"
+            value={dateWindowDays}
+            onChange={(e) => setDateWindowDays(e.target.value)}
+            disabled={isCurrentlyRunning}
+            className="h-9 text-xs"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground">Match Limit</label>
+          <Select value={matchLimit} onValueChange={setMatchLimit} disabled={isCurrentlyRunning}>
+            <SelectTrigger className="h-9 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MATCH_LIMITS.map((limit) => (
+                <SelectItem key={limit} value={String(limit)}>
+                  {limit}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Actions & Status */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex gap-2">
+          <Button 
+            size="sm" 
+            className="h-8 text-xs font-semibold gap-1.5"
+            onClick={handleSave}
+            disabled={saving || isCurrentlyRunning}
+          >
+            <Save className="size-3.5" />
+            Save
+          </Button>
+          <Button 
+            size="sm" 
+            variant="outline"
+            className="h-8 text-xs font-semibold gap-1.5"
+            onClick={handleRunNow}
+            disabled={running || isCurrentlyRunning}
+          >
+            <PlayCircle className="size-3.5" />
+            Run
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-4 text-xs">
+          <div>
+            <span className="text-muted-foreground">Last:</span>{" "}
+            <span className="font-mono">{formatTime(overview.settings.lastRunAt)}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Next:</span>{" "}
+            <span className="font-mono">{formatTime(overview.settings.nextRunAt)}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Sport:</span>{" "}
+            <span className="font-semibold">{sportLabel}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Runs */}
       {overview.runs.length > 0 && (
-        <Card className="border border-border">
-          <CardContent className="p-0">
-            <div className="px-4 py-3 border-b border-border">
-              <p className="text-sm font-semibold">Recent Activity</p>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs min-w-[500px]">
-                <thead className="border-b border-border bg-card/50 text-muted-foreground text-[10px] uppercase">
-                  <tr>
-                    <th className="px-4 py-2.5 text-left">Time</th>
-                    <th className="px-4 py-2.5 text-left">Status</th>
-                    <th className="px-4 py-2.5 text-left">Sport</th>
-                    <th className="px-4 py-2.5 text-right">Matches</th>
-                    <th className="px-4 py-2.5 text-right">Markets</th>
+        <div className="border rounded-lg overflow-hidden">
+          <div className="px-4 py-3 border-b bg-muted/50">
+            <p className="text-sm font-semibold">Recent Runs</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead className="border-b bg-muted/30 text-muted-foreground text-[10px] uppercase">
+                <tr>
+                  <th className="px-4 py-2 text-left font-semibold">Time</th>
+                  <th className="px-4 py-2 text-left font-semibold">Status</th>
+                  <th className="px-4 py-2 text-left font-semibold">Sport</th>
+                  <th className="px-4 py-2 text-right font-semibold">Matches</th>
+                  <th className="px-4 py-2 text-right font-semibold">Markets</th>
+                  <th className="px-4 py-2 text-right font-semibold">Odds</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {overview.runs.slice(0, 5).map((run: any) => (
+                  <tr key={run._id} className="hover:bg-muted/30">
+                    <td className="px-4 py-2.5 font-mono">{formatTime(run.startedAt)}</td>
+                    <td className="px-4 py-2.5">
+                      <Badge
+                        variant={
+                          run.status === "success"
+                            ? "default"
+                            : run.status === "running"
+                            ? "secondary"
+                            : "destructive"
+                        }
+                        className="text-[9px] uppercase"
+                      >
+                        {run.status}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-2.5">{run.selectedSports?.join(", ") || "—"}</td>
+                    <td className="px-4 py-2.5 text-right font-mono">
+                      {run.matchesUpserted}/{run.matchesDiscovered}
+                    </td>
+                    <td className="px-4 py-2.5 text-right font-mono">{run.marketsUpserted}</td>
+                    <td className="px-4 py-2.5 text-right font-mono">{run.oddsUpserted}</td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {overview.runs.slice(0, 10).map((run: RunDetail) => (
-                    <tr 
-                      key={run._id} 
-                      onClick={() => setSelectedRun(run)}
-                      className="hover:bg-card/50 transition-colors cursor-pointer"
-                    >
-                      <td className="px-4 py-2.5 font-mono text-[11px]">
-                        {formatTime(run.startedAt).split(" ").pop()}
-                      </td>
-                      <td className="px-4 py-2.5">
-                        <Badge
-                          variant={
-                            run.status === "success"
-                              ? "default"
-                              : run.status === "running"
-                              ? "secondary"
-                              : "destructive"
-                          }
-                          className="text-[9px] uppercase"
-                        >
-                          {run.status}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-2.5 text-[11px]">
-                        {run.selectedSports?.join(", ") || "—"}
-                      </td>
-                      <td className="px-4 py-2.5 text-right font-mono text-[11px]">
-                        {run.matchesUpserted}/{run.matchesDiscovered}
-                      </td>
-                      <td className="px-4 py-2.5 text-right font-mono text-[11px]">
-                        {run.marketsUpserted}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Run Details Dialog */}
-      {selectedRun && (
-        <Dialog open={!!selectedRun} onOpenChange={() => setSelectedRun(null)}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-base">Run Details</DialogTitle>
-              <DialogDescription className="text-xs">
-                {formatTime(selectedRun.startedAt)}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-card/50 rounded px-3 py-2 border border-border">
-                  <p className="text-[10px] text-muted-foreground uppercase">Status</p>
-                  <Badge 
-                    variant={
-                      selectedRun.status === "success"
-                        ? "default"
-                        : selectedRun.status === "running"
-                        ? "secondary"
-                        : "destructive"
-                    }
-                    className="text-[10px] uppercase mt-1"
-                  >
-                    {selectedRun.status}
-                  </Badge>
-                </div>
-                <div className="bg-card/50 rounded px-3 py-2 border border-border">
-                  <p className="text-[10px] text-muted-foreground uppercase">Duration</p>
-                  <p className="font-mono text-xs mt-1">
-                    {selectedRun.durationMs 
-                      ? `${(selectedRun.durationMs / 1000).toFixed(1)}s`
-                      : "—"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-card/50 rounded px-3 py-2 border border-border">
-                  <p className="text-[10px] text-muted-foreground uppercase">Matches</p>
-                  <p className="font-mono text-xs font-semibold mt-1">
-                    {selectedRun.matchesUpserted}/{selectedRun.matchesDiscovered}
-                  </p>
-                </div>
-                <div className="bg-card/50 rounded px-3 py-2 border border-border">
-                  <p className="text-[10px] text-muted-foreground uppercase">Markets</p>
-                  <p className="font-mono text-xs font-semibold mt-1">
-                    {selectedRun.marketsUpserted}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-card/50 rounded px-3 py-2 border border-border">
-                  <p className="text-[10px] text-muted-foreground uppercase">Odds</p>
-                  <p className="font-mono text-xs font-semibold mt-1">
-                    {selectedRun.oddsUpserted}
-                  </p>
-                </div>
-                <div className="bg-card/50 rounded px-3 py-2 border border-border">
-                  <p className="text-[10px] text-muted-foreground uppercase">Failed</p>
-                  <p className="font-mono text-xs font-semibold mt-1">
-                    {selectedRun.failedMatches}
-                  </p>
-                </div>
-              </div>
-
-              <div className="bg-card/50 rounded px-3 py-2 border border-border">
-                <p className="text-[10px] text-muted-foreground uppercase">Sport</p>
-                <p className="text-xs mt-1">{selectedRun.selectedSports?.join(", ") || "—"}</p>
-              </div>
-
-              <div className="bg-card/50 rounded px-3 py-2 border border-border">
-                <p className="text-[10px] text-muted-foreground uppercase">Date Range</p>
-                <p className="text-xs mt-1">{selectedRun.dateFrom} to {selectedRun.dateTo}</p>
-              </div>
-
-              {selectedRun.errorSummary && (
-                <div className="bg-destructive/10 rounded px-3 py-2 border border-destructive/30">
-                  <p className="text-[10px] text-destructive uppercase font-semibold">Errors</p>
-                  <p className="text-xs mt-1 text-destructive/90 font-mono break-words">
-                    {selectedRun.errorSummary.slice(0, 200)}
-                    {selectedRun.errorSummary.length > 200 ? "..." : ""}
-                  </p>
-                </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
       {/* Terminal Modal/Drawer */}
       {isDesktop ? (
         <Dialog open={showTerminal} onOpenChange={setShowTerminal}>
-          <DialogContent className="max-w-2xl max-h-[70vh]">
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle className="text-sm">Live Activity</DialogTitle>
-              <DialogDescription className="text-xs">
-                Real-time scraper logs
-              </DialogDescription>
             </DialogHeader>
-            <div className="mt-4 overflow-hidden">
-              {TerminalContent}
-            </div>
+            <ScraperTerminal runId={currentRun?._id ?? null} isRunning={isCurrentlyRunning} />
           </DialogContent>
         </Dialog>
       ) : (
@@ -500,12 +305,9 @@ export function AdminScraperPanel() {
           <DrawerContent>
             <DrawerHeader>
               <DrawerTitle className="text-sm">Live Activity</DrawerTitle>
-              <DrawerDescription className="text-xs">
-                Real-time scraper logs
-              </DrawerDescription>
             </DrawerHeader>
-            <div className="px-4 pb-4 max-h-[60vh] overflow-hidden">
-              {TerminalContent}
+            <div className="px-4 pb-4">
+              <ScraperTerminal runId={currentRun?._id ?? null} isRunning={isCurrentlyRunning} />
             </div>
           </DrawerContent>
         </Drawer>
