@@ -24,19 +24,34 @@ const DEFAULT_PAGE_LIMIT = 50;
 const DEFAULT_MAX_PAGES = 20;
 const DETAIL_CONCURRENCY = 4;
 
-// Sport ID mapping for KwikBet API
+// Sport ID mapping for KwikBet API - 8 most popular sports
+const AVAILABLE_SPORTS = [
+  { id: 1, label: "Soccer" },
+  { id: 2, label: "Basketball" },
+  {id: 3, label: "Baseball"},
+  { id: 5, label: "Tennis" },
+  { id: 16, label: "American Football" },
+  { id: 21, label: "Cricket" },
+  { id: 10, label: "Boxing" },
+  { id: 117, label: "MMA" },
+  { id: 12, label: "Rugby" },
+];
+
+// Sport ID mapping for KwikBet API - 8 most popular sports
 const SPORT_ID_MAP: Record<string, number> = {
-  football: 1,
-  basketball: 2,
-  tennis: 3,
-  volleyball: 4,
-  american_football: 5,
-  ice_hockey: 6,
+  "1": 1,   // Soccer
+  "2": 2,   // Basketball
+  "5": 5,   // Tennis
+  "16": 16, // American Football
+  "21": 21, // Cricket
+  "10": 10, // Boxing
+  "117": 117, // MMA
+  "12": 12, // Rugby
 };
 
-function mapSportsToIds(sportNames: string[]): number[] {
-  return sportNames
-    .map((name) => SPORT_ID_MAP[name.toLowerCase()])
+function mapSportsToIds(sportIds: (string | number)[]): number[] {
+  return sportIds
+    .map((id) => SPORT_ID_MAP[String(id)])
     .filter((id) => id !== undefined);
 }
 
@@ -452,7 +467,7 @@ export const runScrape = internalAction({
   handler: async (ctx, args) => {
     const settings: {
       dateWindowDays: number;
-      selectedSports: string[];
+      selectedSports: (string | number)[];
       matchLimit: number;
     } = await ctx.runQuery(internal.scraper.getSettingsForAction, {});
     const window = dateWindow(settings.dateWindowDays);
@@ -461,13 +476,21 @@ export const runScrape = internalAction({
       triggeredBy: args.triggeredBy,
       dateFrom: window.dateFrom,
       dateTo: window.dateTo,
-      selectedSports: settings.selectedSports,
+      selectedSports: settings.selectedSports.map(String),
     });
+
+    const sportNames = settings.selectedSports
+      .map(s => {
+        const id = Number(s);
+        const sport = AVAILABLE_SPORTS.find(sp => sp.id === id);
+        return sport?.label || String(s);
+      })
+      .join(", ");
 
     await ctx.runMutation(internal.scraper.addLog, {
       runId,
       level: "info",
-      message: `Starting scrape run for sports: ${settings.selectedSports.join(", ")}`,
+      message: `Starting scrape run for: ${sportNames}`,
     });
 
     try {
