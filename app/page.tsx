@@ -58,9 +58,6 @@ function titleCase(value: string) {
     .join(" ")
 }
 
-function MatchSkeletonGrid() {
-  return <FootballLoader size="large" label="Loading matches…" className="min-h-[40vh]" />
-}
 
 export default function Page() {
   const {
@@ -154,6 +151,9 @@ export default function Page() {
 
   const liveCount = displayedMatches.filter((match) => match.isLive).length
 
+  // Show a single loader until all data needed for the home tab is ready
+  const isLoading = matches === undefined || allMatches === undefined
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       <Header />
@@ -162,13 +162,14 @@ export default function Page() {
         <Sidebar className="hidden lg:flex w-60 shrink-0 h-full" />
 
         <main className="flex-1 min-w-0 p-4 sm:p-6 overflow-y-auto h-full flex flex-col gap-6 scrollbar-thin">
+          {(activeTab === "home" || activeTab === "live" || activeTab === "featured") && isLoading ? (
+            <FootballLoader size="large" label="Loading matches…" className="min-h-[40vh]" />
+          ) : (
+            <>
           {(activeTab === "home" || activeTab === "live" || activeTab === "featured") && (
             <div className="flex flex-col gap-3 pb-2 border-b border-border">
               <div className="flex items-center gap-1 overflow-x-auto pb-1.5 scrollbar-none">
-                {!allMatches ? (
-                  <FootballLoader label="Loading sports…" className="py-1" />
-                ) : (
-                  sportOptions.map((sport) => (
+                {sportOptions.map((sport) => (
                     <Button
                       key={sport.id}
                       variant={selectedSport === sport.id ? "default" : "outline"}
@@ -184,8 +185,7 @@ export default function Page() {
                         {sport.count}
                       </span>
                     </Button>
-                  ))
-                )}
+                  ))}
               </div>
 
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
@@ -251,10 +251,7 @@ export default function Page() {
                 </div>
               </div>
 
-              {matches === undefined ? (
-                <MatchSkeletonGrid />
-              ) : (
-                <div className="space-y-3">
+              <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
                       <PlayCircle className="size-4 text-muted-foreground" />
@@ -277,7 +274,6 @@ export default function Page() {
                     </div>
                   )}
                 </div>
-              )}
             </>
           )}
 
@@ -287,9 +283,7 @@ export default function Page() {
                 <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
                 Live Sports Betting
               </h2>
-              {matches === undefined ? (
-                <MatchSkeletonGrid />
-              ) : displayedMatches.length > 0 ? (
+              {displayedMatches.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {displayedMatches.map((match) => (
                     <MatchCard key={match.sourceMatchId} match={match} />
@@ -309,9 +303,7 @@ export default function Page() {
                 <Flame className="size-4 text-primary fill-current" />
                 Featured Market Highlights
               </h2>
-              {matches === undefined ? (
-                <MatchSkeletonGrid />
-              ) : featuredMatches.length > 0 ? (
+              {featuredMatches.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {featuredMatches.map((match) => (
                     <MatchCard key={match.sourceMatchId} match={match} />
@@ -323,6 +315,8 @@ export default function Page() {
                 </div>
               )}
             </div>
+          )}
+            </>
           )}
 
           {activeTab === "custom" && (
