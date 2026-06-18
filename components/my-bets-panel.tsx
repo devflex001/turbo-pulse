@@ -36,92 +36,83 @@ function BetCard({
     bet.status === "active" && canCancelBet(bet.selections, bet.placedAt)
 
   return (
-    <article className="rounded-lg border border-border bg-card overflow-hidden">
-      <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
-        <div className="min-w-0 space-y-1">
-          <p className="text-sm font-bold text-foreground">
-            {bet.selections.length === 1 ? "Single" : "Accumulator"} · @
-            {bet.totalOdds.toFixed(2)}
-          </p>
+    <article className="rounded-lg border border-border bg-card overflow-hidden flex flex-col justify-between h-full shadow-sm hover:border-muted-foreground/25 transition-colors">
+      <div>
+        <div className="flex items-center justify-between border-b border-border px-4 py-2.5 bg-muted/10 text-xs">
           <p className="text-[11px] text-muted-foreground">{bet.time}</p>
-        </div>
-        <Badge
-          variant={statusBadgeVariant(bet.status)}
-          className="shrink-0 text-[10px] uppercase font-bold"
-        >
-          {bet.status}
-        </Badge>
-      </div>
-
-      <ul className="divide-y divide-border">
-        {bet.selections.map((selection, index) => (
-          <li
-            key={`${selection.id}-${index}`}
-            className="flex items-start justify-between gap-3 px-4 py-2.5 text-xs"
+          <Badge
+            variant={statusBadgeVariant(bet.status)}
+            className="shrink-0 text-[10px] uppercase font-bold px-1.5 py-0.5 rounded-sm"
           >
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold text-foreground leading-snug break-words">
+            {bet.status}
+          </Badge>
+        </div>
+
+        <ul className="divide-y divide-border/60">
+          {bet.selections.map((selection, index) => (
+            <li
+              key={`${selection.id}-${index}`}
+              className="px-4 py-3 text-xs space-y-1.5"
+            >
+              <p className="font-bold text-foreground leading-snug break-words text-sm">
                 {selection.matchName}
               </p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {selection.market} ·{" "}
-                <span className="font-semibold text-foreground">
-                  {selection.selectionName}
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="text-muted-foreground">
+                  {selection.market} · <span className="font-semibold text-foreground">{selection.selectionName}</span>
                 </span>
-              </p>
-            </div>
-            <span className="shrink-0 font-mono font-bold text-primary">
-              {selection.odds.toFixed(2)}
-            </span>
-          </li>
-        ))}
-      </ul>
+                <span className="font-mono font-extrabold text-primary shrink-0">
+                  @{selection.odds.toFixed(2)}
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-border bg-muted/20 px-4 py-3">
-        <dl className="grid grid-cols-3 gap-3 text-[11px] flex-1">
+      <div className="flex flex-col">
+        <div className="flex items-center justify-between border-t border-border px-4 py-3 bg-muted/5 text-xs">
           <div>
-            <dt className="text-muted-foreground">Stake</dt>
-            <dd className="font-mono font-bold text-foreground">
+            <span className="text-[9px] text-muted-foreground block uppercase font-medium tracking-wide">Stake</span>
+            <span className="font-mono font-bold text-foreground">
               KES {bet.stake.toLocaleString()}
-            </dd>
+            </span>
           </div>
-          <div>
-            <dt className="text-muted-foreground">Return</dt>
-            <dd className="font-mono font-bold text-primary">
+          <div className="text-right">
+            <span className="text-[9px] text-muted-foreground block uppercase font-medium tracking-wide">
+              {bet.status === "won" ? "Payout" : "Est. Return"}
+            </span>
+            <span className={cn(
+              "font-mono font-extrabold",
+              bet.status === "won" ? "text-emerald-600 dark:text-emerald-500 text-sm" : "text-primary"
+            )}>
               KES {bet.potentialReturn.toLocaleString()}
-            </dd>
+            </span>
           </div>
-          <div>
-            <dt className="text-muted-foreground">Selections</dt>
-            <dd className="font-bold text-foreground">{bet.selections.length}</dd>
-          </div>
-        </dl>
+        </div>
 
-        {bet.status === "active" && cancelDeadline && (
-          <div className="flex items-center gap-3 shrink-0">
-            <PieCountdown
-              deadline={cancelDeadline}
-              start={bet.placedAt}
-              size={56}
-            />
+        {cancellable && (
+          <div className="flex items-center gap-3 border-t border-border px-4 py-2 bg-destructive/5 justify-between">
+            <div className="flex items-center gap-2">
+              <PieCountdown
+                deadline={cancelDeadline!}
+                start={bet.placedAt}
+                size={34}
+                showLabel={false}
+              />
+              <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Cancel Window</span>
+            </div>
             <Button
               size="sm"
               variant="outline"
-              disabled={!cancellable || isCancelling}
+              disabled={isCancelling}
               onClick={() => onCancel(bet.id)}
-              className={cn(
-                "h-9 text-xs font-semibold shrink-0",
-                cancellable &&
-                  "border-destructive/40 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-              )}
+              className="h-8 text-xs font-bold text-destructive hover:bg-destructive hover:text-destructive-foreground border-destructive/20 bg-background"
             >
               {isCancelling ? (
-                <Loader2 className="size-3.5 animate-spin" />
+                <Loader2 className="size-3 animate-spin" />
               ) : (
-                <>
-                  <XCircle className="size-3.5 mr-1.5" />
-                  Cancel
-                </>
+                "Cancel"
               )}
             </Button>
           </div>

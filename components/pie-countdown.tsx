@@ -80,24 +80,21 @@ export function PieCountdown({
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="currentColor"
+            stroke="var(--muted-foreground)"
+            strokeOpacity={0.2}
             strokeWidth={stroke}
-            className="text-muted/30"
           />
           <circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="currentColor"
+            stroke={closed ? "var(--muted-foreground)" : "var(--primary)"}
             strokeWidth={stroke}
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={dashOffset}
-            className={cn(
-              "transition-[stroke-dashoffset] duration-1000 ease-linear",
-              closed ? "text-muted-foreground" : "text-primary"
-            )}
+            className="transition-[stroke-dashoffset] duration-1000 ease-linear"
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
