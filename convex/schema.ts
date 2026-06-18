@@ -231,9 +231,17 @@ const schema = defineSchema({
     status: v.string(), // "success" | "pending" | "failed"
     errorDetail: v.optional(v.string()),
     time: v.number(),
+    // M-Pesa specific fields
+    checkoutRequestID: v.optional(v.string()),
+    merchantRequestID: v.optional(v.string()),
+    resultCode: v.optional(v.string()),
+    resultDesc: v.optional(v.string()),
+    mpesaReceiptNumber: v.optional(v.string()),
+    updatedAt: v.optional(v.number()),
   })
     .index("by_userId", ["userId"])
-    .index("by_txId", ["txId"]),
+    .index("by_txId", ["txId"])
+    .index("by_checkoutRequestID", ["checkoutRequestID"]),
 });
 
 export default schema;
