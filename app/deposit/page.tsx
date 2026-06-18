@@ -4,43 +4,50 @@ import * as React from "react"
 import { Header } from "@/components/header"
 import { Sidebar } from "@/components/sidebar"
 import { BottomNav } from "@/components/bottom-nav"
-import { useBetStore } from "@/hooks/use-bet-store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import { Loader2, ArrowLeft, ArrowUpRight, Wallet, CheckCircle2 } from "lucide-react"
+import {
+  Loader2,
+  ArrowLeft,
+  ArrowUpRight,
+  Wallet,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react"
 import Link from "next/link"
 
 const QUICK_AMOUNTS = [100, 250, 500, 1000, 2500, 5000]
+const MIN_AMOUNT = 10
+const MAX_AMOUNT = 150000
 
-// Validation helpers
 function isValidKenyanPhone(phone: string): boolean {
   const regex = /^(?:\+254|254|0)?([71]\d{8})$/
   return regex.test(phone.trim())
 }
 
+type DepositState = "idle" | "loading" | "pending_stk" | "success" | "failed"
+
 export default function DepositPage() {
-  const { walletBalance, transactions } = useBetStore()
-  const convexUser = useQuery(api.users.currentUser)
-  
-  const createTx = useMutation(api.bets.createTransaction)
-  const updateTx = useMutation(api.bets.updateTransactionStatus)
+  const wallet = useQuery(api.mpesa.getWallet)
+  const currentUser = useQuery(api.users.currentUser)
+
+  const createTransaction = useMutation(api.mpesa.createTransaction)
+  const updateTransactionStatus = useMutation(api.mpesa.updateTransactionStatus)
 
   const [amount, setAmount] = React.useState("")
   const [phone, setPhone] = React.useState("")
-  const [provider, setProvider] = React.useState<"m-pesa" | "sasapay">("m-pesa")
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
-  const [depositState, setDepositState] = React.useState<"idle" | "sending" | "pending_stk" | "success" | "failed">("idle")
-  const [pendingTxId, setPendingTxId] = React.useState("")
+  const [state, setState] = React.useState<DepositState>("idle")
+  const [checkoutRequestID, setCheckoutRequestID] = React.useState("")
+  const [merchantRequestID, setMerchantRequestID] = React.useState("")
 
-  // Pre-fill phone if logged in
+  // Pre-fill phone from user profile
   React.useEffect(() => {
-    if (convexUser?.phone) {
-      // Clean prefix if it is +254... to show standard local number format
-      let rawPhone = convexUser.phone
+    if (currentUser?.phone) {
+      let rawPhone = currentUser.phone
       if (rawPhone.startsWith("+254")) {
         rawPhone = "0" + rawPhone.slice(4)
       } else if (rawPhone.startsWith("254")) {
@@ -48,77 +55,155 @@ export default function DepositPage() {
       }
       setPhone(rawPhone)
     }
-  }, [convexUser])
+  }, [currentUser])
 
-  // Monitor transactions for status change if we have a pending deposit
-  React.useEffect(() => {
-    if (depositState !== "pending_stk" || !pendingTxId) return
-
-    const currentTx = transactions.find((t: any) => t.id === pendingTxId)
-    if (currentTx) {
-      if (currentTx.status === "success") {
-        setDepositState("success")
-        toast.success(`KES ${parseFloat(amount).toLocaleString()} successfully deposited!`)
-      } else if (currentTx.status === "failed") {
-        setDepositState("failed")
-        toast.error("Deposit request failed or was cancelled.")
-      }
-    }
-  }, [depositState, pendingTxId, amount, transactions])
+  const handleQuickAmount = (amt: number) => {
+    setAmount(amt.toString())
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
     const parsedAmount = parseFloat(amount)
-    if (isNaN(parsedAmount) || parsedAmount < 10) {
-      toast.error("Minimum deposit amount is KES 10")
+
+    // Validation
+    if (!amount.trim()) {
+      toast.error("Please enter an amount")
       return
     }
+
+    if (isNaN(parsedAmount)) {
+      toast.error("Please enter a valid amount")
+      return
+    }
+
+    if (parsedAmount < MIN_AMOUNT) {
+      toast.error(`Minimum deposit amount is KES ${MIN_AMOUNT}`)
+      return
+    }
+
+    if (parsedAmount > MAX_AMOUNT) {
+      toast.error(`Maximum deposit amount is KES ${MAX_AMOUNT}`)
+      return
+    }
+
+    if (!phone.trim()) {
+      toast.error("Please enter a phone number")
+      return
+    }
+
     if (!isValidKenyanPhone(phone)) {
-      toast.error("Please enter a valid phone number (e.g. 0712345678)")
+      toast.error("Please enter a valid Kenyan phone number (e.g. 0712345678)")
       return
     }
-    if (!convexUser) {
+
+    if (!currentUser) {
       toast.error("Please log in to deposit funds")
       return
     }
 
-    setIsSubmitting(true)
-    setDepositState("sending")
-    
+    setState("loading")
+
     try {
-      const res = await createTx({
+      // Call backend API to initiate STK Push
+      const response = await fetch("/api/mpesa/initiate-stk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: phone.trim(),
+          amount: parsedAmount,
+          accountReference: `USER-${currentUser._id}`,
+          transactionDesc: `Betting deposit - KES ${parsedAmount}`,
+        }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        toast.error(error.message || "Failed to initiate deposit")
+        setState("idle")
+        return
+      }
+
+      const data = await response.json()
+
+      // Create transaction record in Convex
+      await createTransaction({
         type: "deposit",
         amount: parsedAmount,
         phone: phone.trim(),
-        status: "pending"
+        checkoutRequestID: data.CheckoutRequestID,
+        merchantRequestID: data.MerchantRequestID,
       })
 
-      setPendingTxId(res.txId)
-      setDepositState("pending_stk")
-      setIsSubmitting(false)
+      setCheckoutRequestID(data.CheckoutRequestID)
+      setMerchantRequestID(data.MerchantRequestID)
+      setState("pending_stk")
 
-      // Simulate STK push confirmation after 5 seconds
-      setTimeout(async () => {
+      toast.success("STK prompt sent to your phone")
+
+      // Poll for transaction status (every 2 seconds for 60 seconds)
+      let attempts = 0
+      const maxAttempts = 30
+
+      const pollInterval = setInterval(async () => {
+        attempts++
+
         try {
-          await updateTx({
-            txId: res.txId,
-            status: "success"
-          })
-        } catch (err) {
-          console.error("Failed to confirm transaction status", err)
+          const statusResponse = await fetch(
+            `/api/mpesa/query-status?checkoutRequestID=${data.CheckoutRequestID}&merchantRequestID=${data.MerchantRequestID}`
+          )
+
+          if (statusResponse.ok) {
+            const statusData = await statusResponse.json()
+
+            if (statusData.ResultCode === "0") {
+              // Success
+              await updateTransactionStatus({
+                checkoutRequestID: data.CheckoutRequestID,
+                resultCode: "0",
+                resultDesc: "Transaction completed",
+                mpesaReceiptNumber: statusData.MpesaReceiptNumber,
+                amount: parsedAmount,
+              })
+
+              setState("success")
+              clearInterval(pollInterval)
+              toast.success(`Deposit of KES ${parsedAmount} successful!`)
+              return
+            } else if (statusData.ResultCode === "1") {
+              // User cancelled
+              setState("failed")
+              clearInterval(pollInterval)
+              toast.error("Deposit request was cancelled")
+              return
+            }
+          }
+        } catch (error) {
+          console.error("Status poll error:", error)
         }
-      }, 5000)
-    } catch (err) {
+
+        if (attempts >= maxAttempts) {
+          setState("failed")
+          clearInterval(pollInterval)
+          toast.error("Transaction timed out. Please try again.")
+        }
+      }, 2000)
+
+      // Cleanup interval on unmount
+      return () => clearInterval(pollInterval)
+    } catch (error) {
+      console.error("Deposit error:", error)
       toast.error("Failed to initiate deposit")
-      setIsSubmitting(false)
-      setDepositState("idle")
+      setState("idle")
     }
   }
 
-  const resetDeposit = () => {
+  const handleReset = () => {
     setAmount("")
-    setDepositState("idle")
-    setPendingTxId("")
+    setPhone(currentUser?.phone ? (currentUser.phone.startsWith("+254") ? "0" + currentUser.phone.slice(4) : currentUser.phone) : "")
+    setState("idle")
+    setCheckoutRequestID("")
+    setMerchantRequestID("")
   }
 
   return (
@@ -129,6 +214,7 @@ export default function DepositPage() {
         <Sidebar className="hidden lg:flex w-60 shrink-0 h-full" />
 
         <main className="flex-1 min-w-0 p-4 sm:p-6 overflow-y-auto h-full flex flex-col gap-6 scrollbar-thin">
+          {/* Header */}
           <div className="flex items-center gap-2 border-b border-border pb-4">
             <Link href="/">
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -136,190 +222,39 @@ export default function DepositPage() {
               </Button>
             </Link>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Deposit Funds</h1>
-              <p className="text-xs text-muted-foreground">Add funds to your wallet instantly.</p>
+              <h1 className="text-lg font-bold tracking-tight">Deposit Funds</h1>
+              <p className="text-xs text-muted-foreground">
+                Add funds to your wallet using M-Pesa
+              </p>
             </div>
           </div>
 
+          {/* Content */}
           <div className="max-w-md w-full mx-auto space-y-4">
-            {/* Balance Card */}
-            <div className="border border-border bg-card p-4 rounded-lg flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded bg-primary/10 text-primary">
-                  <Wallet className="h-4 w-4" />
+            {/* Wallet Balance Card */}
+            <div className="border border-border bg-card p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded bg-primary/10 text-primary">
+                    <Wallet className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground">
+                      Current Balance
+                    </p>
+                    <p className="text-sm font-bold mt-0.5">
+                      KES{" "}
+                      {wallet?.balance.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                      }) || "0.00"}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-muted-foreground">Wallet Balance</p>
-                  <p className="text-sm font-bold mt-0.5">KES {walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
-                </div>
+                <Badge
+                  variant="outline"
+                  className="text-emerald-600 border-emerald-500/20 bg-emerald-500/5"
+                >
+                  Active
+                </Badge>
               </div>
-              <Badge variant="outline" className="font-bold border-emerald-500/20 text-emerald-600 bg-emerald-500/5">
-                Active Wallet
-              </Badge>
             </div>
-
-            {/* Deposit States */}
-            {depositState === "idle" && (
-              <div className="border border-border bg-card rounded-lg p-5">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  {/* Payment Channel Selector */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-muted-foreground block">Select Payment Channel</label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <Button
-                        type="button"
-                        variant={provider === "m-pesa" ? "default" : "outline"}
-                        className="h-10 text-xs font-bold"
-                        onClick={() => setProvider("m-pesa")}
-                      >
-                        M-Pesa Express
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={provider === "sasapay" ? "default" : "outline"}
-                        className="h-10 text-xs font-bold"
-                        onClick={() => setProvider("sasapay")}
-                      >
-                        SasaPay
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Amount and Quick Buttons */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-muted-foreground block" htmlFor="amount-in">Deposit Amount (KES)</label>
-                    <Input
-                      id="amount-in"
-                      type="number"
-                      min="10"
-                      placeholder="Enter amount (Min KES 10)"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      required
-                    />
-                    <div className="grid grid-cols-3 gap-2 pt-1.5">
-                      {QUICK_AMOUNTS.map((amt) => (
-                        <Button
-                          key={amt}
-                          type="button"
-                          variant="outline"
-                          className="h-8 text-xs font-semibold"
-                          onClick={() => setAmount(amt.toString())}
-                        >
-                          + {amt}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Phone Input */}
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-muted-foreground block" htmlFor="phone-in">Mobile Number (STK Push Target)</label>
-                    <Input
-                      id="phone-in"
-                      type="tel"
-                      placeholder="e.g. 0712345678"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      required
-                    />
-                    <p className="text-[10px] text-muted-foreground">Enter a registered Kenyan mobile number. An STK PIN prompt will appear on your device.</p>
-                  </div>
-
-                  {/* Submit Button */}
-                  <Button type="submit" className="w-full font-bold gap-1.5 mt-2 h-10">
-                    <ArrowUpRight className="h-4 w-4" />
-                    Deposit Instantly
-                  </Button>
-                </form>
-              </div>
-            )}
-
-            {depositState === "sending" && (
-              <div className="border border-border bg-card rounded-lg p-8 text-center flex flex-col items-center justify-center gap-4">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                <div className="space-y-1">
-                  <h3 className="font-bold text-sm">Initiating Deposit</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">Processing your deposit request...</p>
-                </div>
-              </div>
-            )}
-
-            {depositState === "pending_stk" && (
-              <div className="border border-border bg-card rounded-lg p-6 text-center flex flex-col items-center justify-center gap-4">
-                <div className="relative">
-                  <span className="flex h-3 w-3 absolute top-0 right-0">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
-                  </span>
-                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="font-bold text-sm">Action Required on Mobile Phone</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    We have fired an STK payment push to <strong className="text-foreground">{phone}</strong>. Please check your phone screen, enter your M-Pesa/SasaPay PIN, and confirm payment.
-                  </p>
-                  <p className="text-[10px] text-muted-foreground/80 italic pt-1">
-                    Waiting for confirmation... (Auto-completing in 12s)
-                  </p>
-                </div>
-                <div className="flex w-full gap-2 pt-2">
-                  <Button variant="outline" size="sm" className="w-full text-xs font-semibold" onClick={resetDeposit}>
-                    Cancel / Try Again
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {depositState === "success" && (
-              <div className="border border-border bg-card rounded-lg p-6 text-center flex flex-col items-center justify-center gap-4">
-                <div className="p-3 bg-emerald-500/10 text-emerald-600 rounded-full">
-                  <CheckCircle2 className="h-10 w-10" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="font-bold text-sm">Deposit Successful!</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Your account has been credited with KES {parseFloat(amount).toLocaleString()}. You can now use your balance to place bets.
-                  </p>
-                </div>
-                <div className="flex w-full gap-2 pt-2">
-                  <Button className="w-full text-xs font-bold" onClick={resetDeposit}>
-                    Make Another Deposit
-                  </Button>
-                  <Link href="/" className="w-full">
-                    <Button variant="outline" className="w-full text-xs font-bold">
-                      Go to Betting Board
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            )}
-
-            {depositState === "failed" && (
-              <div className="border border-border bg-card rounded-lg p-6 text-center flex flex-col items-center justify-center gap-4">
-                <div className="p-3 bg-destructive/10 text-destructive rounded-full">
-                  <CheckCircle2 className="h-10 w-10 rotate-45" />
-                </div>
-                <div className="space-y-1">
-                  <h3 className="font-bold text-sm">Deposit Failed</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    The transaction request did not complete successfully. This could be due to a wrong PIN, insufficient funds, or network cancellation.
-                  </p>
-                </div>
-                <Button className="w-full text-xs font-bold" onClick={resetDeposit}>
-                  Try Again
-                </Button>
-              </div>
-            )}
-          </div>
-
-          <footer className="mt-auto pt-8 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-            <span>&nbsp;</span>
-          </footer>
-        </main>
-      </div>
-
-      <BottomNav liveCount={0} />
-    </div>
-  )
-}
