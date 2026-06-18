@@ -27,6 +27,7 @@ interface STKPushResponse {
   ResponseDescription: string;
   MerchantRequestID: string;
   CheckoutRequestID: string;
+  CustomerMessage?: string;
 }
 
 interface TransactionQueryResponse {
@@ -36,6 +37,7 @@ interface TransactionQueryResponse {
   CheckoutRequestID: string;
   ResultCode: string;
   ResultDesc: string;
+  CallbackMetadata?: any;
 }
 
 interface ReversalResponse {
