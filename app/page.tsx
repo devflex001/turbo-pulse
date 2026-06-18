@@ -159,11 +159,15 @@ export default function Page() {
         <Sidebar className="hidden lg:flex w-60 shrink-0 h-full" />
 
         <main className="flex-1 min-w-0 p-4 sm:p-6 overflow-y-auto h-full flex flex-col gap-6 scrollbar-thin">
-          {(activeTab === "home" || activeTab === "live" || activeTab === "featured") && (
+          {(activeTab === "home" || activeTab === "live" || activeTab === "featured") && (allMatches || leagues) && (
             <div className="flex flex-col gap-3 pb-2 border-b border-border">
               <div className="flex items-center gap-1 overflow-x-auto pb-1.5 scrollbar-none min-h-12">
                 {!allMatches ? (
-                  <SmallLoader />
+                  <>
+                    <div className="h-8 w-24 rounded-full bg-muted animate-pulse shrink-0" />
+                    <div className="h-8 w-24 rounded-full bg-muted animate-pulse shrink-0" />
+                    <div className="h-8 w-24 rounded-full bg-muted animate-pulse shrink-0" />
+                  </>
                 ) : (
                   sportOptions.map((sport) => (
                     <Button
@@ -187,7 +191,11 @@ export default function Page() {
 
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs min-h-9">
                 {!leagues ? (
-                  <SmallLoader />
+                  <>
+                    <div className="h-7 w-20 rounded bg-muted animate-pulse shrink-0" />
+                    <div className="h-7 w-20 rounded bg-muted animate-pulse shrink-0" />
+                    <div className="h-7 w-20 rounded bg-muted animate-pulse shrink-0" />
+                  </>
                 ) : (
                   (leagues ?? ["All Leagues"]).map((league) => (
                     <Button
@@ -205,7 +213,7 @@ export default function Page() {
             </div>
           )}
 
-          {activeTab === "home" && (
+          {activeTab === "home" && matches !== undefined && (
             <>
               <div className="relative overflow-hidden rounded-lg border border-border bg-card h-44 sm:h-52">
                 <Image
@@ -263,9 +271,7 @@ export default function Page() {
                     </Badge>
                   </div>
 
-                  {!matches ? (
-                    <SmallLoader />
-                  ) : upcomingMatches.length > 0 ? (
+                  {upcomingMatches.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {upcomingMatches.map((match) => (
                         <MatchCard key={match.sourceMatchId} match={match} />
