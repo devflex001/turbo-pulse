@@ -73,29 +73,39 @@ export class MPesaService {
       return this.accessToken;
     }
 
-    const auth = Buffer.from(
-      `${this.config.consumerKey}:${this.config.consumerSecret}`
-    ).toString("base64");
+    try {
+      const auth = Buffer.from(
+        `${this.config.consumerKey}:${this.config.consumerSecret}`
+      ).toString("base64");
 
-    const response = await fetch(
-      `${this.baseUrl}/oauth/v1/generate?grant_type=client_credentials`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Basic ${auth}`,
-        },
+      const response = await fetch(
+        `${this.baseUrl}/oauth/v1/generate?grant_type=client_credentials`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Basic ${auth}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        console.error(`M-Pesa auth failed: ${response.status} - ${errorBody}`);
+        throw new Error(
+          `Failed to get access token: ${response.status} ${response.statusText}`
+        );
       }
-    );
 
-    if (!response.ok) {
-      throw new Error(`Failed to get access token: ${response.statusText}`);
+      const data = (await response.json()) as AccessTokenResponse;
+      this.accessToken = data.access_token;
+      this.tokenExpiry = Date.now() + data.expires_in * 1000;
+
+      return data.access_token;
+    } catch (error) {
+      console.error("M-Pesa token error:", error);
+      throw error;
     }
-
-    const data = (await response.json()) as AccessTokenResponse;
-    this.accessToken = data.access_token;
-    this.tokenExpiry = Date.now() + data.expires_in * 1000;
-
-    return data.access_token;
   }
 
   /**
@@ -355,13 +365,18 @@ export function formatPhoneForMPesa(phone: string): string {
 export function initializeMPesaService(
   production: boolean = false
 ): MPesaService {
+  const consumerKey = process.env.MPESA_CONSUMER_KEY;
+  const consumerSecret = process.env.MPESA_CONSUMER_SECRET;
+
+  if (!consumerKey || !consumerSecret) {
+    throw new Error(
+      "M-Pesa credentials not configured. Please set MPESA_CONSUMER_KEY and MPESA_CONSUMER_SECRET in environment variables."
+    );
+  }
+
   const config: MPesaConfig = {
-    consumerKey:
-      process.env.MPESA_CONSUMER_KEY ||
-      "HwJ61eEpP8zyx7dIGN1234567890abcd",
-    consumerSecret:
-      process.env.MPESA_CONSUMER_SECRET ||
-      "JwJ61eEpP8zyx7dIGN1234567890abcd",
+    consumerKey,
+    consumerSecret,
     businessCode: process.env.MPESA_BUSINESS_CODE || "174379",
     passkey:
       process.env.MPESA_PASSKEY ||

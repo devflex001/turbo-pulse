@@ -7,9 +7,9 @@ import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
-import { DepositSheet } from "@/components/deposit-sheet"
+import { WithdrawalSheet } from "@/components/withdrawal-sheet"
 
-export default function DepositPage() {
+export default function WithdrawalPage() {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       <Header />
@@ -25,13 +25,13 @@ export default function DepositPage() {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
-            <h1 className="text-sm font-semibold">Deposit Funds</h1>
+            <h1 className="text-sm font-semibold">Withdraw Funds</h1>
           </div>
 
-          {/* Deposit Form */}
+          {/* Withdrawal Form */}
           <div className="max-w-sm w-full mx-auto">
             <div className="border border-border bg-card rounded-lg p-4">
-              <DepositSheet />
+              <WithdrawalSheet />
             </div>
           </div>
         </main>
