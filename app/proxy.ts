@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
+import { env } from "@/lib/env";
 
 const adminRoutes = ["/admin"];
 
@@ -32,8 +33,11 @@ export default async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL("/", request.url));
     }
 
-    // Check if user is admin (optional - add admin check here)
-    // For now, just verify user exists
+    // Check if user email matches admin email from env
+    const adminEmail = env.ADMIN_EMAIL;
+    if (session.user.email !== adminEmail) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
 
     return NextResponse.next();
   } catch (error) {

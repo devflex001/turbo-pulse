@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { signInWithPhone } from "@/lib/auth-client";
+import { signIn } from "@/lib/auth-client";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -24,7 +24,10 @@ export default function LoginPage() {
 
     setIsLoading(true);
     try {
-      await signInWithPhone(phone, password);
+      await signIn.email({
+        email: phone,
+        password,
+      });
       toast.success("Signed in successfully");
       router.push("/");
       router.refresh();
