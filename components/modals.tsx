@@ -71,10 +71,16 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
       setPhone("")
       setPassword("")
       
-      // Reload to pick up auth and check admin status
-      setTimeout(() => {
-        window.location.reload()
-      }, 100)
+      // Check if admin - if so, redirect to admin
+      const authState = typeof window !== "undefined" ? sessionStorage.getItem("auth_state") : null
+      const isAdmin = authState ? JSON.parse(authState).user?.role === "admin" : false
+
+      // Redirect based on role
+      if (isAdmin) {
+        router.push("/admin")
+      } else {
+        router.push("/")
+      }
     } catch (error) {
       const errMsg =
         error instanceof Error

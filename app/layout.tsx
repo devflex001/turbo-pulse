@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { BetStoreProvider } from "@/hooks/use-bet-store"
 import { AuthProvider } from "@/components/auth-provider"
 import { ConvexProvider } from "@/components/convex-provider"
+import { RoleRedirectHandler } from "@/components/role-redirect-handler"
 
 const robotoHeading = Roboto({subsets:['latin'],variable:'--font-heading'});
 
@@ -34,6 +35,7 @@ export default function RootLayout({
           <AuthProvider>
             <ConvexProvider>
               <BetStoreProvider>
+                <RoleRedirectHandler />
                 <TooltipProvider>
                   {children}
                   <Toaster richColors position="top-right"/>

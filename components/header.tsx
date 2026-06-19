@@ -31,14 +31,13 @@ import {
 } from "./modals"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Betslip } from "./betslip"
-import { useRoleRouter } from "@/hooks/use-role-router"
 import { useAuthClient } from "@/lib/auth-client"
+import { useRoleRedirect } from "@/hooks/use-role-redirect"
 import { useRouter } from "next/navigation"
 
 export function Header() {
   const { 
     walletBalance, 
-    logout, 
     searchQuery, 
     setSearchQuery, 
     setActiveTab,
@@ -46,7 +45,7 @@ export function Header() {
   } = useBetStore()
 
   const { user, isAuthenticated, signOut } = useAuthClient()
-  const { isAdmin } = useRoleRouter()
+  useRoleRedirect() // Enable role-based redirects
   const router = useRouter()
 
   const [loginOpen, setLoginOpen] = React.useState(false)
@@ -172,7 +171,7 @@ export function Header() {
                       <div className="flex flex-col space-y-1">
                         <p className="text-sm font-semibold leading-none">{user?.phone || "User"}</p>
                         <p className="text-xs leading-none text-muted-foreground">
-                          {isAdmin ? "Administrator" : "Registered User"}
+                          {user?.role === "admin" ? "Administrator" : "Registered User"}
                         </p>
                       </div>
                     </DropdownMenuLabel>
