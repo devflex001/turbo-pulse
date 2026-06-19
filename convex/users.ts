@@ -13,11 +13,16 @@ export const currentUser = query({
       // The subject is the user ID from Better Auth
       const userId = identity.subject as Id<"user">;
       
+      if (!userId) {
+        return null;
+      }
+      
       // Get the user from the database
       const user = await ctx.db.get(userId);
       return user || null;
     } catch (error) {
-      // If not authenticated, return null
+      // If not authenticated or error, return null
+      console.error("Error fetching current user:", error);
       return null;
     }
   },

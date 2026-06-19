@@ -157,14 +157,14 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
   const [localBets, setLocalBets] = React.useState<PlacedBet[]>([])
   const [localTransactions, setLocalTransactions] = React.useState<Transaction[]>(SEED_TRANSACTIONS)
   
-  const convexUser = useQuery(api.users.currentUser)
   const { data: session } = useSession()
-
-  // Convex reactive queries
-  const dbBalance = useQuery(api.bets.getWalletBalance)
-  const dbBets = useQuery(api.bets.getMyBets)
-  const dbTransactions = useQuery(api.bets.getTransactions)
-  const dbAdminStats = useQuery(api.admin.getStats)
+  
+  // Only query if user is authenticated
+  const convexUser = useQuery(session ? api.users.currentUser : "skip")
+  const dbBalance = useQuery(session ? api.bets.getWalletBalance : "skip")
+  const dbBets = useQuery(session ? api.bets.getMyBets : "skip")
+  const dbTransactions = useQuery(session ? api.bets.getTransactions : "skip")
+  const dbAdminStats = useQuery(session ? api.admin.getStats : "skip")
 
   // Convex mutations
   const placeBetMutation = useMutation(api.bets.placeBet)
@@ -175,7 +175,7 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
 
   const user = React.useMemo(() => {
     if (!convexUser) return null
-    return { username: convexUser.name || convexUser.phone || "User" }
+    return { username: convexUser.email || convexUser.name || "User" }
   }, [convexUser])
 
   const [activeTab, setActiveTabState] = React.useState<string>("home")
@@ -190,10 +190,10 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
   })
 
   // Dynamic balance, bets, transactions, and adminStats
-  const walletBalance: number = convexUser ? (dbBalance ?? 1000) : localBalance
-  const myBets: PlacedBet[] = (convexUser ? (dbBets as PlacedBet[]) : localBets) ?? []
-  const transactions: Transaction[] = (convexUser ? (dbTransactions as Transaction[]) : localTransactions) ?? []
-  const adminStats = convexUser ? (dbAdminStats ?? localAdminStats) : localAdminStats
+  const walletBalance: number = session ? (dbBalance ?? 1000) : localBalance
+  const myBets: PlacedBet[] = (session ? (dbBets as PlacedBet[]) : localBets) ?? []
+  const transactions: Transaction[] = (session ? (dbTransactions as Transaction[]) : localTransactions) ?? []
+  const adminStats = session ? (dbAdminStats ?? localAdminStats) : localAdminStats
 
   React.useEffect(() => {
     if (typeof window !== "undefined") {
@@ -346,7 +346,7 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
     const totalRequired = stake * betslip.length
     if (totalRequired > walletBalance) return false
 
-    if (convexUser) {
+    if (session && convexUser) {
       try {
         for (const sel of betslip) {
           const totalOdds = sel.odds
