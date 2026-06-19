@@ -2,24 +2,26 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 
-async function getAuthUserId(ctx: any) {
-  return await ctx.auth.getUserIdentity().then((identity: any) => identity?.subject);
-}
-
 export const getAdminStatus = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
+    try {
+      const identity = await ctx.auth.getUserIdentity();
+      if (!identity) {
+        return { isAdmin: false };
+      }
+
+      const userId = identity.subject as Id<"user">;
+
+      const admin = await ctx.db
+        .query("admins")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .unique();
+
+      return { isAdmin: admin !== null };
+    } catch {
       return { isAdmin: false };
     }
-
-    const admin = await ctx.db
-      .query("admins")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .unique();
-
-    return { isAdmin: admin !== null };
   },
 });
 

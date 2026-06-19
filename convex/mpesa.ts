@@ -1,9 +1,15 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
 
 async function getAuthUserId(ctx: any) {
-  return await ctx.auth.getUserIdentity().then((identity: any) => identity?.subject);
+  try {
+    const identity = await ctx.auth.getUserIdentity();
+    return identity ? (identity.subject as Id<"user">) : null;
+  } catch {
+    return null;
+  }
 }
 
 /**

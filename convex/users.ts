@@ -1,16 +1,25 @@
 import { query } from "./_generated/server";
-
-async function getAuthUserId(ctx: any) {
-  return await ctx.auth.getUserIdentity().then((identity: any) => identity?.subject);
-}
+import { Id } from "./_generated/dataModel";
 
 export const currentUser = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await getAuthUserId(ctx);
-    if (userId === null) {
+    try {
+      const identity = await ctx.auth.getUserIdentity();
+      if (!identity) {
+        return null;
+      }
+
+      // The subject is the user ID from Better Auth
+      const userId = identity.subject as Id<"user">;
+      
+      // Get the user from the database
+      const user = await ctx.db.get(userId);
+      return user || null;
+    } catch (error) {
+      // If not authenticated, return null
       return null;
     }
-    return await ctx.db.get(userId);
   },
 });
+
