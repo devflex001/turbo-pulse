@@ -1,4 +1,3 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
@@ -7,6 +6,15 @@ import { Id } from "./_generated/dataModel";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+async function getAuthUserId(ctx: any) {
+  try {
+    const identity = await ctx.auth.getUserIdentity();
+    return identity ? (identity.subject as Id<"user">) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Throws if the caller is not a logged-in admin. Returns the admin doc. */
 async function requireAdmin(ctx: MutationCtx) {
   const userId = await getAuthUserId(ctx);
@@ -14,7 +22,7 @@ async function requireAdmin(ctx: MutationCtx) {
 
   const admin = await ctx.db
     .query("admins")
-    .withIndex("by_userId", (q) => q.eq("userId", userId as Id<"users">))
+    .withIndex("by_userId", (q) => q.eq("userId", userId as Id<"user">))
     .unique();
 
   if (!admin) throw new Error("Not authorized: admin access required");
@@ -37,12 +45,12 @@ export const listUsers = query({
 
     const admin = await ctx.db
       .query("admins")
-      .withIndex("by_userId", (q) => q.eq("userId", userId as Id<"users">))
+      .withIndex("by_userId", (q) => q.eq("userId", userId as Id<"user">))
       .unique();
     if (!admin) throw new Error("Not authorized");
 
     const result = await ctx.db
-      .query("users")
+      .query("user")
       .order("desc")
       .paginate(args.paginationOpts);
 
@@ -64,7 +72,6 @@ export const listUsers = query({
     const filtered = search
       ? page.filter(
           (u) =>
-            u.phone?.toLowerCase().includes(search) ||
             u.email?.toLowerCase().includes(search) ||
             u._id.toLowerCase().includes(search)
         )
@@ -87,7 +94,7 @@ export const getMyBanStatus = query({
     const activeBan = await ctx.db
       .query("userBans")
       .withIndex("by_userId_and_isActive", (q) =>
-        q.eq("userId", userId as Id<"users">).eq("isActive", true)
+        q.eq("userId", userId as Id<"user">).eq("isActive", true)
       )
       .unique();
 
@@ -126,7 +133,7 @@ export const listAppeals = query({
 
     const admin = await ctx.db
       .query("admins")
-      .withIndex("by_userId", (q) => q.eq("userId", userId as Id<"users">))
+      .withIndex("by_userId", (q) => q.eq("userId", userId as Id<"user">))
       .unique();
     if (!admin) throw new Error("Not authorized");
 
@@ -160,7 +167,7 @@ export const listAppeals = query({
  */
 export const banUser = mutation({
   args: {
-    targetUserId: v.id("users"),
+    targetUserId: v.id("user"),
     reason: v.string(),
     /** Duration in hours. null = permanent. */
     durationHours: v.union(v.number(), v.null()),
@@ -203,7 +210,7 @@ export const banUser = mutation({
  */
 export const unbanUser = mutation({
   args: {
-    targetUserId: v.id("users"),
+    targetUserId: v.id("user"),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
@@ -227,16 +234,16 @@ export const unbanUser = mutation({
  */
 export const editUser = mutation({
   args: {
-    targetUserId: v.id("users"),
-    phone: v.string(),
+    targetUserId: v.id("user"),
+    email: v.string(),
   },
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
 
-    const phone = args.phone.trim();
-    if (!phone) throw new Error("Phone number is required");
+    const email = args.email.trim();
+    if (!email) throw new Error("Email/Phone is required");
 
-    await ctx.db.patch(args.targetUserId, { phone });
+    await ctx.db.patch(args.targetUserId, { email });
     return { success: true };
   },
 });
@@ -271,7 +278,7 @@ export const submitAppeal = mutation({
 
     await ctx.db.insert("banAppeals", {
       banId: args.banId,
-      userId: userId as Id<"users">,
+      userId: userId as Id<"user">,
       message: args.message,
       submittedAt: Date.now(),
       status: "pending",

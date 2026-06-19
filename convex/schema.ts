@@ -1,11 +1,57 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { authTables } from "@convex-dev/auth/server";
 
 const schema = defineSchema({
-  ...authTables,
+  // Better Auth tables
+  user: defineTable({
+    email: v.string(),
+    emailVerified: v.boolean(),
+    name: v.optional(v.string()),
+    image: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_email", ["email"]),
+
+  session: defineTable({
+    userId: v.id("user"),
+    expiresAt: v.number(),
+    token: v.string(),
+    ipAddress: v.optional(v.string()),
+    userAgent: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_token", ["token"]),
+
+  account: defineTable({
+    userId: v.id("user"),
+    accountId: v.string(),
+    providerId: v.string(),
+    accessToken: v.optional(v.string()),
+    refreshToken: v.optional(v.string()),
+    idToken: v.optional(v.string()),
+    accessTokenExpiresAt: v.optional(v.number()),
+    refreshTokenExpiresAt: v.optional(v.number()),
+    scope: v.optional(v.string()),
+    password: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"]),
+
+  verification: defineTable({
+    identifier: v.string(),
+    value: v.string(),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_identifier", ["identifier"]),
+
   admins: defineTable({
-    userId: v.id("users"),
+    userId: v.id("user"),
     email: v.string(),
     addedAt: v.number(),
   })
@@ -17,7 +63,7 @@ const schema = defineSchema({
    * bannedUntil = null means permanent ban.
    */
   userBans: defineTable({
-    userId: v.id("users"),
+    userId: v.id("user"),
     reason: v.string(),
     bannedAt: v.number(),
     bannedByAdminId: v.id("admins"),
@@ -33,7 +79,7 @@ const schema = defineSchema({
    */
   banAppeals: defineTable({
     banId: v.id("userBans"),
-    userId: v.id("users"),
+    userId: v.id("user"),
     message: v.string(),
     submittedAt: v.number(),
     /** pending | approved | rejected */
@@ -77,16 +123,6 @@ const schema = defineSchema({
   })
     .index("by_source_and_startedAt", ["source", "startedAt"])
     .index("by_status", ["status"]),
-
-  scraperLogs: defineTable({
-    runId: v.id("scrapeRuns"),
-    timestamp: v.number(),
-    level: v.string(), // "info", "warn", "error", "success"
-    message: v.string(),
-    metadata: v.optional(v.any()), // flexible metadata
-  })
-    .index("by_runId", ["runId"])
-    .index("by_runId_and_timestamp", ["runId", "timestamp"]),
 
   sportsMatches: defineTable({
     source: v.string(),
@@ -190,12 +226,12 @@ const schema = defineSchema({
     .index("by_sourceMatchId_and_status", ["sourceMatchId", "status"]),
 
   wallets: defineTable({
-    userId: v.id("users"),
+    userId: v.id("user"),
     balance: v.number(),
   }).index("by_userId", ["userId"]),
 
   bets: defineTable({
-    userId: v.id("users"),
+    userId: v.id("user"),
     selections: v.array(
       v.object({
         id: v.string(),
@@ -223,7 +259,7 @@ const schema = defineSchema({
   }).index("by_userId", ["userId"]),
 
   transactions: defineTable({
-    userId: v.id("users"),
+    userId: v.id("user"),
     txId: v.string(),
     type: v.string(), // "deposit" | "withdrawal"
     amount: v.number(),
@@ -231,9 +267,17 @@ const schema = defineSchema({
     status: v.string(), // "success" | "pending" | "failed"
     errorDetail: v.optional(v.string()),
     time: v.number(),
+    // M-Pesa specific fields
+    checkoutRequestID: v.optional(v.string()),
+    merchantRequestID: v.optional(v.string()),
+    resultCode: v.optional(v.string()),
+    resultDesc: v.optional(v.string()),
+    mpesaReceiptNumber: v.optional(v.string()),
+    updatedAt: v.optional(v.number()),
   })
     .index("by_userId", ["userId"])
-    .index("by_txId", ["txId"]),
+    .index("by_txId", ["txId"])
+    .index("by_checkoutRequestID", ["checkoutRequestID"]),
 });
 
 export default schema;

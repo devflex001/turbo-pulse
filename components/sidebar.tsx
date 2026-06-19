@@ -7,7 +7,7 @@ import { useBetStore } from "@/hooks/use-bet-store"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Home, PlayCircle, History, Trophy, Activity, ArrowUpRight } from "lucide-react"
+import { Home, PlayCircle, History, Trophy, Activity, ArrowUpRight, ArrowDownLeft } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 
 interface SidebarProps {
@@ -152,7 +152,15 @@ export function Sidebar({ className }: SidebarProps) {
             onClick={() => router.push("/deposit")}
           >
             <ArrowUpRight className="size-4 text-emerald-500" />
-            <span>Deposit Funds</span>
+            <span>Deposit</span>
+          </Button>
+          <Button
+            variant="ghost"
+            className="h-9 w-full justify-start gap-2.5 px-3 text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+            onClick={() => router.push("/withdraw")}
+          >
+            <ArrowDownLeft className="size-4 text-amber-500" />
+            <span>Withdraw</span>
           </Button>
         </div>
       </div>

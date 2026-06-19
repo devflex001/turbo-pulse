@@ -16,20 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer"
 import { ScraperTerminal } from "@/components/scraper-terminal"
-import { useMediaQuery } from "@/hooks/use-media-query"
 
 // 8 Most popular sports from KwikBet
 const AVAILABLE_SPORTS = [
@@ -66,8 +53,6 @@ export function AdminScraperPanel() {
   const [matchLimit, setMatchLimit] = React.useState<string>("50")
   const [saving, setSaving] = React.useState(false)
   const [running, setRunning] = React.useState(false)
-  const [showTerminal, setShowTerminal] = React.useState(false)
-  const isDesktop = useMediaQuery("(min-width: 768px)")
 
   const settings = overview?.settings as any
   const currentRun = overview?.runs?.[0]
@@ -81,12 +66,6 @@ export function AdminScraperPanel() {
       setMatchLimit(String(settings.matchLimit ?? 50))
     }
   }, [settings])
-
-  React.useEffect(() => {
-    if (isCurrentlyRunning && !showTerminal) {
-      setShowTerminal(true)
-    }
-  }, [isCurrentlyRunning, showTerminal])
 
   const handleSave = async () => {
     setSaving(true)
@@ -108,13 +87,11 @@ export function AdminScraperPanel() {
 
   const handleRunNow = async () => {
     setRunning(true)
-    setShowTerminal(true)
     try {
       await triggerNow({})
       toast.success("Scraper started")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to start")
-      setShowTerminal(false)
     } finally {
       setRunning(false)
     }
@@ -202,8 +179,8 @@ export function AdminScraperPanel() {
 
       {/* Actions */}
       <div className="flex gap-2">
-        <Button 
-          size="sm" 
+        <Button
+          size="sm"
           className="h-8 text-xs font-semibold gap-1.5"
           onClick={handleSave}
           disabled={saving || isCurrentlyRunning}
@@ -211,8 +188,8 @@ export function AdminScraperPanel() {
           <Save className="size-3.5" />
           Save
         </Button>
-        <Button 
-          size="sm" 
+        <Button
+          size="sm"
           variant="outline"
           className="h-8 text-xs font-semibold gap-1.5"
           onClick={handleRunNow}
@@ -246,8 +223,20 @@ export function AdminScraperPanel() {
         </div>
       </div>
 
+      {/* Latest Run Summary */}
+      {currentRun && (
+        <div className="border rounded-lg overflow-hidden">
+          <div className="px-4 py-3 border-b bg-muted/50">
+            <p className="text-sm font-semibold">Latest Run</p>
+          </div>
+          <div className="p-4">
+            <ScraperTerminal run={currentRun as any} isRunning={isCurrentlyRunning} />
+          </div>
+        </div>
+      )}
+
       {/* Recent Runs */}
-      {overview.runs.length > 0 && (
+      {overview.runs.length > 1 && (
         <div className="border rounded-lg overflow-hidden">
           <div className="px-4 py-3 border-b bg-muted/50">
             <p className="text-sm font-semibold">Recent Runs</p>
@@ -265,14 +254,14 @@ export function AdminScraperPanel() {
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {overview.runs.slice(0, 5).map((run: any) => {
+                {overview.runs.slice(1, 10).map((run: any) => {
                   const sportNames = (run.selectedSports || [])
                     .map((sportId: string | number) => {
                       const sport = AVAILABLE_SPORTS.find(s => String(s.id) === String(sportId))
                       return sport?.label || String(sportId)
                     })
                     .join(", ")
-                  
+
                   return (
                     <tr key={run._id} className="hover:bg-muted/30">
                       <td className="px-4 py-2.5 font-mono">{formatTime(run.startedAt)}</td>
@@ -293,7 +282,7 @@ export function AdminScraperPanel() {
                       <td className="px-4 py-2.5">{sportNames || "—"}</td>
                       <td className="px-4 py-2.5 text-right font-mono">
                         {run.matchesUpserted}/{run.matchesDiscovered}
-                      </td>
+      </td>
                       <td className="px-4 py-2.5 text-right font-mono">{run.marketsUpserted}</td>
                       <td className="px-4 py-2.5 text-right font-mono">{run.oddsUpserted}</td>
                     </tr>
@@ -303,29 +292,6 @@ export function AdminScraperPanel() {
             </table>
           </div>
         </div>
-      )}
-
-      {/* Terminal Modal/Drawer */}
-      {isDesktop ? (
-        <Dialog open={showTerminal} onOpenChange={setShowTerminal}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-sm">Live Activity</DialogTitle>
-            </DialogHeader>
-            <ScraperTerminal runId={currentRun?._id ?? null} isRunning={isCurrentlyRunning} />
-          </DialogContent>
-        </Dialog>
-      ) : (
-        <Drawer open={showTerminal} onOpenChange={setShowTerminal}>
-          <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle className="text-sm">Live Activity</DrawerTitle>
-            </DrawerHeader>
-            <div className="px-4 pb-4">
-              <ScraperTerminal runId={currentRun?._id ?? null} isRunning={isCurrentlyRunning} />
-            </div>
-          </DrawerContent>
-        </Drawer>
       )}
     </div>
   )

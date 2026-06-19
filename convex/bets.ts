@@ -1,6 +1,15 @@
-import { getAuthUserId } from "@convex-dev/auth/server";
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
+
+async function getAuthUserId(ctx: any) {
+  try {
+    const identity = await ctx.auth.getUserIdentity();
+    return identity ? (identity.subject as Id<"user">) : null;
+  } catch {
+    return null;
+  }
+}
 
 export const getWalletBalance = query({
   args: {},

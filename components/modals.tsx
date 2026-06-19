@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { CopyIcon, CheckIcon, Loader2, Eye, EyeOff } from "lucide-react"
-import { useAuthActions } from "@convex-dev/auth/react"
-import { useConvexAuth, useQuery, useMutation } from "convex/react"
+import { signIn, signUp, useSession } from "@/lib/auth-client"
+import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 
 interface ModalProps {
@@ -33,7 +33,6 @@ function normalizeKenyanPhone(phone: string): string {
 }
 
 export function LoginModal({ open, onOpenChange }: ModalProps) {
-  const { signIn } = useAuthActions()
   const router = useRouter()
   const [phone, setPhone] = React.useState("")
   const [password, setPassword] = React.useState("")
@@ -41,10 +40,10 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   // After signIn resolves, poll admin status to decide where to route
   const [checkingRole, setCheckingRole] = React.useState(false)
-  const { isAuthenticated } = useConvexAuth()
+  const { data: session } = useSession()
   const adminStatus = useQuery(
     api.admin.getAdminStatus,
-    checkingRole && isAuthenticated ? {} : "skip"
+    checkingRole && session ? {} : "skip"
   )
 
   // When adminStatus resolves after login, route accordingly
@@ -88,11 +87,17 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
     try {
       setIsSubmitting(true)
       const normalizedPhone = normalizeKenyanPhone(phone)
-      await signIn("password", {
-        phone: normalizedPhone,
+      const result = await signIn.email({
+        email: normalizedPhone,
         password,
-        flow: "signIn",
       })
+      
+      if (result.error) {
+        toast.error(result.error.message || "Failed to log in")
+        setIsSubmitting(false)
+        return
+      }
+      
       // Trigger role check — the useEffect above handles the routing
       setCheckingRole(true)
     } catch (error) {
@@ -206,7 +211,6 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
 }
 
 export function RegisterModal({ open, onOpenChange }: ModalProps) {
-  const { signIn } = useAuthActions()
   const [phone, setPhone] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [showPassword, setShowPassword] = React.useState(false)
@@ -236,11 +240,18 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
     try {
       setIsSubmitting(true)
       const normalizedPhone = normalizeKenyanPhone(phone)
-      await signIn("password", {
-        phone: normalizedPhone,
+      const result = await signUp.email({
+        email: normalizedPhone,
         password,
-        flow: "signUp",
+        name: normalizedPhone,
       })
+      
+      if (result.error) {
+        toast.error(result.error.message || "Failed to create account")
+        setIsSubmitting(false)
+        return
+      }
+      
       toast.success("Account created successfully!")
       onOpenChange(false)
       setPhone("")

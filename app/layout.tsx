@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
 import { BetStoreProvider } from "@/hooks/use-bet-store"
+import { AuthProvider } from "@/components/auth-provider"
 import { ConvexProvider } from "@/components/convex-provider"
-import { ConvexAuthNextjsServerProvider } from "@convex-dev/auth/nextjs/server"
 
 const robotoHeading = Roboto({subsets:['latin'],variable:'--font-heading'});
 
@@ -31,7 +31,7 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>
-          <ConvexAuthNextjsServerProvider>
+          <AuthProvider>
             <ConvexProvider>
               <BetStoreProvider>
                 <TooltipProvider>
@@ -40,10 +40,9 @@ export default function RootLayout({
                 </TooltipProvider>
               </BetStoreProvider>
             </ConvexProvider>
-          </ConvexAuthNextjsServerProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
   )
 }
-

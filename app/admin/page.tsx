@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useQuery } from "convex/react"
-import { useConvexAuth } from "convex/react"
+import { useSession } from "@/lib/auth-client"
 import { api } from "@/convex/_generated/api"
 import { useBetStore } from "@/hooks/use-bet-store"
 import { useTheme } from "next-themes"
@@ -169,10 +169,10 @@ function SidebarContent({ activeTab, onTabChange, collapsed = false }: SidebarCo
 
 export default function AdminDashboard() {
   const router = useRouter()
-  const { isAuthenticated, isLoading: authLoading } = useConvexAuth()
+  const { data: session, isPending } = useSession()
   const adminStatus = useQuery(
     api.admin.getAdminStatus,
-    isAuthenticated ? {} : "skip"
+    session ? {} : "skip"
   )
   const { theme, setTheme } = useTheme()
   const { user, transactions, adminStats, updateAdminTransactionStatus, logout } = useBetStore()
@@ -187,10 +187,10 @@ export default function AdminDashboard() {
 
   // Redirect guard
   React.useEffect(() => {
-    if (authLoading) return
-    if (!isAuthenticated) { router.replace("/"); return }
+    if (isPending) return
+    if (!session) { router.replace("/"); return }
     if (adminStatus !== undefined && !adminStatus.isAdmin) router.replace("/")
-  }, [authLoading, isAuthenticated, adminStatus, router])
+  }, [isPending, session, adminStatus, router])
 
   React.useEffect(() => {
     let a = true
@@ -262,7 +262,7 @@ export default function AdminDashboard() {
   }
 
   const isPageLoading =
-    authLoading || !isAuthenticated || adminStatus === undefined
+    isPending || !session || adminStatus === undefined
 
   if (isPageLoading) {
     return (
