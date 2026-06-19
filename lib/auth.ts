@@ -1,18 +1,114 @@
-import { betterAuth } from "better-auth";
-import { env } from "@/lib/env";
+/**
+ * Custom auth utilities — JWT signing and verification using RS256.
+ *
+ * We use the existing JWT_PRIVATE_KEY (RSA private key) from .env.local.
+ * Convex verifies our tokens via the JWKS endpoint we expose at:
+ *   GET /api/auth/.well-known/jwks.json
+ */
 
-export const auth = betterAuth({
-  emailAndPassword: {
-    enabled: true,
-    autoSignIn: true,
-    minPasswordLength: 6,
-  },
-  trustedOrigins: [
-    env.BETTER_AUTH_URL || "http://localhost:3000",
-  ],
-  secret: env.BETTER_AUTH_SECRET || "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6",
-  baseURL: env.BETTER_AUTH_URL || "http://localhost:3000",
-  appName: "BetFlow",
-});
+import { SignJWT, jwtVerify, importPKCS8, importJWK, exportJWK } from "jose";
+import { cookies } from "next/headers";
 
-export type Session = typeof auth.$Infer.Session;
+export const SESSION_COOKIE = "betflow_session";
+const ALGORITHM = "RS256";
+const AUDIENCE = "convex";
+
+function getIssuer() {
+  return (
+    process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
+    "http://localhost:3000"
+  );
+}
+
+// ── Key loading ───────────────────────────────────────────────────────────────
+
+function getRawPrivateKey(): string {
+  const raw = process.env.JWT_PRIVATE_KEY;
+  if (!raw) throw new Error("JWT_PRIVATE_KEY environment variable is not set");
+  return raw.replace(/\\n/g, "\n");
+}
+
+async function getPrivateKey() {
+  return importPKCS8(getRawPrivateKey(), ALGORITHM);
+}
+
+/**
+ * Returns the public JWK derived from the private key.
+ */
+async function getPublicKeyJwk() {
+  const privateKey = await getPrivateKey();
+  const jwk = await exportJWK(privateKey);
+  // Strip private key fields, keep public fields only
+  const { d, p, q, dp, dq, qi, ...publicJwk } = jwk;
+  void d; void p; void q; void dp; void dq; void qi;
+  return { ...publicJwk, alg: ALGORITHM, use: "sig", kid: "betflow-1" };
+}
+
+// ── JWT sign / verify ─────────────────────────────────────────────────────────
+
+export interface AuthPayload {
+  sub: string;   // Convex user document _id
+  phone: string; // normalized phone
+}
+
+/**
+ * Signs a JWT. Expires in 30 days.
+ */
+export async function signJwt(payload: AuthPayload): Promise<string> {
+  const privateKey = await getPrivateKey();
+
+  return new SignJWT({ phone: payload.phone })
+    .setProtectedHeader({ alg: ALGORITHM, kid: "betflow-1" })
+    .setSubject(payload.sub)
+    .setIssuedAt()
+    .setIssuer(getIssuer())
+    .setAudience(AUDIENCE)
+    .setExpirationTime("30d")
+    .sign(privateKey);
+}
+
+/**
+ * Verifies a JWT and returns its payload, or null if invalid/expired.
+ */
+export async function verifyJwt(token: string): Promise<AuthPayload | null> {
+  try {
+    const publicJwkData = await getPublicKeyJwk();
+    const publicKey = await importJWK(publicJwkData, ALGORITHM);
+
+    const { payload } = await jwtVerify(token, publicKey, {
+      issuer: getIssuer(),
+      audience: AUDIENCE,
+      algorithms: [ALGORITHM],
+    });
+
+    return {
+      sub: payload.sub as string,
+      phone: payload["phone"] as string,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ── Cookie session helpers ────────────────────────────────────────────────────
+
+/**
+ * Reads the session cookie and verifies the JWT.
+ */
+export async function getSessionFromCookies(): Promise<AuthPayload | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+  return verifyJwt(token);
+}
+
+// ── JWKS export (for Convex OIDC discovery) ───────────────────────────────────
+
+/**
+ * Returns the JWKS document for Convex to verify our tokens.
+ * Exposed at GET /api/auth/.well-known/jwks.json
+ */
+export async function getJwks() {
+  const publicJwk = await getPublicKeyJwk();
+  return { keys: [publicJwk] };
+}

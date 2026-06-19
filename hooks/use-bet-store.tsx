@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useQuery, useMutation } from "convex/react"
-import { signOut, useSession } from "@/lib/auth-client"
+import { useSession, useAuthClient } from "@/lib/auth-client"
 import { api } from "@/convex/_generated/api"
 
 export interface Selection {
@@ -158,7 +158,8 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
   const [localTransactions, setLocalTransactions] = React.useState<Transaction[]>(SEED_TRANSACTIONS)
   
   const { data: session } = useSession()
-  
+  const { signOut } = useAuthClient()
+
   // Convex reactive queries - use undefined to skip
   const convexUser = useQuery(api.users.currentUser)
   const dbBalance = useQuery(api.bets.getWalletBalance)

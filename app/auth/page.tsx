@@ -5,12 +5,15 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import Link from "next/link";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { useAuthClient } from "@/lib/auth-client";
 
-export default function LoginPage() {
+export default function AuthPage() {
   const router = useRouter();
+  const { signIn } = useAuthClient();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -23,22 +26,11 @@ export default function LoginPage() {
 
     setIsLoading(true);
     try {
-      const response = await fetch("/api/auth/sign-in-phone", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          phone,
-          password,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Sign in failed");
+      const result = await signIn(phone, password);
+      if (result.error) {
+        toast.error(result.error);
+        return;
       }
-
       toast.success("Signed in successfully");
       router.push("/");
       router.refresh();
@@ -76,11 +68,11 @@ export default function LoginPage() {
             <Input
               id="phone"
               type="tel"
-              placeholder="+254 712 345 678"
+              placeholder="e.g. 0712345678"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               disabled={isLoading}
-              className="w-full"
+              className="w-full focus-visible:ring-primary"
               required
             />
           </div>
@@ -93,16 +85,30 @@ export default function LoginPage() {
             >
               Password <span className="text-destructive">*</span>
             </label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isLoading}
-              className="w-full"
-              required
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+                className="w-full pr-9 focus-visible:ring-primary"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                tabIndex={-1}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Sign In Button */}
@@ -111,28 +117,15 @@ export default function LoginPage() {
             disabled={isLoading}
             className="w-full font-semibold h-10"
           >
-            {isLoading ? "Signing in..." : "Sign In"}
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in...
+              </>
+            ) : (
+              "Sign In"
+            )}
           </Button>
         </form>
-
-        {/* Divider */}
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border"></div>
-          </div>
-          <div className="relative flex justify-center text-xs">
-            <span className="px-2 bg-card text-muted-foreground">
-              Don't have an account?
-            </span>
-          </div>
-        </div>
-
-        {/* Sign Up Link */}
-        <Link href="/auth/signup">
-          <Button variant="outline" className="w-full font-semibold h-10">
-            Create Account
-          </Button>
-        </Link>
 
         {/* Footer */}
         <div className="text-center text-xs text-muted-foreground">

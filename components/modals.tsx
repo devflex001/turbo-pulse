@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { CopyIcon, CheckIcon, Loader2, Eye, EyeOff } from "lucide-react"
-import { signIn, signUp, useSession } from "@/lib/auth-client"
+import { useAuthClient } from "@/lib/auth-client"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 
@@ -38,12 +38,11 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
   const [password, setPassword] = React.useState("")
   const [showPassword, setShowPassword] = React.useState(false)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
-  // After signIn resolves, poll admin status to decide where to route
   const [checkingRole, setCheckingRole] = React.useState(false)
-  const { data: session } = useSession()
+  const { signIn, isAuthenticated } = useAuthClient()
   const adminStatus = useQuery(
     api.admin.getAdminStatus,
-    checkingRole && session ? {} : "skip"
+    checkingRole && isAuthenticated ? {} : "skip"
   )
 
   // When adminStatus resolves after login, route accordingly
@@ -86,23 +85,14 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
 
     try {
       setIsSubmitting(true)
-      const normalizedPhone = normalizeKenyanPhone(phone)
-      
-      const result = await signIn.email({
-        email: normalizedPhone,
-        password,
-      }, {
-        onError: (ctx) => {
-          toast.error(ctx.error.message || "Failed to log in")
-          setIsSubmitting(false)
-        },
-      })
-      
-      if (!result || result.error) {
+      const result = await signIn(phone, password)
+
+      if (result.error) {
+        toast.error(result.error)
         setIsSubmitting(false)
         return
       }
-      
+
       // Trigger role check — the useEffect above handles the routing
       setCheckingRole(true)
     } catch (error) {
@@ -222,6 +212,7 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
   const [confirmPassword, setConfirmPassword] = React.useState("")
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const { signUp } = useAuthClient()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -244,25 +235,15 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
 
     try {
       setIsSubmitting(true)
-      const normalizedPhone = normalizeKenyanPhone(phone)
-      
-      const result = await signUp.email({
-        email: normalizedPhone,
-        password,
-        name: normalizedPhone,
-      }, {
-        onError: (ctx) => {
-          toast.error(ctx.error.message || "Failed to create account")
-          setIsSubmitting(false)
-        },
-      })
-      
-      if (!result || result.error) {
+      const result = await signUp(phone, password)
+
+      if (result.error) {
+        toast.error(result.error)
         setIsSubmitting(false)
         return
       }
-      
-      toast.success("Account created successfully!")
+
+      toast.success("Account created successfully! Welcome to BetFlow.")
       onOpenChange(false)
       setPhone("")
       setPassword("")
@@ -554,7 +535,7 @@ export function WithdrawModal({ open, onOpenChange }: ModalProps) {
       )
       onOpenChange(false)
       setAmount("")
-    } catch (err) {
+    } catch {
       toast.error("Failed to process withdrawal. Please try again.")
     } finally {
       setIsSubmitting(false)

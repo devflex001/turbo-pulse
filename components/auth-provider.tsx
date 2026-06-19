@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
+import { AuthClientProvider } from "@/lib/auth-client";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return <AuthClientProvider>{children}</AuthClientProvider>;
 }

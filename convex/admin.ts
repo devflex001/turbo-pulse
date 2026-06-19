@@ -10,12 +10,23 @@ export const getAdminStatus = query({
         return { isAdmin: false };
       }
 
-      // Check if user email matches admin email from env
-      const adminEmail = process.env.ADMIN_EMAIL || "254712345678";
-      
-      // If user email matches admin email, they're an admin
-      const isAdmin = identity.preferred_username === adminEmail || 
-                      identity.email === adminEmail;
+      const adminPhone = process.env.ADMIN_EMAIL || "254712345678";
+
+      // Look up the user in our custom users table by their _id (subject)
+      const user = await ctx.db
+        .query("users")
+        .filter((q) => q.eq(q.field("_id"), identity.subject))
+        .unique();
+
+      if (!user) return { isAdmin: false };
+
+      // Normalize admin phone for comparison
+      const normalizedAdminPhone = adminPhone.startsWith("+")
+        ? adminPhone
+        : `+${adminPhone}`;
+
+      const isAdmin =
+        user.phone === normalizedAdminPhone || user.phone === adminPhone;
 
       return { isAdmin };
     } catch {
@@ -52,7 +63,7 @@ export const resetDatabase = mutation({
       totals[tableName] = count;
     }
 
-    // Delete in dependency order (skip Better Auth tables - managed by plugin)
+    // Delete in dependency order (do NOT delete users — admins live there)
     await clearTable("bets");
     await clearTable("wallets");
     await clearTable("transactions");
@@ -78,20 +89,27 @@ export const getStats = query({
         return { totalUsers: 0, totalDeposits: 0, activeBets: 0 };
       }
 
-      const adminEmail = process.env.ADMIN_EMAIL || "254712345678";
-      const isAdmin = identity.preferred_username === adminEmail || 
-                      identity.email === adminEmail;
-      
+      const adminPhone = process.env.ADMIN_EMAIL || "254712345678";
+      const user = await ctx.db
+        .query("users")
+        .filter((q) => q.eq(q.field("_id"), identity.subject))
+        .unique();
+
+      if (!user) return { totalUsers: 0, totalDeposits: 0, activeBets: 0 };
+
+      const normalizedAdminPhone = adminPhone.startsWith("+")
+        ? adminPhone
+        : `+${adminPhone}`;
+      const isAdmin =
+        user.phone === normalizedAdminPhone || user.phone === adminPhone;
+
       if (!isAdmin) {
         return { totalUsers: 0, totalDeposits: 0, activeBets: 0 };
       }
 
-      // Get user count from the Better Auth component (managed tables)
-      // For now, we can just count transactions and bets since we don't have direct access
-      const transactions = await ctx.db.query("transactions").collect();
-      const bets = await ctx.db.query("bets").collect();
+      const transactions = await ctx.db.query("transactions").take(500);
+      const bets = await ctx.db.query("bets").take(500);
 
-      // Get unique user IDs from transactions to estimate user count
       const uniqueUserIds = new Set(transactions.map((t) => t.userId));
 
       const dbDepositsSum = transactions

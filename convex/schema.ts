@@ -2,8 +2,12 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 const schema = defineSchema({
-  // Better Auth tables are managed by @convex-dev/better-auth plugin
-  // Do not define them in this schema - the plugin handles them automatically
+  // Custom auth: users identified by phone number + hashed password
+  users: defineTable({
+    phone: v.string(), // normalized E.164 e.g. +254712345678
+    passwordHash: v.string(),
+    createdAt: v.number(),
+  }).index("by_phone", ["phone"]),
 
   // Application data tables
   admins: defineTable({

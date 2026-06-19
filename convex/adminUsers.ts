@@ -49,13 +49,20 @@ export const listUsers = query({
       .unique();
     if (!admin) throw new Error("Not authorized");
 
-    // For now, return empty list since Better Auth tables are managed by plugin
-    // In a real app, you'd query the Better Auth component for users
-    return {
-      page: [],
-      isDone: true,
-      continueCursor: "",
-    };
+    // Query users from our custom users table
+    const result = await ctx.db
+      .query("users")
+      .order("desc")
+      .paginate(args.paginationOpts);
+
+    const page = result.page.map((u) => ({
+      id: u._id,
+      phone: u.phone,
+      email: u.phone, // compat
+      createdAt: u.createdAt,
+    }));
+
+    return { ...result, page };
   },
 });
 
@@ -218,12 +225,19 @@ export const editUser = mutation({
   handler: async (ctx, args) => {
     await requireAdmin(ctx);
 
-    const email = args.email.trim();
-    if (!email) throw new Error("Email/Phone is required");
+    const phone = args.email.trim();
+    if (!phone) throw new Error("Phone number is required");
 
-    // Better Auth users are managed by the plugin
-    // We cannot directly modify them from application code
-    throw new Error("User management through Convex is not supported for Better Auth");
+    // Find the user in our custom users table
+    const user = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("_id"), args.targetUserId))
+      .unique();
+
+    if (!user) throw new Error("User not found");
+
+    await ctx.db.patch(user._id, { phone });
+    return { success: true };
   },
 });
 

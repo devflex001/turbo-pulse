@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { auth } from "@/lib/auth";
+import { getSessionFromCookies } from "@/lib/auth";
 import { env } from "@/lib/env";
 
 const adminRoutes = ["/admin"];
@@ -15,27 +15,21 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Get session from cookie
-  const sessionToken = request.cookies.get("better-auth.session_token")?.value;
-
-  if (!sessionToken) {
-    // Redirect to home if not authenticated
-    return NextResponse.redirect(new URL("/", request.url));
-  }
-
+  // Verify session using our custom JWT cookie
   try {
-    // Verify session is valid
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
+    const session = await getSessionFromCookies();
 
-    if (!session || !session.user) {
+    if (!session) {
       return NextResponse.redirect(new URL("/", request.url));
     }
 
-    // Check if user email matches admin email from env
-    const adminEmail = env.ADMIN_EMAIL;
-    if (session.user.email !== adminEmail) {
+    // Check if the user's phone matches the admin phone from env
+    const adminPhone = env.ADMIN_EMAIL || "254712345678";
+    const normalizedAdmin = adminPhone.startsWith("+")
+      ? adminPhone
+      : `+${adminPhone}`;
+
+    if (session.phone !== normalizedAdmin && session.phone !== adminPhone) {
       return NextResponse.redirect(new URL("/", request.url));
     }
 

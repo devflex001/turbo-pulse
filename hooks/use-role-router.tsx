@@ -7,7 +7,7 @@ import { useSession } from "@/lib/auth-client"
 import { api } from "@/convex/_generated/api"
 
 /**
- * Watches Convex auth state + admin status and handles role-based routing:
+ * Watches auth state + admin status and handles role-based routing:
  * - Authenticated admin  → /admin
  * - Authenticated user   → / (no redirect)
  * - Unauthenticated      → / (no redirect)
@@ -25,7 +25,7 @@ export function useRoleRouter() {
     session ? {} : "skip"
   )
 
-  const isLoading = isPending || (session && adminStatus === undefined)
+  const isLoading = isPending || (session !== null && adminStatus === undefined)
   const isAdmin = adminStatus?.isAdmin ?? false
   const isAuthenticated = !!session
 
