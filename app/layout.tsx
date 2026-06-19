@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
 import { BetStoreProvider } from "@/hooks/use-bet-store"
 import { AuthProvider } from "@/components/auth-provider"
+import { ConvexProvider } from "@/components/convex-provider"
 
 const robotoHeading = Roboto({subsets:['latin'],variable:'--font-heading'});
 
@@ -31,12 +32,14 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           <AuthProvider>
-            <BetStoreProvider>
-              <TooltipProvider>
-                {children}
-                <Toaster richColors position="top-right"/>
-              </TooltipProvider>
-            </BetStoreProvider>
+            <ConvexProvider>
+              <BetStoreProvider>
+                <TooltipProvider>
+                  {children}
+                  <Toaster richColors position="top-right"/>
+                </TooltipProvider>
+              </BetStoreProvider>
+            </ConvexProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
