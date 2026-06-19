@@ -23,6 +23,7 @@ export const currentUser = query({
       return {
         _id: user._id,
         phone: user.phone,
+        role: user.role,
         // Expose as email/name for backwards compatibility
         email: user.phone,
         name: user.phone,
@@ -93,6 +94,7 @@ export const registerUser = mutation({
     const id = await ctx.db.insert("users", {
       phone: args.phone,
       passwordHash: args.passwordHash,
+      role: "user", // Default role is "user"
       createdAt: Date.now(),
     });
 

@@ -51,6 +51,7 @@ export const createUser = internalMutation({
     const id = await ctx.db.insert("users", {
       phone: args.phone,
       passwordHash: args.passwordHash,
+      role: "user", // Default role
       createdAt: Date.now(),
     });
 

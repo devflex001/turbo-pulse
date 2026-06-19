@@ -5,6 +5,7 @@ import * as React from "react";
 export interface AuthUser {
   id: string;
   phone: string;
+  role: "admin" | "user";
 }
 
 interface AuthState {

@@ -6,6 +6,7 @@ const schema = defineSchema({
   users: defineTable({
     phone: v.string(), // normalized E.164 e.g. +254712345678
     passwordHash: v.string(),
+    role: v.union(v.literal("admin"), v.literal("user")), // "admin" or "user"
     createdAt: v.number(),
   }).index("by_phone", ["phone"]),
 

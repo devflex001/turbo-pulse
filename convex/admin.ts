@@ -10,7 +10,7 @@ export const getAdminStatus = query({
         return { isAdmin: false };
       }
 
-      const adminPhone = process.env.ADMIN_EMAIL || "254712345678";
+      const adminPhone = process.env.ADMIN_EMAIL;
 
       // Look up the user in our custom users table by their _id (subject)
       const user = await ctx.db
@@ -54,10 +54,11 @@ export const seedAdminUser = mutation({
 
     let userId;
     if (!user) {
-      // Create user document
+      // Create user document with admin role
       userId = await ctx.db.insert("users", {
         phone: args.phone,
         passwordHash: args.passwordHash,
+        role: "admin", // Set admin role
         createdAt: Date.now(),
       });
 
@@ -68,9 +69,10 @@ export const seedAdminUser = mutation({
       });
     } else {
       userId = user._id;
-      // Update password hash to match the seed config
+      // Update password hash and role to match the seed config
       await ctx.db.patch(userId, {
         passwordHash: args.passwordHash,
+        role: "admin", // Set admin role
       });
     }
 

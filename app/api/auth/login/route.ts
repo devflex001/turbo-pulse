@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     // Set httpOnly cookie
     const response = NextResponse.json({
       success: true,
-      user: { id: user._id, phone: user.phone },
+      user: { id: user._id, phone: user.phone, role: user.role },
       token,
     });
 
