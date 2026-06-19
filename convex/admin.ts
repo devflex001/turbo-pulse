@@ -10,8 +10,6 @@ export const getAdminStatus = query({
         return { isAdmin: false };
       }
 
-      const adminPhone = process.env.ADMIN_EMAIL;
-
       // Look up the user in our custom users table by their _id (subject)
       const user = await ctx.db
         .query("users")
@@ -20,15 +18,8 @@ export const getAdminStatus = query({
 
       if (!user) return { isAdmin: false };
 
-      // Normalize admin phone for comparison
-      const normalizedAdminPhone = (adminPhone || "254712345678").startsWith("+")
-        ? adminPhone
-        : `+${adminPhone}`;
-
-      const isAdmin =
-        user.phone === normalizedAdminPhone || user.phone === adminPhone;
-
-      return { isAdmin };
+      // Check the role field directly
+      return { isAdmin: user.role === "admin" };
     } catch {
       return { isAdmin: false };
     }
@@ -148,21 +139,12 @@ export const getStats = query({
         return { totalUsers: 0, totalDeposits: 0, activeBets: 0 };
       }
 
-      const adminPhone = process.env.ADMIN_EMAIL || "254712345678";
       const user = await ctx.db
         .query("users")
         .filter((q) => q.eq(q.field("_id"), identity.subject))
         .unique();
 
-      if (!user) return { totalUsers: 0, totalDeposits: 0, activeBets: 0 };
-
-      const normalizedAdminPhone = adminPhone.startsWith("+")
-        ? adminPhone
-        : `+${adminPhone}`;
-      const isAdmin =
-        user.phone === normalizedAdminPhone || user.phone === adminPhone;
-
-      if (!isAdmin) {
+      if (!user || user.role !== "admin") {
         return { totalUsers: 0, totalDeposits: 0, activeBets: 0 };
       }
 

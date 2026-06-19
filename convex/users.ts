@@ -54,7 +54,7 @@ export const getUserByPhone = query({
 
 /**
  * Public query: look up a user's hashed password for login verification.
- * Only returns the passwordHash — the API route handles bcrypt comparison.
+ * Returns the passwordHash and role — the API route handles bcrypt comparison.
  */
 export const getUserForLogin = query({
   args: { phone: v.string() },
@@ -69,6 +69,7 @@ export const getUserForLogin = query({
       _id: user._id,
       phone: user.phone,
       passwordHash: user.passwordHash,
+      role: user.role,
     };
   },
 });

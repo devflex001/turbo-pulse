@@ -4,6 +4,7 @@ import * as React from "react"
 import Image from "next/image"
 import { useQuery } from "convex/react"
 import { useSession } from "@/lib/auth-client"
+import { useRoleRedirect } from "@/hooks/use-role-redirect"
 import { api } from "@/convex/_generated/api"
 import { useBetStore } from "@/hooks/use-bet-store"
 import { Header } from "@/components/header"
@@ -72,6 +73,7 @@ export default function Page() {
   } = useBetStore()
 
   const { data: session } = useSession()
+  useRoleRedirect() // Enable role-based redirects
   
   const banStatus = useQuery(
     api.adminUsers.getMyBanStatus,

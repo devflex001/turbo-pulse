@@ -69,13 +69,16 @@ async function requireAdmin(ctx: QueryCtx | MutationCtx) {
   const userId = await getAuthUserId(ctx);
   if (!userId) throw new Error("Not authenticated");
 
-  const admin = await ctx.db
-    .query("admins")
-    .withIndex("by_userId", (q) => q.eq("userId", userId))
+  const user = await ctx.db
+    .query("users")
+    .filter((q) => q.eq(q.field("_id"), userId))
     .unique();
 
-  if (!admin) throw new Error("Not authorized: admin access required");
-  return admin;
+  if (!user || user.role !== "admin") {
+    throw new Error("Not authorized: admin access required");
+  }
+  
+  return user;
 }
 
 function todayIsoDate(offsetDays: number) {

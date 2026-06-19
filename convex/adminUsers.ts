@@ -15,18 +15,21 @@ async function getAuthUserId(ctx: any) {
   }
 }
 
-/** Throws if the caller is not a logged-in admin. Returns the admin doc. */
+/** Throws if the caller is not a logged-in admin. Returns the user doc. */
 async function requireAdmin(ctx: MutationCtx) {
   const userId = await getAuthUserId(ctx);
   if (!userId) throw new Error("Not authenticated");
 
-  const admin = await ctx.db
-    .query("admins")
-    .withIndex("by_userId", (q) => q.eq("userId", userId))
+  const user = await ctx.db
+    .query("users")
+    .filter((q) => q.eq(q.field("_id"), userId))
     .unique();
 
-  if (!admin) throw new Error("Not authorized: admin access required");
-  return admin;
+  if (!user || user.role !== "admin") {
+    throw new Error("Not authorized: admin access required");
+  }
+  
+  return user;
 }
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
@@ -43,11 +46,14 @@ export const listUsers = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    const admin = await ctx.db
-      .query("admins")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
+    const user = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("_id"), userId))
       .unique();
-    if (!admin) throw new Error("Not authorized");
+    
+    if (!user || user.role !== "admin") {
+      throw new Error("Not authorized");
+    }
 
     // Query users from our custom users table
     const result = await ctx.db
@@ -130,11 +136,14 @@ export const listAppeals = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    const admin = await ctx.db
-      .query("admins")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
+    const user = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("_id"), userId))
       .unique();
-    if (!admin) throw new Error("Not authorized");
+    
+    if (!user || user.role !== "admin") {
+      throw new Error("Not authorized");
+    }
 
     const result = await ctx.db
       .query("banAppeals")
@@ -172,7 +181,22 @@ export const banUser = mutation({
     durationHours: v.union(v.number(), v.null()),
   },
   handler: async (ctx, args) => {
-    const admin = await requireAdmin(ctx);
+    const adminUser = await requireAdmin(ctx);
+
+    // Find or create admin record for this user
+    let adminRecord = await ctx.db
+      .query("admins")
+      .withIndex("by_userId", (q) => q.eq("userId", adminUser._id))
+      .unique();
+    
+    if (!adminRecord) {
+      const adminId = await ctx.db.insert("admins", {
+        userId: adminUser._id,
+        email: adminUser.phone,
+        addedAt: Date.now(),
+      });
+      adminRecord = await ctx.db.get(adminId);
+    }
 
     // Deactivate any existing active ban
     const existingBan = await ctx.db
@@ -195,7 +219,7 @@ export const banUser = mutation({
       userId: args.targetUserId,
       reason: args.reason,
       bannedAt: Date.now(),
-      bannedByAdminId: admin._id,
+      bannedByAdminId: adminRecord!._id,
       bannedUntil,
       isActive: true,
     });
@@ -308,7 +332,22 @@ export const reviewAppeal = mutation({
     adminNote: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const admin = await requireAdmin(ctx);
+    const adminUser = await requireAdmin(ctx);
+
+    // Find or create admin record for this user
+    let adminRecord = await ctx.db
+      .query("admins")
+      .withIndex("by_userId", (q) => q.eq("userId", adminUser._id))
+      .unique();
+    
+    if (!adminRecord) {
+      const adminId = await ctx.db.insert("admins", {
+        userId: adminUser._id,
+        email: adminUser.phone,
+        addedAt: Date.now(),
+      });
+      adminRecord = await ctx.db.get(adminId);
+    }
 
     const appeal = await ctx.db.get(args.appealId);
     if (!appeal) throw new Error("Appeal not found");
@@ -317,7 +356,7 @@ export const reviewAppeal = mutation({
     await ctx.db.patch(args.appealId, {
       status: args.decision,
       reviewedAt: Date.now(),
-      reviewedByAdminId: admin._id,
+      reviewedByAdminId: adminRecord!._id,
       adminNote: args.adminNote ?? null,
     });
 

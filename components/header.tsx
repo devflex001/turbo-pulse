@@ -32,7 +32,6 @@ import {
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Betslip } from "./betslip"
 import { useAuthClient } from "@/lib/auth-client"
-import { useRoleRedirect } from "@/hooks/use-role-redirect"
 import { useRouter } from "next/navigation"
 
 export function Header() {
@@ -45,7 +44,6 @@ export function Header() {
   } = useBetStore()
 
   const { user, isAuthenticated, signOut } = useAuthClient()
-  useRoleRedirect() // Enable role-based redirects
   const router = useRouter()
   const isAdmin = user?.role === "admin"
 

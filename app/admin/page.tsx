@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useQuery } from "convex/react"
-import { useSession } from "@/lib/auth-client"
+import { useSession, useAuthClient } from "@/lib/auth-client"
 import { api } from "@/convex/_generated/api"
 import { useBetStore } from "@/hooks/use-bet-store"
 import { useTheme } from "next-themes"
@@ -170,6 +170,8 @@ function SidebarContent({ activeTab, onTabChange, collapsed = false }: SidebarCo
 export default function AdminDashboard() {
   const router = useRouter()
   const { data: session, isPending } = useSession()
+  const { user: authUser } = useAuthClient()
+  
   const adminStatus = useQuery(
     api.admin.getAdminStatus,
     session ? {} : "skip"
@@ -185,12 +187,27 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = React.useState("dashboard")
   const [currentTime, setCurrentTime] = React.useState("")
 
-  // Redirect guard
+  // Redirect guard - check authUser role first for immediate feedback
   React.useEffect(() => {
     if (isPending) return
-    if (!session) { router.replace("/"); return }
-    if (adminStatus !== undefined && !adminStatus.isAdmin) router.replace("/")
-  }, [isPending, session, adminStatus, router])
+    
+    // Not logged in → redirect to auth
+    if (!session) { 
+      router.replace("/auth")
+      return 
+    }
+    
+    // Check auth client role (immediate, from session storage)
+    if (authUser && authUser.role !== "admin") {
+      router.replace("/")
+      return
+    }
+    
+    // Also check server-side admin status
+    if (adminStatus !== undefined && !adminStatus.isAdmin) {
+      router.replace("/")
+    }
+  }, [isPending, session, authUser, adminStatus, router])
 
   React.useEffect(() => {
     let a = true
