@@ -87,8 +87,11 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
     try {
       setIsSubmitting(true)
       const normalizedPhone = normalizeKenyanPhone(phone)
+      // Convert phone to email format for Better Auth
+      const email = `${normalizedPhone.replace(/\D/g, '')}@betflow.local`
+      
       const result = await signIn.email({
-        email: normalizedPhone,
+        email,
         password,
       }, {
         onError: (ctx) => {
@@ -244,8 +247,11 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
     try {
       setIsSubmitting(true)
       const normalizedPhone = normalizeKenyanPhone(phone)
+      // Convert phone to email format for Better Auth
+      const email = `${normalizedPhone.replace(/\D/g, '')}@betflow.local`
+      
       const result = await signUp.email({
-        email: normalizedPhone,
+        email,
         password,
         name: normalizedPhone,
       }, {
