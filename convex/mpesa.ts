@@ -3,10 +3,13 @@ import { mutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 
-async function getAuthUserId(ctx: any) {
+async function getAuthUserId(ctx: any): Promise<Id<"users"> | null> {
   try {
     const identity = await ctx.auth.getUserIdentity();
-    return identity ? (identity.subject as string) : null;
+    if (!identity) return null;
+    
+    const userId = ctx.db.normalizeId("users", identity.subject);
+    return userId;
   } catch {
     return null;
   }
@@ -73,19 +76,18 @@ export const updateTransactionStatus = mutation({
   },
   handler: async (ctx, args) => {
     // Find transaction by checkoutRequestID
-    const transactions = await ctx.db
+    const transaction = await ctx.db
       .query("transactions")
       .withIndex("by_checkoutRequestID", (q) =>
         q.eq("checkoutRequestID", args.checkoutRequestID)
       )
-      .take(1);
+      .unique();
 
-    if (transactions.length === 0) {
+    if (!transaction) {
       console.error(`Transaction not found: ${args.checkoutRequestID}`);
       throw new Error(`Transaction not found: ${args.checkoutRequestID}`);
     }
 
-    const transaction = transactions[0];
     const status =
       args.resultCode === "0"
         ? "success"
@@ -129,13 +131,13 @@ export const getWallet = query({
       return null;
     }
 
-    const wallets = await ctx.db
+    const wallet = await ctx.db
       .query("wallets")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .take(1);
+      .unique();
 
-    if (wallets.length === 0) {
-      // Return default wallet (creation is deferred)
+    if (!wallet) {
+      // Return default wallet structure
       return {
         _id: null as any,
         userId,
@@ -143,7 +145,7 @@ export const getWallet = query({
       };
     }
 
-    return wallets[0];
+    return wallet;
   },
 });
 
@@ -155,28 +157,27 @@ export const getLatestTransaction = query({
     checkoutRequestID: v.string(),
   },
   handler: async (ctx, args) => {
-    const transactions = await ctx.db
+    const transaction = await ctx.db
       .query("transactions")
       .withIndex("by_checkoutRequestID", (q) =>
         q.eq("checkoutRequestID", args.checkoutRequestID)
       )
-      .take(1);
+      .unique();
 
-    if (transactions.length === 0) {
+    if (!transaction) {
       return null;
     }
 
-    const tx = transactions[0];
     return {
-      _id: tx._id,
-      status: tx.status,
-      resultCode: tx.resultCode,
-      resultDesc: tx.resultDesc,
-      mpesaReceiptNumber: tx.mpesaReceiptNumber,
-      amount: tx.amount,
-      type: tx.type,
-      time: tx.time,
-      updatedAt: tx.updatedAt,
+      _id: transaction._id,
+      status: transaction.status,
+      resultCode: transaction.resultCode,
+      resultDesc: transaction.resultDesc,
+      mpesaReceiptNumber: transaction.mpesaReceiptNumber,
+      amount: transaction.amount,
+      type: transaction.type,
+      time: transaction.time,
+      updatedAt: transaction.updatedAt,
     };
   },
 });
@@ -238,16 +239,16 @@ export const getTransaction = query({
  */
 export async function updateWalletBalance(
   ctx: MutationCtx,
-  userId: any,
+  userId: Id<"users">,
   amount: number,
   operation: "add" | "subtract"
 ): Promise<void> {
-  const wallets = await ctx.db
+  const wallet = await ctx.db
     .query("wallets")
     .withIndex("by_userId", (q) => q.eq("userId", userId))
-    .take(1);
+    .unique();
 
-  if (wallets.length === 0) {
+  if (!wallet) {
     // Create wallet if doesn't exist
     await ctx.db.insert("wallets", {
       userId,
@@ -255,8 +256,6 @@ export async function updateWalletBalance(
     });
     return;
   }
-
-  const wallet = wallets[0];
 
   const newBalance =
     operation === "add"
@@ -285,16 +284,14 @@ export const withdrawFromWallet = mutation({
       throw new Error("Amount must be greater than 0");
     }
 
-    const wallets = await ctx.db
+    const wallet = await ctx.db
       .query("wallets")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
-      .take(1);
+      .unique();
 
-    if (wallets.length === 0) {
+    if (!wallet) {
       throw new Error("Wallet not found");
     }
-
-    const wallet = wallets[0];
 
     if (wallet.balance < args.amount) {
       throw new Error("Insufficient balance");

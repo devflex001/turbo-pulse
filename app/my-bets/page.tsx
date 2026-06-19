@@ -8,19 +8,47 @@ import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { MyBetsPanel } from "@/components/my-bets-panel"
 import { useBetStore } from "@/hooks/use-bet-store"
+import { useAuthClient } from "@/lib/auth-client"
+import { useRouter } from "next/navigation"
 
 export default function MyBetsPage() {
   const { setActiveTab } = useBetStore()
+  const { isAuthenticated, isLoading } = useAuthClient()
+  const router = useRouter()
 
   React.useEffect(() => {
     setActiveTab("mybets")
   }, [setActiveTab])
+
+  React.useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push("/auth")
+    }
+  }, [isAuthenticated, isLoading, router])
 
   const allMatches = useQuery(api.sportsData.listMatches, { limit: 300 })
   const liveCount = React.useMemo(
     () => (allMatches ?? []).filter((match: any) => match.isLive).length,
     [allMatches]
   )
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-screen overflow-hidden bg-background">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center space-y-2">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return null // Will redirect in useEffect
+  }
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">

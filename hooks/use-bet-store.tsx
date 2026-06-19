@@ -157,11 +157,10 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
   const [localBets, setLocalBets] = React.useState<PlacedBet[]>([])
   const [localTransactions, setLocalTransactions] = React.useState<Transaction[]>(SEED_TRANSACTIONS)
   
-  const { data: session } = useSession()
+  const { user: authUser, isAuthenticated } = useAuthClient()
   const { signOut } = useAuthClient()
 
   // Convex reactive queries - use undefined to skip
-  const convexUser = useQuery(api.users.currentUser)
   const dbBalance = useQuery(api.bets.getWalletBalance)
   const dbBets = useQuery(api.bets.getMyBets)
   const dbTransactions = useQuery(api.bets.getTransactions)
@@ -175,9 +174,9 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
   const updateTransactionStatusMutation = useMutation(api.bets.updateTransactionStatus)
 
   const user = React.useMemo(() => {
-    if (!convexUser) return null
-    return { username: convexUser.email || convexUser.name || "User" }
-  }, [convexUser])
+    if (!authUser) return null
+    return { username: authUser.phone || "User" }
+  }, [authUser])
 
   const [activeTab, setActiveTabState] = React.useState<string>("home")
   const [searchQuery, setSearchQuery] = React.useState<string>("")
