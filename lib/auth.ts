@@ -20,10 +20,27 @@ function getIssuer() {
   );
 }
 
-// ── Key loading ───────────────────────────────────────────────────────────────
+import * as fs from "fs";
+import * as path from "path";
 
 function getRawPrivateKey(): string {
-  const raw = process.env.JWT_PRIVATE_KEY;
+  let raw = process.env.JWT_PRIVATE_KEY;
+  
+  // If Next.js hasn't restarted and the key is truncated, or if it's not set,
+  // we fallback to reading .env.local directly.
+  if (!raw || !raw.includes("END PRIVATE KEY")) {
+    try {
+      const envPath = path.resolve(process.cwd(), ".env.local");
+      const envContent = fs.readFileSync(envPath, "utf8");
+      const match = envContent.match(/JWT_PRIVATE_KEY="?([^"\n]*)"?/);
+      if (match && match[1]) {
+        raw = match[1];
+      }
+    } catch (e) {
+      console.warn("Failed to read .env.local directly", e);
+    }
+  }
+
   if (!raw) throw new Error("JWT_PRIVATE_KEY environment variable is not set");
   return raw.replace(/\\n/g, "\n");
 }
