@@ -6,7 +6,6 @@ import { useQuery } from "convex/react"
 import { useSession } from "@/lib/auth-client"
 import { api } from "@/convex/_generated/api"
 import { useBetStore } from "@/hooks/use-bet-store"
-import { useRoleRouter } from "@/hooks/use-role-router"
 import { Header } from "@/components/header"
 import { Sidebar } from "@/components/sidebar"
 import { MatchCard } from "@/components/match-card"
@@ -73,15 +72,7 @@ export default function Page() {
   } = useBetStore()
 
   const { data: session } = useSession()
-  const { isAdmin } = useRoleRouter()
   
-  // Redirect admin to admin dashboard
-  React.useEffect(() => {
-    if (isAdmin) {
-      window.location.href = "/admin"
-    }
-  }, [isAdmin])
-
   const banStatus = useQuery(
     api.adminUsers.getMyBanStatus,
     session ? {} : "skip"
