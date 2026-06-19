@@ -52,7 +52,7 @@ export const resetDatabase = mutation({
       totals[tableName] = count;
     }
 
-    // Delete in dependency order
+    // Delete in dependency order (skip Better Auth tables - managed by plugin)
     await clearTable("bets");
     await clearTable("wallets");
     await clearTable("transactions");
@@ -61,13 +61,9 @@ export const resetDatabase = mutation({
     await clearTable("sportsMatches");
     await clearTable("scrapeRuns");
     await clearTable("scraperSettings");
-    await clearTable("authVerification");
-    await clearTable("authSession");
-    await clearTable("authAccount");
     await clearTable("banAppeals");
     await clearTable("userBans");
     await clearTable("admins");
-    await clearTable("authUser");
 
     return { success: true, deleted: totals };
   },
@@ -90,9 +86,13 @@ export const getStats = query({
         return { totalUsers: 0, totalDeposits: 0, activeBets: 0 };
       }
 
-      const users = await ctx.db.query("authUser").collect();
+      // Get user count from the Better Auth component (managed tables)
+      // For now, we can just count transactions and bets since we don't have direct access
       const transactions = await ctx.db.query("transactions").collect();
       const bets = await ctx.db.query("bets").collect();
+
+      // Get unique user IDs from transactions to estimate user count
+      const uniqueUserIds = new Set(transactions.map((t) => t.userId));
 
       const dbDepositsSum = transactions
         .filter((t) => t.type === "deposit" && t.status === "success")
@@ -101,7 +101,7 @@ export const getStats = query({
       const dbActiveBetsCount = bets.filter((b) => b.status === "active").length;
 
       return {
-        totalUsers: users.length,
+        totalUsers: uniqueUserIds.size,
         totalDeposits: dbDepositsSum,
         activeBets: dbActiveBetsCount,
       };

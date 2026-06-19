@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { signIn } from "@/lib/auth-client";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -24,10 +23,22 @@ export default function LoginPage() {
 
     setIsLoading(true);
     try {
-      await signIn.email({
-        email: phone,
-        password,
+      const response = await fetch("/api/auth/sign-in-phone", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          phone,
+          password,
+        }),
       });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Sign in failed");
+      }
+
       toast.success("Signed in successfully");
       router.push("/");
       router.refresh();

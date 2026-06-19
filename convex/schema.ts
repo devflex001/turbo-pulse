@@ -2,48 +2,8 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 const schema = defineSchema({
-  // Better Auth tables (renamed from auth.user to authUser, etc. since Convex doesn't allow dots in table names)
-  authUser: defineTable({
-    email: v.optional(v.string()),
-    emailVerified: v.boolean(),
-    name: v.optional(v.string()),
-    image: v.optional(v.string()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  }).index("by_email", ["email"]),
-
-  authSession: defineTable({
-    expiresAt: v.number(),
-    token: v.string(),
-    ipAddress: v.optional(v.string()),
-    userAgent: v.optional(v.string()),
-    userId: v.string(),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  }).index("by_token", ["token"]),
-
-  authAccount: defineTable({
-    userId: v.string(),
-    accountId: v.string(),
-    providerId: v.string(),
-    accessToken: v.optional(v.string()),
-    refreshToken: v.optional(v.string()),
-    idToken: v.optional(v.string()),
-    accessTokenExpiresAt: v.optional(v.number()),
-    refreshTokenExpiresAt: v.optional(v.number()),
-    scope: v.optional(v.string()),
-    password: v.optional(v.string()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
-  }).index("by_userId", ["userId"]),
-
-  authVerification: defineTable({
-    identifier: v.string(),
-    value: v.string(),
-    expiresAt: v.number(),
-    createdAt: v.number(),
-    updatedAt: v.optional(v.number()),
-  }).index("by_identifier", ["identifier"]),
+  // Better Auth tables are managed by @convex-dev/better-auth plugin
+  // Do not define them in this schema - the plugin handles them automatically
 
   // Application data tables
   admins: defineTable({

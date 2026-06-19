@@ -5,20 +5,13 @@ export const currentUser = query({
   handler: async (ctx) => {
     try {
       const identity = await ctx.auth.getUserIdentity();
-      if (!identity || !identity.subject) {
+      if (!identity) {
         return null;
       }
-
-      // The subject is the user ID from Better Auth
-      const userId = identity.subject as string;
       
-      // Get the user from the Better Auth table
-      const user = await ctx.db
-        .query("authUser")
-        .withIndex("by_email", (q) => q.eq("email", userId))
-        .first();
-      
-      return user || null;
+      // Return the current user info from the identity
+      // Better Auth stores this through ctx.auth
+      return identity;
     } catch (error) {
       // If not authenticated or error, return null
       return null;

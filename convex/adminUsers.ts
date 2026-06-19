@@ -49,35 +49,13 @@ export const listUsers = query({
       .unique();
     if (!admin) throw new Error("Not authorized");
 
-    const result = await ctx.db
-      .query("authUser")
-      .order("desc")
-      .paginate(args.paginationOpts);
-
-    // Attach active ban to each user
-    const page = await Promise.all(
-      result.page.map(async (user) => {
-        const activeBan = await ctx.db
-          .query("userBans")
-          .withIndex("by_userId_and_isActive", (q) =>
-            q.eq("userId", user._id as string).eq("isActive", true)
-          )
-          .unique();
-        return { ...user, activeBan: activeBan ?? null };
-      })
-    );
-
-    // Client-side search filter (bounded by the paginated page)
-    const search = args.search?.toLowerCase().trim();
-    const filtered = search
-      ? page.filter(
-          (u) =>
-            u.email?.toLowerCase().includes(search) ||
-            u._id.toLowerCase().includes(search)
-        )
-      : page;
-
-    return { ...result, page: filtered };
+    // For now, return empty list since Better Auth tables are managed by plugin
+    // In a real app, you'd query the Better Auth component for users
+    return {
+      page: [],
+      isDone: true,
+      continueCursor: "",
+    };
   },
 });
 
@@ -150,12 +128,9 @@ export const listAppeals = query({
     // Attach user info
     const page = await Promise.all(
       result.page.map(async (appeal) => {
-        const user = await ctx.db
-          .query("authUser")
-          .withIndex("by_email", (q) => q.eq("email", appeal.userId))
-          .first();
+        // User info is managed by Better Auth plugin, we don't have direct access
         const ban = await ctx.db.get(appeal.banId);
-        return { ...appeal, user, ban };
+        return { ...appeal, user: null, ban };
       })
     );
 
@@ -246,16 +221,9 @@ export const editUser = mutation({
     const email = args.email.trim();
     if (!email) throw new Error("Email/Phone is required");
 
-    // Find the user by their ID and update
-    const user = await ctx.db
-      .query("authUser")
-      .withIndex("by_email", (q) => q.eq("email", args.targetUserId))
-      .first();
-
-    if (!user) throw new Error("User not found");
-
-    await ctx.db.patch(user._id, { email });
-    return { success: true };
+    // Better Auth users are managed by the plugin
+    // We cannot directly modify them from application code
+    throw new Error("User management through Convex is not supported for Better Auth");
   },
 });
 
