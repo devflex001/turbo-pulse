@@ -159,12 +159,12 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
   
   const { data: session } = useSession()
   
-  // Only query if user is authenticated
-  const convexUser = useQuery(session ? api.users.currentUser : "skip")
-  const dbBalance = useQuery(session ? api.bets.getWalletBalance : "skip")
-  const dbBets = useQuery(session ? api.bets.getMyBets : "skip")
-  const dbTransactions = useQuery(session ? api.bets.getTransactions : "skip")
-  const dbAdminStats = useQuery(session ? api.admin.getStats : "skip")
+  // Convex reactive queries - use undefined to skip
+  const convexUser = useQuery(api.users.currentUser)
+  const dbBalance = useQuery(api.bets.getWalletBalance)
+  const dbBets = useQuery(api.bets.getMyBets)
+  const dbTransactions = useQuery(api.bets.getTransactions)
+  const dbAdminStats = useQuery(api.admin.getStats)
 
   // Convex mutations
   const placeBetMutation = useMutation(api.bets.placeBet)
@@ -189,11 +189,11 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
     activeBets: 53
   })
 
-  // Dynamic balance, bets, transactions, and adminStats
-  const walletBalance: number = session ? (dbBalance ?? 1000) : localBalance
-  const myBets: PlacedBet[] = (session ? (dbBets as PlacedBet[]) : localBets) ?? []
-  const transactions: Transaction[] = (session ? (dbTransactions as Transaction[]) : localTransactions) ?? []
-  const adminStats = session ? (dbAdminStats ?? localAdminStats) : localAdminStats
+  // Dynamic balance, bets, transactions, and adminStats - check if queries returned data
+  const walletBalance: number = convexUser ? (dbBalance ?? 1000) : localBalance
+  const myBets: PlacedBet[] = convexUser ? (dbBets as PlacedBet[] | undefined) ?? [] : localBets
+  const transactions: Transaction[] = convexUser ? (dbTransactions as Transaction[] | undefined) ?? [] : localTransactions
+  const adminStats = convexUser ? (dbAdminStats ?? localAdminStats) : localAdminStats
 
   React.useEffect(() => {
     if (typeof window !== "undefined") {
