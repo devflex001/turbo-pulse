@@ -50,7 +50,7 @@ export const listUsers = query({
     if (!admin) throw new Error("Not authorized");
 
     const result = await ctx.db
-      .query("auth.user")
+      .query("authUser")
       .order("desc")
       .paginate(args.paginationOpts);
 
@@ -151,7 +151,7 @@ export const listAppeals = query({
     const page = await Promise.all(
       result.page.map(async (appeal) => {
         const user = await ctx.db
-          .query("auth.user")
+          .query("authUser")
           .withIndex("by_email", (q) => q.eq("email", appeal.userId))
           .first();
         const ban = await ctx.db.get(appeal.banId);
@@ -248,7 +248,7 @@ export const editUser = mutation({
 
     // Find the user by their ID and update
     const user = await ctx.db
-      .query("auth.user")
+      .query("authUser")
       .withIndex("by_email", (q) => q.eq("email", args.targetUserId))
       .first();
 

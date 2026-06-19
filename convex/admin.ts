@@ -61,13 +61,13 @@ export const resetDatabase = mutation({
     await clearTable("sportsMatches");
     await clearTable("scrapeRuns");
     await clearTable("scraperSettings");
-    await clearTable("auth.verification");
-    await clearTable("auth.session");
-    await clearTable("auth.account");
+    await clearTable("authVerification");
+    await clearTable("authSession");
+    await clearTable("authAccount");
     await clearTable("banAppeals");
     await clearTable("userBans");
     await clearTable("admins");
-    await clearTable("auth.user");
+    await clearTable("authUser");
 
     return { success: true, deleted: totals };
   },
@@ -90,7 +90,7 @@ export const getStats = query({
         return { totalUsers: 0, totalDeposits: 0, activeBets: 0 };
       }
 
-      const users = await ctx.db.query("auth.user").collect();
+      const users = await ctx.db.query("authUser").collect();
       const transactions = await ctx.db.query("transactions").collect();
       const bets = await ctx.db.query("bets").collect();
 

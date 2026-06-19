@@ -14,7 +14,7 @@ export const currentUser = query({
       
       // Get the user from the Better Auth table
       const user = await ctx.db
-        .query("auth.user")
+        .query("authUser")
         .withIndex("by_email", (q) => q.eq("email", userId))
         .first();
       

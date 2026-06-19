@@ -59,7 +59,7 @@ function mapSportsToIds(sportIds: (string | number)[]): number[] {
 async function getAuthUserId(ctx: any) {
   try {
     const identity = await ctx.auth.getUserIdentity();
-    return identity ? (identity.subject as Id<"user">) : null;
+    return identity ? (identity.subject as string) : null;
   } catch {
     return null;
   }
@@ -71,7 +71,7 @@ async function requireAdmin(ctx: QueryCtx | MutationCtx) {
 
   const admin = await ctx.db
     .query("admins")
-    .withIndex("by_userId", (q) => q.eq("userId", userId as Id<"user">))
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
     .unique();
 
   if (!admin) throw new Error("Not authorized: admin access required");

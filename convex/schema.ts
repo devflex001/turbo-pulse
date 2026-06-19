@@ -2,8 +2,8 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 const schema = defineSchema({
-  // Better Auth tables (from @convex-dev/better-auth)
-  "auth.user": defineTable({
+  // Better Auth tables (renamed from auth.user to authUser, etc. since Convex doesn't allow dots in table names)
+  authUser: defineTable({
     email: v.optional(v.string()),
     emailVerified: v.boolean(),
     name: v.optional(v.string()),
@@ -12,7 +12,7 @@ const schema = defineSchema({
     updatedAt: v.number(),
   }).index("by_email", ["email"]),
 
-  "auth.session": defineTable({
+  authSession: defineTable({
     expiresAt: v.number(),
     token: v.string(),
     ipAddress: v.optional(v.string()),
@@ -22,7 +22,7 @@ const schema = defineSchema({
     updatedAt: v.number(),
   }).index("by_token", ["token"]),
 
-  "auth.account": defineTable({
+  authAccount: defineTable({
     userId: v.string(),
     accountId: v.string(),
     providerId: v.string(),
@@ -37,7 +37,7 @@ const schema = defineSchema({
     updatedAt: v.number(),
   }).index("by_userId", ["userId"]),
 
-  "auth.verification": defineTable({
+  authVerification: defineTable({
     identifier: v.string(),
     value: v.string(),
     expiresAt: v.number(),
