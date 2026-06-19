@@ -1,11 +1,10 @@
 import { betterAuth } from "better-auth";
 import { convexAdapter } from "@convex-dev/better-auth";
-import { ConvexHttpClient } from "convex/browser";
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export const auth = betterAuth({
-  database: convexAdapter(convex),
+  database: convexAdapter({
+    convexUrl: process.env.NEXT_PUBLIC_CONVEX_URL || "http://localhost:3210",
+  }),
   plugins: [],
   emailAndPassword: {
     enabled: true,
