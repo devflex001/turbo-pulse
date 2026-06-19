@@ -10,9 +10,8 @@ export const getAdminStatus = query({
         return { isAdmin: false };
       }
 
-      // Check if user email matches admin email from env (stored in Convex)
-      // For now, we'll check against the database
-      const adminEmail = process.env.ADMIN_EMAIL || "254712345678@betflow.local";
+      // Check if user email matches admin email from env
+      const adminEmail = process.env.ADMIN_EMAIL || "254712345678";
       
       // If user email matches admin email, they're an admin
       const isAdmin = identity.preferred_username === adminEmail || 
@@ -83,7 +82,7 @@ export const getStats = query({
         return { totalUsers: 0, totalDeposits: 0, activeBets: 0 };
       }
 
-      const adminEmail = process.env.ADMIN_EMAIL || "254712345678@betflow.local";
+      const adminEmail = process.env.ADMIN_EMAIL || "254712345678";
       const isAdmin = identity.preferred_username === adminEmail || 
                       identity.email === adminEmail;
       

@@ -21,7 +21,7 @@
     "convex:import": "npx convex import",
     "convex:export": "npx convex export",
     "db:reset": "npx convex run admin:resetDatabase",
-    "seed:admin": "node --loader tsx scripts/seed-admin.ts || true",
+    "seed:admin": "node scripts/seed-admin.mjs",
     "dev:all": "concurrently \"pnpm dev\" \"pnpm convex:dev\""
   },
   "dependencies": {
