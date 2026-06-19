@@ -47,6 +47,7 @@ export function Header() {
   const { user, isAuthenticated, signOut } = useAuthClient()
   useRoleRedirect() // Enable role-based redirects
   const router = useRouter()
+  const isAdmin = user?.role === "admin"
 
   const [loginOpen, setLoginOpen] = React.useState(false)
   const [registerOpen, setRegisterOpen] = React.useState(false)
