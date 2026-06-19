@@ -51,6 +51,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "convex-test": "^0.0.53",
+    "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "prettier": "^3.8.3",

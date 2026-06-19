@@ -81,6 +81,9 @@ importers:
       convex-test:
         specifier: ^0.0.53
         version: 0.0.53(convex@1.41.0(react@19.2.4))
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       eslint:
         specifier: ^9
         version: 9.39.4(jiti@2.7.0)

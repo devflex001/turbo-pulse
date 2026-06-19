@@ -1,87 +1,89 @@
 #!/usr/bin/env node
 
 /**
- * Admin Seeding Script
+ * Admin Seeding Script (Direct Convex Database Seeding)
  *
- * Creates the admin user in the custom users table and registers them
- * as an admin in the Convex `admins` table.
+ * Creates the admin user in the custom users table, initializes their wallet,
+ * and registers them as an admin in the Convex `admins` table.
  *
  * Usage: pnpm seed:admin
  *
  * Requires:
  *   - NEXT_PUBLIC_CONVEX_URL in environment
+ *   - ADMIN_SEED_SECRET in environment
  *   - ADMIN_EMAIL (the phone number, e.g. 254712345678)
  *   - ADMIN_PASSWORD
- *   - NEXT_PUBLIC_APP_URL (for the auth endpoint)
  */
 
 import { config } from "dotenv";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
+import { ConvexHttpClient } from "convex/browser";
+import bcrypt from "bcryptjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: resolve(__dirname, "../.env.local") });
 
-const appUrl =
-  process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-const adminPhone = process.env.ADMIN_EMAIL || "254712345678";
-const adminPassword = process.env.ADMIN_PASSWORD || "Admin@12345";
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+const cliArgs = process.argv.slice(2);
+const adminPhone = cliArgs[0] || process.env.ADMIN_EMAIL || "254712345678";
+const adminPassword = cliArgs[1] || process.env.ADMIN_PASSWORD || "Admin@12345";
+const seedSecret = process.env.ADMIN_SEED_SECRET;
 
 console.log("🌱 BetFlow Admin Seeding");
 console.log("========================");
-console.log(`App URL:   ${appUrl}`);
-console.log(`Phone:     ${adminPhone}`);
+console.log(`Convex URL:  ${convexUrl}`);
+console.log(`Phone:       ${adminPhone}`);
 console.log("");
 
+function normalizePhone(phone) {
+  const cleaned = phone.trim().replace(/\s+/g, "");
+  const match = cleaned.match(/^(?:\+254|254|0)?([71]\d{8})$/);
+  if (match) return `+254${match[1]}`;
+  return cleaned;
+}
+
 async function seed() {
-  // Step 1: Register the admin user
-  console.log("📝 Registering admin user...");
-  const registerRes = await fetch(`${appUrl}/api/auth/register`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ phone: adminPhone, password: adminPassword }),
-  });
-
-  if (!registerRes.ok) {
-    const err = await registerRes.json();
-    if (registerRes.status === 409) {
-      console.log("ℹ️  User already registered — skipping registration.");
-    } else {
-      console.error("❌ Registration failed:", err.message);
-      process.exit(1);
-    }
-  } else {
-    console.log("✅ Admin user registered successfully.");
-  }
-
-  // Step 2: Login to get the session token
-  console.log("🔑 Logging in to get session...");
-  const loginRes = await fetch(`${appUrl}/api/auth/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ phone: adminPhone, password: adminPassword }),
-  });
-
-  if (!loginRes.ok) {
-    const err = await loginRes.json();
-    console.error("❌ Login failed:", err.message);
+  if (!convexUrl) {
+    console.error("❌ NEXT_PUBLIC_CONVEX_URL is not set in environment.");
     process.exit(1);
   }
 
-  const loginData = await loginRes.json();
-  console.log("✅ Login successful.");
-  console.log("");
-  console.log("✅ Admin credentials are ready to use:");
-  console.log(`   Phone:    ${adminPhone}`);
-  console.log(`   Password: ${adminPassword}`);
-  console.log("");
-  console.log("🎉 Admin seeding complete!");
-  console.log(
-    "   The admin phone is used to identify the admin — it matches ADMIN_EMAIL in .env.local."
-  );
+  if (!seedSecret) {
+    console.error("❌ ADMIN_SEED_SECRET is not set in environment.");
+    process.exit(1);
+  }
+
+  const normalizedPhone = normalizePhone(adminPhone);
+  console.log(`Normalized phone: ${normalizedPhone}`);
+  console.log("📝 Seeding admin user directly via Convex...");
+
+  const convex = new ConvexHttpClient(convexUrl);
+
+  // Hash password with bcrypt (cost factor 12)
+  const passwordHash = await bcrypt.hash(adminPassword, 12);
+
+  try {
+    const result = await convex.mutation("admin:seedAdminUser", {
+      phone: normalizedPhone,
+      passwordHash: passwordHash,
+      secret: seedSecret,
+    });
+
+    console.log("✅ Seeding completed:", result);
+    console.log("");
+    console.log("✅ Admin credentials are ready to use:");
+    console.log(`   Phone:    ${adminPhone}`);
+    console.log(`   Password: ${adminPassword}`);
+    console.log("");
+    console.log("🎉 Admin seeding complete!");
+  } catch (error) {
+    console.error("❌ Seeding failed:", error.message || error);
+    process.exit(1);
+  }
 }
 
 seed().catch((err) => {
-  console.error("❌ Seeding failed:", err);
+  console.error("❌ Unexpected error:", err);
   process.exit(1);
 });

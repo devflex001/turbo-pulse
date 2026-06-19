@@ -35,6 +35,63 @@ export const getAdminStatus = query({
   },
 });
 
+export const seedAdminUser = mutation({
+  args: {
+    phone: v.string(),
+    passwordHash: v.string(),
+    secret: v.string(),
+  },
+  handler: async (ctx, args) => {
+    if (args.secret !== process.env.ADMIN_SEED_SECRET) {
+      throw new Error("Invalid seed secret");
+    }
+
+    // 1. Check if user already exists
+    let user = await ctx.db
+      .query("users")
+      .withIndex("by_phone", (q) => q.eq("phone", args.phone))
+      .unique();
+
+    let userId;
+    if (!user) {
+      // Create user document
+      userId = await ctx.db.insert("users", {
+        phone: args.phone,
+        passwordHash: args.passwordHash,
+        createdAt: Date.now(),
+      });
+
+      // Initialize wallet
+      await ctx.db.insert("wallets", {
+        userId,
+        balance: 0,
+      });
+    } else {
+      userId = user._id;
+      // Update password hash to match the seed config
+      await ctx.db.patch(userId, {
+        passwordHash: args.passwordHash,
+      });
+    }
+
+    // 2. Register user in "admins" table
+    const existingAdmin = await ctx.db
+      .query("admins")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .unique();
+
+    if (!existingAdmin) {
+      await ctx.db.insert("admins", {
+        userId,
+        email: args.phone, // Phone number acts as email/identity
+        addedAt: Date.now(),
+      });
+    }
+
+    return { success: true, userId };
+  },
+});
+
 export const resetDatabase = mutation({
   args: {
     secret: v.optional(v.string()),
