@@ -13,10 +13,9 @@ export const currentUser = query({
       if (!identity) return null;
 
       // The subject is the Convex user document _id
-      const user = await ctx.db
-        .query("users")
-        .filter((q) => q.eq(q.field("_id"), identity.subject))
-        .unique();
+      const userId = ctx.db.normalizeId("users", identity.subject);
+      if (!userId) return null;
+      const user = await ctx.db.get(userId);
 
       if (!user) return null;
 

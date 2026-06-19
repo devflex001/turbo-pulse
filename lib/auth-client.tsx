@@ -37,26 +37,78 @@ export function AuthClientProvider({
     token: null,
   });
 
-  // On mount, restore from sessionStorage
+  // On mount, restore from sessionStorage or check server session from cookie
   React.useEffect(() => {
     if (typeof window === "undefined") return;
     
-    try {
-      const stored = sessionStorage.getItem("auth_state");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setState({
-          user: parsed.user,
-          token: parsed.token,
-          isLoading: false,
-          isAuthenticated: true,
-        });
-      } else {
+    async function initAuth() {
+      try {
+        const stored = sessionStorage.getItem("auth_state");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setState({
+            user: parsed.user,
+            token: parsed.token,
+            isLoading: false,
+            isAuthenticated: true,
+          });
+
+          // Background check to refresh token & verify cookie is still valid
+          try {
+            const res = await fetch("/api/auth/me");
+            if (res.ok) {
+              const data = await res.json();
+              if (data.user && data.token) {
+                const newState = {
+                  user: data.user,
+                  token: data.token,
+                  isLoading: false,
+                  isAuthenticated: true,
+                };
+                sessionStorage.setItem("auth_state", JSON.stringify(newState));
+                setState(newState);
+              }
+            } else {
+              // Server session is invalid or expired, clear client auth
+              sessionStorage.removeItem("auth_state");
+              setState({ user: null, token: null, isLoading: false, isAuthenticated: false });
+            }
+          } catch (e) {
+            console.error("Background session refresh failed:", e);
+          }
+        } else {
+          // No session storage found, query /api/auth/me to check for valid httpOnly cookie session
+          try {
+            const res = await fetch("/api/auth/me");
+            if (res.ok) {
+              const data = await res.json();
+              if (data.user && data.token) {
+                const newState = {
+                  user: data.user,
+                  token: data.token,
+                  isLoading: false,
+                  isAuthenticated: true,
+                };
+                sessionStorage.setItem("auth_state", JSON.stringify(newState));
+                setState(newState);
+              } else {
+                setState({ user: null, token: null, isLoading: false, isAuthenticated: false });
+              }
+            } else {
+              setState({ user: null, token: null, isLoading: false, isAuthenticated: false });
+            }
+          } catch (e) {
+            console.error("Session check failed:", e);
+            setState({ user: null, token: null, isLoading: false, isAuthenticated: false });
+          }
+        }
+      } catch (e) {
+        console.error("Auth initialization error:", e);
         setState((prev) => ({ ...prev, isLoading: false }));
       }
-    } catch {
-      setState((prev) => ({ ...prev, isLoading: false }));
     }
+
+    initAuth();
   }, []);
 
   async function signIn(phone: string, password: string) {

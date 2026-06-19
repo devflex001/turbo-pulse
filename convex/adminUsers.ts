@@ -20,10 +20,9 @@ async function requireAdmin(ctx: MutationCtx) {
   const userId = await getAuthUserId(ctx);
   if (!userId) throw new Error("Not authenticated");
 
-  const user = await ctx.db
-    .query("users")
-    .filter((q) => q.eq(q.field("_id"), userId))
-    .unique();
+  const parsedId = ctx.db.normalizeId("users", userId);
+  if (!parsedId) throw new Error("Invalid user ID");
+  const user = await ctx.db.get(parsedId);
 
   if (!user || user.role !== "admin") {
     throw new Error("Not authorized: admin access required");
@@ -46,10 +45,9 @@ export const listUsers = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    const user = await ctx.db
-      .query("users")
-      .filter((q) => q.eq(q.field("_id"), userId))
-      .unique();
+    const parsedId = ctx.db.normalizeId("users", userId);
+    if (!parsedId) throw new Error("Invalid user ID");
+    const user = await ctx.db.get(parsedId);
     
     if (!user || user.role !== "admin") {
       throw new Error("Not authorized");
@@ -136,10 +134,9 @@ export const listAppeals = query({
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
 
-    const user = await ctx.db
-      .query("users")
-      .filter((q) => q.eq(q.field("_id"), userId))
-      .unique();
+    const parsedId = ctx.db.normalizeId("users", userId);
+    if (!parsedId) throw new Error("Invalid user ID");
+    const user = await ctx.db.get(parsedId);
     
     if (!user || user.role !== "admin") {
       throw new Error("Not authorized");
@@ -267,10 +264,9 @@ export const editUser = mutation({
     if (!phone) throw new Error("Phone number is required");
 
     // Find the user in our custom users table
-    const user = await ctx.db
-      .query("users")
-      .filter((q) => q.eq(q.field("_id"), args.targetUserId))
-      .unique();
+    const parsedTargetId = ctx.db.normalizeId("users", args.targetUserId);
+    if (!parsedTargetId) throw new Error("User not found");
+    const user = await ctx.db.get(parsedTargetId);
 
     if (!user) throw new Error("User not found");
 

@@ -11,10 +11,9 @@ export const getAdminStatus = query({
       }
 
       // Look up the user in our custom users table by their _id (subject)
-      const user = await ctx.db
-        .query("users")
-        .filter((q) => q.eq(q.field("_id"), identity.subject))
-        .unique();
+      const userId = ctx.db.normalizeId("users", identity.subject);
+      if (!userId) return { isAdmin: false };
+      const user = await ctx.db.get(userId);
 
       if (!user) return { isAdmin: false };
 
@@ -139,10 +138,11 @@ export const getStats = query({
         return { totalUsers: 0, totalDeposits: 0, activeBets: 0 };
       }
 
-      const user = await ctx.db
-        .query("users")
-        .filter((q) => q.eq(q.field("_id"), identity.subject))
-        .unique();
+      const userId = ctx.db.normalizeId("users", identity.subject);
+      if (!userId) {
+        return { totalUsers: 0, totalDeposits: 0, activeBets: 0 };
+      }
+      const user = await ctx.db.get(userId);
 
       if (!user || user.role !== "admin") {
         return { totalUsers: 0, totalDeposits: 0, activeBets: 0 };
