@@ -1,29 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
-import { useQuery } from "convex/react"
-import { api } from "@/convex/_generated/api"
 import { useBetStore } from "@/hooks/use-bet-store"
-import { useTheme } from "next-themes"
-import { Input } from "@/components/ui/input"
-import { AdminUsersPanel } from "@/components/admin-users-panel"
-import { AdminScraperPanel } from "@/components/admin-scraper-panel"
-import { AdminEventsPanel } from "@/components/admin-events-panel"
+import { AdminLayout } from "@/components/admin-layout"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -41,31 +26,10 @@ import {
   CartesianGrid,
 } from "recharts"
 import {
-  Search,
-  Bell,
-  Sun,
-  Moon,
-  LayoutDashboard,
-  Users,
-  Trophy,
-  ArrowUpRight,
-  ArrowDownLeft,
-  ShieldAlert,
-  Mail,
-  BarChart3,
-  FileText,
-  Database,
-  ChevronRight,
-  ChevronLeft,
   MoreHorizontal,
   Download,
-  PlayCircle,
-  PlusCircle,
-  Menu,
-  Sparkles,
-  X,
-  LogOut,
-  User,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -88,107 +52,13 @@ const USER_REG_DATA = [
   { day: "Tue, 16 Jun", count: 4 },
 ]
 
-// ─── Nav config ───────────────────────────────────────────────────────────────
-
-const coreNavItems = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "users", label: "Users", icon: Users },
-  { id: "bets", label: "Bets", icon: Trophy },
-  { id: "payments", label: "Payments", icon: ArrowUpRight },
-  { id: "withdrawals", label: "Withdrawals", icon: ArrowDownLeft },
-]
-
-const operationsNavItems = [
-  { id: "scraper", label: "Scraper", icon: Database },
-  { id: "events", label: "Events", icon: PlayCircle },
-  { id: "custom-events", label: "Custom Events", icon: PlusCircle },
-  { id: "risk", label: "Risk", icon: ShieldAlert },
-  { id: "newsletter", label: "Newsletter", icon: Mail },
-]
-
-const insightsNavItems = [
-  { id: "analytics", label: "Analytics", icon: BarChart3 },
-  { id: "reports", label: "Reports", icon: FileText },
-]
-
-// ─── Sidebar Content (shared between desktop aside and mobile Sheet) ──────────
-
-interface SidebarContentProps {
-  activeTab: string
-  onTabChange: (tab: string) => void
-  collapsed?: boolean
-}
-
-function SidebarContent({ activeTab, onTabChange, collapsed = false }: SidebarContentProps) {
-  function renderNavGroup(label: string, items: typeof coreNavItems) {
-    return (
-      <div className="space-y-1">
-        {!collapsed && (
-          <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 px-2.5">
-            {label}
-          </h3>
-        )}
-        {items.map((item) => {
-          const Icon = item.icon
-          const isActive = activeTab === item.id
-          return (
-            <Button
-              key={item.id}
-              variant="ghost"
-              className={`w-full justify-start h-9 px-2.5 gap-2.5 font-normal text-xs ${
-                isActive
-                  ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary font-semibold"
-                  : "hover:bg-accent/50 text-muted-foreground hover:text-foreground"
-              }`}
-              onClick={() => onTabChange(item.id)}
-            >
-              <Icon
-                className={`size-4 shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`}
-              />
-              {!collapsed && <span>{item.label}</span>}
-            </Button>
-          )
-        })}
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex-1 flex flex-col gap-5 overflow-y-auto px-3 py-2">
-      {renderNavGroup("Core", coreNavItems)}
-      {renderNavGroup("Operations", operationsNavItems)}
-      <div className="mt-auto">
-        {renderNavGroup("Insights", insightsNavItems)}
-      </div>
-    </div>
-  )
-}
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
-  const router = useRouter()
-  const { theme, setTheme } = useTheme()
-  const { user, transactions, adminStats, updateAdminTransactionStatus, logout } = useBetStore()
+  const { transactions, adminStats, updateAdminTransactionStatus } = useBetStore()
 
-  const [mounted, setMounted] = React.useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false)
-  const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false)
-  const [searchQuery, setSearchQuery] = React.useState("")
   const [currentPage, setCurrentPage] = React.useState(1)
-  const [activeTab, setActiveTab] = React.useState("dashboard")
   const [currentTime, setCurrentTime] = React.useState("")
-
-  // Redirect guard - admin page is accessible
-  React.useEffect(() => {
-    // No auth check needed - system has no authentication
-  }, [])
-
-  React.useEffect(() => {
-    let a = true
-    const t = setTimeout(() => { if (a) setMounted(true) }, 0)
-    return () => { a = false; clearTimeout(t) }
-  }, [])
 
   React.useEffect(() => {
     let a = true
@@ -204,13 +74,7 @@ export default function AdminDashboard() {
     return () => { a = false; clearTimeout(t) }
   }, [])
 
-  const filteredTransactions = React.useMemo(() => {
-    return transactions.filter((t) => {
-      if (!searchQuery.trim()) return true
-      const q = searchQuery.toLowerCase()
-      return (t.phone?.toLowerCase() || "").includes(q) || t.id.toLowerCase().includes(q)
-    })
-  }, [transactions, searchQuery])
+  const filteredTransactions = transactions
 
   const itemsPerPage = 5
   const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage)
@@ -242,222 +106,18 @@ export default function AdminDashboard() {
     )
   }
 
-  const handleLogout = async () => {
-    router.replace("/")
-  }
-
-  // Handle tab change and close mobile sidebar
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab)
-    setMobileSidebarOpen(false)
-  }
-
-  const isPageLoading = false
-
-  if (isPageLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3 text-muted-foreground">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" />
-          <p className="text-sm font-medium">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="flex h-screen overflow-hidden bg-background text-foreground">
-
-      {/* ── Desktop Sidebar ── */}
-      <aside
-        className={`hidden lg:flex flex-col gap-0 border-r border-border h-full bg-card text-card-foreground shrink-0 transition-all duration-300 ${
-          sidebarCollapsed ? "w-16" : "w-60"
-        }`}
-      >
-        {/* Brand + collapse toggle */}
-        <div className="flex items-center justify-between px-3 h-14 border-b border-border shrink-0">
-          {!sidebarCollapsed && (
-            <span className="text-sm font-bold tracking-tight text-foreground select-none truncate">
-              BetFlow Admin
+    <AdminLayout>
+      <div className="space-y-5">
+        <div className="space-y-0.5">
+          <h1 className="text-lg font-bold tracking-tight">Overview</h1>
+          <p className="text-xs text-muted-foreground">
+            Snapshot refreshed at{" "}
+            <span className="font-semibold text-foreground">
+              {currentTime || "Loading..."}
             </span>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8 shrink-0 ml-auto"
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            aria-label="Toggle sidebar"
-          >
-            {sidebarCollapsed ? (
-              <ChevronRight className="size-4" />
-            ) : (
-              <Menu className="size-4" />
-            )}
-          </Button>
+          </p>
         </div>
-
-        <SidebarContent
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          collapsed={sidebarCollapsed}
-        />
-      </aside>
-
-      {/* ── Mobile Sidebar (Sheet) ── */}
-      <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
-        <SheetContent side="left" className="w-64 p-0 flex flex-col">
-          <SheetHeader className="px-4 h-14 border-b border-border flex-row items-center justify-between space-y-0 shrink-0">
-            <SheetTitle className="text-sm font-bold">BetFlow Admin</SheetTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-7"
-              onClick={() => setMobileSidebarOpen(false)}
-            >
-              <X className="size-4" />
-            </Button>
-          </SheetHeader>
-          <SidebarContent
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            collapsed={false}
-          />
-        </SheetContent>
-      </Sheet>
-
-      {/* ── Main Content ── */}
-      <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
-
-        {/* Top Navbar */}
-        <header className="flex h-14 items-center justify-between px-3 sm:px-5 border-b border-border bg-background/95 backdrop-blur-md shrink-0 gap-3">
-
-          {/* Left: Hamburger (mobile) + Search */}
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            {/* Mobile hamburger */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8 lg:hidden shrink-0"
-              onClick={() => setMobileSidebarOpen(true)}
-              aria-label="Open menu"
-            >
-              <Menu className="size-4" />
-            </Button>
-
-            {/* Search — hidden on xs, visible from sm */}
-            <div className="relative w-full max-w-xs hidden sm:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setSearchQuery(e.target.value)
-                }
-                className="pl-8 pr-3 focus-visible:ring-primary h-8 bg-muted/40 border-muted text-xs"
-              />
-            </div>
-
-            {/* Active tab label on mobile */}
-            <span className="sm:hidden text-sm font-semibold capitalize text-foreground truncate">
-              {activeTab === "custom-events" ? "Custom Events" : activeTab}
-            </span>
-          </div>
-
-          {/* Right: Controls */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Theme toggle — icon-only on mobile */}
-            {mounted && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-8 border border-border hover:bg-accent"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                aria-label="Toggle theme"
-              >
-                {theme === "dark" ? (
-                  <Sun className="size-3.5 text-primary" />
-                ) : (
-                  <Moon className="size-3.5" />
-                )}
-              </Button>
-            )}
-
-            {/* Notification Bell */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-8 rounded-full border border-border hover:bg-muted/50 relative"
-              aria-label="Notifications"
-            >
-              <Bell className="size-4 text-muted-foreground" />
-              <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive animate-pulse" />
-            </Button>
-
-            {/* User Avatar */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="h-9 gap-2 rounded-full border border-border px-2 hover:bg-muted/50"
-                  aria-label="Admin account menu"
-                >
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                    {(user?.username?.[0] ?? "A").toUpperCase()}
-                  </span>
-                  <span className="hidden min-w-0 flex-col text-left sm:flex">
-                    <span className="max-w-28 truncate text-xs font-semibold leading-tight">
-                      {user?.username ?? "Admin"}
-                    </span>
-                    <span className="text-[9px] font-medium uppercase leading-none tracking-wider text-muted-foreground">
-                      Admin
-                    </span>
-                  </span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="truncate text-sm font-semibold leading-none">
-                      {user?.username ?? "Admin"}
-                    </p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      Administrator
-                    </p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push("/")} className="text-xs">
-                  <User className="mr-2 size-4" />
-                  User site
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={handleLogout}
-                  className="text-xs text-destructive focus:text-destructive"
-                >
-                  <LogOut className="mr-2 size-4" />
-                  Log Out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </header>
-
-        {/* Scrollable body */}
-        <main className="flex-1 p-3 sm:p-5 lg:p-6 overflow-y-auto h-full space-y-5 scrollbar-thin">
-
-          {/* ── Dashboard Tab ── */}
-          {activeTab === "dashboard" && (
-            <>
-              <div className="space-y-0.5">
-                <h1 className="text-lg font-bold tracking-tight">Overview</h1>
-                <p className="text-xs text-muted-foreground">
-                  Snapshot refreshed at{" "}
-                  <span className="font-semibold text-foreground">
-                    {currentTime || "Loading..."}
-                  </span>
-                </p>
-              </div>
 
               {/* Metric Cards — always 3-across, compact on mobile */}
               <div className="grid grid-cols-3 gap-2 sm:gap-3">
