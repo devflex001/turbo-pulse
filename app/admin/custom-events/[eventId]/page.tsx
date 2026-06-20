@@ -13,14 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Save, Send, Trash2, EyeOff } from "lucide-react"
 import { SmallLoader } from "@/components/small-loader"
 import { toast } from "sonner"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+
 
 export default function CustomEventDetailPage() {
   const router = useRouter()
@@ -321,126 +314,150 @@ export default function CustomEventDetailPage() {
           </div>
         </div>
 
-        {/* Event Details - Compact Grid */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">
-              Title
-            </label>
-            <Input
-              placeholder="Event title"
-              value={formData.title}
-              onChange={(e) =>
-                setFormData({ ...formData, title: e.target.value })
-              }
-              className="h-8 text-sm"
-            />
+        {/* Event Details - Organized Sections */}
+        <div className="space-y-6">
+          {/* Primary Info */}
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold">Event Information</h2>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Title
+                </label>
+                <Input
+                  placeholder="Event title"
+                  value={formData.title}
+                  onChange={(e) =>
+                    setFormData({ ...formData, title: e.target.value })
+                  }
+                  className="h-8 text-sm"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Start Time
+                </label>
+                <Input
+                  type="datetime-local"
+                  value={formData.startTime}
+                  onChange={(e) =>
+                    setFormData({ ...formData, startTime: e.target.value })
+                  }
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">
-              Home Team
-            </label>
-            <Input
-              placeholder="Home team"
-              value={formData.homeTeam}
-              onChange={(e) =>
-                setFormData({ ...formData, homeTeam: e.target.value })
-              }
-              className="h-8 text-sm"
-            />
+          {/* Teams Info */}
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold">Teams</h2>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Home Team
+                </label>
+                <Input
+                  placeholder="Home team"
+                  value={formData.homeTeam}
+                  onChange={(e) =>
+                    setFormData({ ...formData, homeTeam: e.target.value })
+                  }
+                  className="h-8 text-sm"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Away Team
+                </label>
+                <Input
+                  placeholder="Away team"
+                  value={formData.awayTeam}
+                  onChange={(e) =>
+                    setFormData({ ...formData, awayTeam: e.target.value })
+                  }
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">
-              Away Team
-            </label>
-            <Input
-              placeholder="Away team"
-              value={formData.awayTeam}
-              onChange={(e) =>
-                setFormData({ ...formData, awayTeam: e.target.value })
-              }
-              className="h-8 text-sm"
-            />
+          {/* Sport & Competition */}
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold">Category</h2>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Sport
+                </label>
+                <Input
+                  placeholder="Sport"
+                  value={formData.sport}
+                  onChange={(e) =>
+                    setFormData({ ...formData, sport: e.target.value })
+                  }
+                  className="h-8 text-sm"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Competition
+                </label>
+                <Input
+                  placeholder="Competition"
+                  value={formData.competition}
+                  onChange={(e) =>
+                    setFormData({ ...formData, competition: e.target.value })
+                  }
+                  className="h-8 text-sm"
+                />
+              </div>
+            </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">
-              Start Time
-            </label>
-            <Input
-              type="datetime-local"
-              value={formData.startTime}
-              onChange={(e) =>
-                setFormData({ ...formData, startTime: e.target.value })
-              }
-              className="h-8 text-sm"
-            />
-          </div>
+          {/* Scores */}
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold">Score</h2>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Home Score
+                </label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={formData.homeScore}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      homeScore: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  className="h-8 text-sm text-center"
+                />
+              </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">
-              Sport
-            </label>
-            <Input
-              placeholder="Sport"
-              value={formData.sport}
-              onChange={(e) =>
-                setFormData({ ...formData, sport: e.target.value })
-              }
-              className="h-8 text-sm"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">
-              Competition
-            </label>
-            <Input
-              placeholder="Competition"
-              value={formData.competition}
-              onChange={(e) =>
-                setFormData({ ...formData, competition: e.target.value })
-              }
-              className="h-8 text-sm"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">
-              Home Score
-            </label>
-            <Input
-              type="number"
-              min={0}
-              value={formData.homeScore}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  homeScore: parseInt(e.target.value) || 0,
-                })
-              }
-              className="h-8 text-sm text-center"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">
-              Away Score
-            </label>
-            <Input
-              type="number"
-              min={0}
-              value={formData.awayScore}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  awayScore: parseInt(e.target.value) || 0,
-                })
-              }
-              className="h-8 text-sm text-center"
-            />
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Away Score
+                </label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={formData.awayScore}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      awayScore: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  className="h-8 text-sm text-center"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
