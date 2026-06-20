@@ -162,12 +162,19 @@ export const updateSettings = mutation({
 });
 
 export const triggerNow = mutation({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    dateWindowDays: v.number(),
+    selectedSports: v.array(v.string()),
+    matchLimit: v.number(),
+  },
+  handler: async (ctx, args) => {
     const now = Date.now();
     await getOrCreateSettings(ctx, now);
     await ctx.scheduler.runAfter(0, internal.scraper.runScrape, {
       triggeredBy: "admin",
+      dateWindowDays: args.dateWindowDays,
+      selectedSports: args.selectedSports,
+      matchLimit: args.matchLimit,
     });
     return { success: true };
   },
@@ -326,20 +333,13 @@ export const noteDiscovery = internalMutation({
 export const noteMatchFailure = internalMutation({
   args: {
     runId: v.id("scrapeRuns"),
-    message: v.string(),
   },
   handler: async (ctx, args) => {
     const run = await ctx.db.get(args.runId);
     if (!run) return null;
 
-    const current = run.errorSummary ?? "";
-    const nextError = current
-      ? `${current}\n${args.message}`.slice(0, 2000)
-      : args.message.slice(0, 2000);
-
     await ctx.db.patch(args.runId, {
       failedMatches: run.failedMatches + 1,
-      errorSummary: nextError,
     });
     return null;
   },
@@ -349,7 +349,6 @@ export const finishRun = internalMutation({
   args: {
     runId: v.id("scrapeRuns"),
     status: v.string(),
-    errorSummary: v.union(v.string(), v.null()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -360,7 +359,6 @@ export const finishRun = internalMutation({
       status: args.status,
       finishedAt: now,
       durationMs: now - run.startedAt,
-      errorSummary: args.errorSummary ?? run.errorSummary,
     });
 
     const settings = await ctx.db
@@ -424,23 +422,27 @@ async function mapConcurrent<T, R>(
 export const runScrape = internalAction({
   args: {
     triggeredBy: v.string(),
+    dateWindowDays: v.number(),
+    selectedSports: v.array(v.string()),
+    matchLimit: v.number(),
   },
   handler: async (ctx, args) => {
-    const settings: {
-      dateWindowDays: number;
-      selectedSports: (string | number)[];
-      matchLimit: number;
-    } = await ctx.runQuery(internal.scraper.getSettingsForAction, {});
-    const window = dateWindow(settings.dateWindowDays);
-    const sportIds = mapSportsToIds(settings.selectedSports);
+    const logs: string[] = [];
+    
+    const addLog = (message: string) => {
+      logs.push(message);
+    };
+
+    const window = dateWindow(args.dateWindowDays);
+    const sportIds = mapSportsToIds(args.selectedSports);
     const runId: Id<"scrapeRuns"> = await ctx.runMutation(internal.scraper.startRun, {
       triggeredBy: args.triggeredBy,
       dateFrom: window.dateFrom,
       dateTo: window.dateTo,
-      selectedSports: settings.selectedSports.map(String),
+      selectedSports: args.selectedSports.map(String),
     });
 
-    const sportNames = settings.selectedSports
+    const sportNames = args.selectedSports
       .map(s => {
         const id = Number(s);
         const sport = AVAILABLE_SPORTS.find(sp => sp.id === id);
@@ -448,23 +450,23 @@ export const runScrape = internalAction({
       })
       .join(", ");
 
-    console.log(`[scraper] Starting run ${runId} for: ${sportNames}`);
+    addLog(`[INFO] Starting run ${runId} for: ${sportNames}`);
 
     try {
       const discovered = new Map<string, unknown>();
 
-      console.log(`[scraper] Fetching matches from ${window.dateFrom} to ${window.dateTo}`);
+      addLog(`[INFO] Fetching matches from ${window.dateFrom} to ${window.dateTo}`);
 
       for (const date of window.dates) {
         const pageMatches = await kwikbetAdapter.fetchMatchPages({
           date,
           live: false,
-          limit: settings.matchLimit,
+          limit: args.matchLimit,
           maxPages: DEFAULT_MAX_PAGES,
           sportIds,
         });
 
-        console.log(`[scraper] ${date}: found ${pageMatches.length} matches`);
+        addLog(`[INFO] ${date}: found ${pageMatches.length} matches`);
 
         for (const match of pageMatches) {
           const normalized = kwikbetAdapter.normalizeMatch(match);
@@ -478,7 +480,7 @@ export const runScrape = internalAction({
         matchesDiscovered: sourceMatchIds.length,
       });
 
-      console.log(`[scraper] Discovered ${sourceMatchIds.length} total matches. Fetching details...`);
+      addLog(`[SUCCESS] Discovered ${sourceMatchIds.length} total matches. Fetching details...`);
 
       let successCount = 0;
       let failureCount = 0;
@@ -503,10 +505,9 @@ export const runScrape = internalAction({
         } catch (error) {
           failureCount++;
           const errorMsg = error instanceof Error ? error.message : "Unknown error";
-          console.error(`[scraper] Failed ${sourceMatchId}: ${errorMsg}`);
+          addLog(`[ERROR] Failed ${sourceMatchId}: ${errorMsg}`);
           await ctx.runMutation(internal.scraper.noteMatchFailure, {
             runId,
-            message: `${sourceMatchId}: ${errorMsg}`,
           });
         }
       });
@@ -519,23 +520,22 @@ export const runScrape = internalAction({
         oddsUpserted: totalOddsUpserted,
       });
 
-      console.log(`[scraper] Done: ${successCount} succeeded, ${failureCount} failed`);
+      addLog(`[SUCCESS] Done: ${successCount} succeeded, ${failureCount} failed`);
 
       await ctx.runMutation(internal.scraper.finishRun, {
         runId,
         status: "success",
-        errorSummary: null,
       });
+
+      return { runId, logs };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : "Unknown scrape error";
-      console.error(`[scraper] Run failed: ${errorMsg}`);
+      addLog(`[ERROR] Run failed: ${errorMsg}`);
       await ctx.runMutation(internal.scraper.finishRun, {
         runId,
         status: "failed",
-        errorSummary: errorMsg,
       });
+      return { runId, logs };
     }
-
-    return { runId };
   },
 });

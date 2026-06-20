@@ -29,7 +29,6 @@ const schema = defineSchema({
     marketsUpserted: v.number(),
     oddsUpserted: v.number(),
     failedMatches: v.number(),
-    errorSummary: v.union(v.string(), v.null()),
   })
     .index("by_source_and_startedAt", ["source", "startedAt"])
     .index("by_status", ["status"]),
