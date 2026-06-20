@@ -70,7 +70,7 @@ export function ScraperConfigDrawer({
     if (initialValues) {
       setSelectedSport(initialValues.selectedSport ?? "1")
       setDateWindowDays(initialValues.dateWindowDays ?? "2")
-      setMatchLimit(initialValues.matchLimit ?? "50")
+      setMatchLimit(initialValues.matchLimit ?? "10")
     }
   }, [initialValues, open])
 

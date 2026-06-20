@@ -82,7 +82,7 @@ export function AdminScraperPanel() {
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1">
-          <h1 className="text-lg font-bold tracking-tight">Sports Scraper</h1>
+          <h1 className="text-lg font-bold tracking-tight">API Scrape</h1>
           <p className="text-xs text-muted-foreground">Manage KwikBet fixture ingestion</p>
         </div>
         <div className="flex items-center gap-3">
@@ -96,7 +96,7 @@ export function AdminScraperPanel() {
             disabled={running || isCurrentlyRunning}
           >
             <PlayCircle className="size-3.5" />
-            Run
+            Scrape
           </Button>
         </div>
       </div>
