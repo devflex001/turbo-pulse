@@ -113,11 +113,6 @@ export function AdminCustomEventsPanel() {
       <CustomEventEditor
         open={editorOpen}
         onOpenChange={setEditorOpen}
-        onSuccess={() => {
-          setEditorOpen(false)
-          setStatus("draft")
-          setViewMode("list")
-        }}
       />
     </div>
   )

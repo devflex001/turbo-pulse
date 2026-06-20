@@ -2,6 +2,76 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 
+// Default odds for each market type
+const MARKET_OUTCOMES: Record<string, Array<{ outcomeId: string; outcomeName: string; oddValue: number; priority: number }>> = {
+  match_result: [
+    { outcomeId: "1", outcomeName: "Home Win", oddValue: 1.85, priority: 1 },
+    { outcomeId: "X", outcomeName: "Draw", oddValue: 3.20, priority: 2 },
+    { outcomeId: "2", outcomeName: "Away Win", oddValue: 2.10, priority: 3 },
+  ],
+  double_chance: [
+    { outcomeId: "1X", outcomeName: "Home or Draw", oddValue: 1.40, priority: 1 },
+    { outcomeId: "X2", outcomeName: "Draw or Away", oddValue: 1.50, priority: 2 },
+    { outcomeId: "12", outcomeName: "Home or Away", oddValue: 1.15, priority: 3 },
+  ],
+  draw_no_bet: [
+    { outcomeId: "1", outcomeName: "Home Win", oddValue: 2.05, priority: 1 },
+    { outcomeId: "2", outcomeName: "Away Win", oddValue: 2.35, priority: 2 },
+  ],
+  total_goals: [
+    { outcomeId: "O", outcomeName: "Over", oddValue: 1.80, priority: 1 },
+    { outcomeId: "U", outcomeName: "Under", oddValue: 2.00, priority: 2 },
+  ],
+  btts: [
+    { outcomeId: "Y", outcomeName: "Yes", oddValue: 1.80, priority: 1 },
+    { outcomeId: "N", outcomeName: "No", oddValue: 2.00, priority: 2 },
+  ],
+  handicap: [
+    { outcomeId: "1", outcomeName: "Home", oddValue: 1.90, priority: 1 },
+    { outcomeId: "2", outcomeName: "Away", oddValue: 1.90, priority: 2 },
+  ],
+  correct_score: [
+    { outcomeId: "correct", outcomeName: "Correct Score", oddValue: 12.00, priority: 1 },
+  ],
+  first_half_result: [
+    { outcomeId: "1", outcomeName: "Home Win", oddValue: 2.20, priority: 1 },
+    { outcomeId: "X", outcomeName: "Draw", oddValue: 3.50, priority: 2 },
+    { outcomeId: "2", outcomeName: "Away Win", oddValue: 2.60, priority: 3 },
+  ],
+  first_half_goals: [
+    { outcomeId: "O", outcomeName: "Over", oddValue: 1.85, priority: 1 },
+    { outcomeId: "U", outcomeName: "Under", oddValue: 1.95, priority: 2 },
+  ],
+  first_half_btts: [
+    { outcomeId: "Y", outcomeName: "Yes", oddValue: 2.30, priority: 1 },
+    { outcomeId: "N", outcomeName: "No", oddValue: 1.58, priority: 2 },
+  ],
+  team_score_first: [
+    { outcomeId: "1", outcomeName: "Home Team", oddValue: 2.10, priority: 1 },
+    { outcomeId: "2", outcomeName: "Away Team", oddValue: 2.30, priority: 2 },
+  ],
+  team_score_last: [
+    { outcomeId: "1", outcomeName: "Home Team", oddValue: 2.20, priority: 1 },
+    { outcomeId: "2", outcomeName: "Away Team", oddValue: 2.25, priority: 2 },
+  ],
+  odd_even: [
+    { outcomeId: "O", outcomeName: "Odd", oddValue: 1.95, priority: 1 },
+    { outcomeId: "E", outcomeName: "Even", oddValue: 1.85, priority: 2 },
+  ],
+  ht_ft: [
+    { outcomeId: "result", outcomeName: "HT/FT Combination", oddValue: 8.50, priority: 1 },
+  ],
+  goals_range: [
+    { outcomeId: "range", outcomeName: "Goal Range", oddValue: 5.00, priority: 1 },
+  ],
+  winning_margin: [
+    { outcomeId: "margin", outcomeName: "Winning Margin", oddValue: 6.00, priority: 1 },
+  ],
+  combined: [
+    { outcomeId: "combined", outcomeName: "Combined Bet", oddValue: 4.50, priority: 1 },
+  ],
+};
+
 // Market template with 60+ pre-configured markets
 const MARKET_TEMPLATE = [
   // Main Markets (1x2, Draw)
@@ -118,9 +188,9 @@ export const createCustomEvent = mutation({
       updatedAt: now,
     });
 
-    // Create default markets from template
+    // Create default markets from template and their odds
     for (const market of MARKET_TEMPLATE) {
-      await ctx.db.insert("customMarkets", {
+      const marketId = await ctx.db.insert("customMarkets", {
         eventId,
         marketKey: `${eventId}:${market.marketType}`,
         name: market.name,
@@ -129,6 +199,20 @@ export const createCustomEvent = mutation({
         priority: market.priority,
         isActive: true,
       });
+
+      // Create odds for this market from the template
+      const outcomes = MARKET_OUTCOMES[market.marketType] || MARKET_OUTCOMES["match_result"];
+      for (const outcome of outcomes) {
+        await ctx.db.insert("customOdds", {
+          marketId,
+          eventId,
+          outcomeId: outcome.outcomeId,
+          outcomeName: outcome.outcomeName,
+          oddValue: outcome.oddValue,
+          priority: outcome.priority,
+          isActive: true,
+        });
+      }
     }
 
     // Update event with total markets count
@@ -370,6 +454,9 @@ export const listCustomEvents = query({
         return text.includes(search);
       });
     }
+
+    // Sort by created date (newest first)
+    results = results.sort((a: any, b: any) => b.createdAt - a.createdAt);
 
     return results.slice(0, limit);
   },
