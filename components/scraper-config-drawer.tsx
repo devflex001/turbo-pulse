@@ -32,6 +32,7 @@ interface ScraperConfigDrawerProps {
   onOpenChange: (open: boolean) => void
   onStart: (config: ScraperConfig) => void
   isLoading?: boolean
+  initialValues?: Partial<ScraperConfig>
 }
 
 export interface ScraperConfig {
@@ -58,11 +59,20 @@ export function ScraperConfigDrawer({
   onOpenChange,
   onStart,
   isLoading = false,
+  initialValues,
 }: ScraperConfigDrawerProps) {
-  const [selectedSport, setSelectedSport] = React.useState("1")
-  const [dateWindowDays, setDateWindowDays] = React.useState("2")
-  const [matchLimit, setMatchLimit] = React.useState("50")
+  const [selectedSport, setSelectedSport] = React.useState(initialValues?.selectedSport ?? "1")
+  const [dateWindowDays, setDateWindowDays] = React.useState(initialValues?.dateWindowDays ?? "2")
+  const [matchLimit, setMatchLimit] = React.useState(initialValues?.matchLimit ?? "50")
   const isDesktop = useMediaQuery("(min-width: 768px)")
+
+  React.useEffect(() => {
+    if (initialValues) {
+      setSelectedSport(initialValues.selectedSport ?? "1")
+      setDateWindowDays(initialValues.dateWindowDays ?? "2")
+      setMatchLimit(initialValues.matchLimit ?? "50")
+    }
+  }, [initialValues, open])
 
   const handleStart = () => {
     onStart({
