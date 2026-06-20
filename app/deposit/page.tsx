@@ -8,37 +8,8 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { DepositSheet } from "@/components/deposit-sheet"
-import { useAuthClient } from "@/lib/auth-client"
-import { useRouter } from "next/navigation"
 
 export default function DepositPage() {
-  const { isAuthenticated, isLoading } = useAuthClient()
-  const router = useRouter()
-
-  React.useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push("/auth")
-    }
-  }, [isAuthenticated, isLoading, router])
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col h-screen overflow-hidden bg-background">
-        <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center space-y-2">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-            <p className="text-sm text-muted-foreground">Loading...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (!isAuthenticated) {
-    return null // Will redirect in useEffect
-  }
-
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       <Header />

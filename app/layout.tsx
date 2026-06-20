@@ -6,10 +6,7 @@ import { cn } from "@/lib/utils";
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
 import { BetStoreProvider } from "@/hooks/use-bet-store"
-import { AuthProvider } from "@/components/auth-provider"
 import { ConvexProvider } from "@/components/convex-provider"
-import { RoleRedirectHandler } from "@/components/role-redirect-handler"
-import { AuthErrorBoundary } from "@/components/auth-error-boundary"
 
 const robotoHeading = Roboto({subsets:['latin'],variable:'--font-heading'});
 
@@ -33,19 +30,14 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>
-          <AuthErrorBoundary>
-            <AuthProvider>
-              <ConvexProvider>
-                <BetStoreProvider>
-                  <RoleRedirectHandler />
-                  <TooltipProvider>
-                    {children}
-                    <Toaster richColors position="top-right"/>
-                  </TooltipProvider>
-                </BetStoreProvider>
-              </ConvexProvider>
-            </AuthProvider>
-          </AuthErrorBoundary>
+          <ConvexProvider>
+            <BetStoreProvider>
+              <TooltipProvider>
+                {children}
+                <Toaster richColors position="top-right"/>
+              </TooltipProvider>
+            </BetStoreProvider>
+          </ConvexProvider>
         </ThemeProvider>
       </body>
     </html>
