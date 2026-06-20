@@ -17,22 +17,24 @@ export const listMatches = query({
   },
   handler: async (ctx, args) => {
     const limit = Math.max(1, Math.min(args.limit ?? 80, 120));
-    const lowerBound = Date.now() - 12 * 60 * 60 * 1000;
+    // Look back 24 hours and forward 30 days to catch recently scraped matches
+    const lowerBound = Date.now() - 24 * 60 * 60 * 1000;
+    const upperBound = Date.now() + 30 * 24 * 60 * 60 * 1000;
 
     const base =
       args.status === "live"
         ? await ctx.db
-            .query("sportsMatches")
-            .withIndex("by_source_and_status_and_startTime", (q) =>
-              q.eq("source", SOURCE).eq("status", 1).gte("startTime", lowerBound)
-            )
-            .take(limit * 3)
+          .query("sportsMatches")
+          .withIndex("by_source_and_status_and_startTime", (q) =>
+            q.eq("source", SOURCE).eq("status", 1).gte("startTime", lowerBound)
+          )
+          .take(limit * 3)
         : await ctx.db
-            .query("sportsMatches")
-            .withIndex("by_source_and_startTime", (q) =>
-              q.eq("source", SOURCE).gte("startTime", lowerBound)
-            )
-            .take(limit * 3);
+          .query("sportsMatches")
+          .withIndex("by_source_and_startTime", (q) =>
+            q.eq("source", SOURCE).gte("startTime", lowerBound)
+          )
+          .take(limit * 3);
 
     const search = compactSearch(args.search ?? "");
     const sport = args.sport && args.sport !== "all" ? args.sport : null;
@@ -44,6 +46,8 @@ export const listMatches = query({
         if (args.status === "upcoming" && match.status === 1) return false;
         if (sport && match.sportSlug !== sport) return false;
         if (competition && match.competitionName !== competition) return false;
+        // Filter out matches too far in the future
+        if (match.startTime > upperBound) return false;
         if (!search) return true;
 
         const text = `${match.homeTeam} ${match.awayTeam} ${match.competitionName} ${match.sourceMatchId}`.toLowerCase();
@@ -67,13 +71,13 @@ export const listMatches = query({
 
         const mainOdds = mainMarket
           ? await ctx.db
-              .query("sportsOdds")
-              .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
-                q
-                  .eq("sourceMatchId", match.sourceMatchId)
-                  .eq("marketKey", mainMarket.marketKey)
-              )
-              .take(3)
+            .query("sportsOdds")
+            .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
+              q
+                .eq("sourceMatchId", match.sourceMatchId)
+                .eq("marketKey", mainMarket.marketKey)
+            )
+            .take(3)
           : [];
 
         return { ...match, mainOdds };
@@ -89,7 +93,10 @@ export const listCompetitions = query({
     sport: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const lowerBound = Date.now() - 12 * 60 * 60 * 1000;
+    // Look back 24 hours and forward 30 days to catch recently scraped matches
+    const lowerBound = Date.now() - 24 * 60 * 60 * 1000;
+    const upperBound = Date.now() + 30 * 24 * 60 * 60 * 1000;
+
     const matches = await ctx.db
       .query("sportsMatches")
       .withIndex("by_source_and_startTime", (q) =>
@@ -99,7 +106,13 @@ export const listCompetitions = query({
 
     const sport = args.sport && args.sport !== "all" ? args.sport : null;
     const names = matches
-      .filter((match) => !sport || match.sportSlug === sport)
+      .filter((match) => {
+        if (!sport || match.sportSlug === sport) {
+          // Filter out matches too far in the future
+          return match.startTime <= upperBound;
+        }
+        return false;
+      })
       .map((match) => match.competitionName)
       .filter(Boolean);
 
@@ -147,11 +160,11 @@ export const getMatchWithMainOdds = query({
 
     const mainOdds = mainMarket
       ? await ctx.db
-          .query("sportsOdds")
-          .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
-            q.eq("sourceMatchId", match.sourceMatchId).eq("marketKey", mainMarket.marketKey)
-          )
-          .take(3)
+        .query("sportsOdds")
+        .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
+          q.eq("sourceMatchId", match.sourceMatchId).eq("marketKey", mainMarket.marketKey)
+        )
+        .take(3)
       : [];
 
     return { ...match, mainOdds };

@@ -6,9 +6,15 @@ import { api } from "@/convex/_generated/api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { SmallLoader } from "@/components/small-loader"
 import { MarketsPanel, type SportsMatchWithOdds } from "@/components/markets-panel"
-import { ListPlus, Search } from "lucide-react"
+import { ListPlus, Search, ChevronDown } from "lucide-react"
 
 function formatStartTime(startTime: number) {
   if (!startTime) return "TBA"
@@ -34,6 +40,17 @@ function sourceLabel(source?: string) {
   if (source === "kwikbet") return "KwikBet"
   return source
 }
+
+const SPORTS = [
+  { value: "football", label: "Football" },
+  { value: "all", label: "All Sports" },
+]
+
+const STATUSES = [
+  { value: "all", label: "All" },
+  { value: "upcoming", label: "Upcoming" },
+  { value: "live", label: "Live" },
+]
 
 export function AdminEventsPanel() {
   const [search, setSearch] = React.useState("")
@@ -62,72 +79,101 @@ export function AdminEventsPanel() {
         </p>
       </div>
 
-      <div className="border border-border rounded-lg bg-card p-4 space-y-4">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_auto_auto] gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+      {/* Filters */}
+      <div className="border border-border rounded-lg bg-card p-3 space-y-3">
+        <div className="flex items-center gap-2">
+          {/* Search */}
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search team, competition, or source ID"
-              className="h-9 pl-8 text-xs focus-visible:ring-primary"
+              placeholder="Search..."
+              className="h-8 pl-8 text-xs focus-visible:ring-primary bg-muted/50"
             />
           </div>
 
-          <div className="flex gap-1 overflow-x-auto">
-            {[
-              ["football", "Football"],
-              ["all", "All"],
-            ].map(([value, label]) => (
+          {/* Sport Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button
-                key={value}
+                variant="outline"
                 size="sm"
-                variant={sport === value ? "default" : "outline"}
-                className="h-9 text-xs shrink-0"
-                onClick={() => {
-                  setSport(value)
-                  setCompetition("All Leagues")
-                }}
+                className="h-8 text-xs gap-1.5 border-border"
               >
-                {label}
+                {SPORTS.find((s) => s.value === sport)?.label || "Sport"}
+                <ChevronDown className="size-3" />
               </Button>
-            ))}
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-40">
+              {SPORTS.map((s) => (
+                <DropdownMenuItem
+                  key={s.value}
+                  onClick={() => {
+                    setSport(s.value)
+                    setCompetition("All Leagues")
+                  }}
+                  className={sport === s.value ? "bg-accent" : ""}
+                >
+                  {s.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-          <div className="flex gap-1 overflow-x-auto">
-            {[
-              ["all", "All"],
-              ["upcoming", "Upcoming"],
-              ["live", "Live"],
-            ].map(([value, label]) => (
+          {/* Status Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button
-                key={value}
+                variant="outline"
                 size="sm"
-                variant={status === value ? "default" : "outline"}
-                className="h-9 text-xs shrink-0"
-                onClick={() => setStatus(value as "all" | "live" | "upcoming")}
+                className="h-8 text-xs gap-1.5 border-border"
               >
-                {label}
+                {STATUSES.find((s) => s.value === status)?.label || "Status"}
+                <ChevronDown className="size-3" />
               </Button>
-            ))}
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-40">
+              {STATUSES.map((s) => (
+                <DropdownMenuItem
+                  key={s.value}
+                  onClick={() => setStatus(s.value as "all" | "live" | "upcoming")}
+                  className={status === s.value ? "bg-accent" : ""}
+                >
+                  {s.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-          <div className="flex gap-1 overflow-x-auto">
-            {(competitions ?? ["All Leagues"]).slice(0, 12).map((name) => (
+          {/* Competition Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button
-                key={name}
+                variant="outline"
                 size="sm"
-                variant={competition === name ? "secondary" : "ghost"}
-                className="h-9 text-xs shrink-0"
-                onClick={() => setCompetition(name)}
+                className="h-8 text-xs gap-1.5 border-border truncate max-w-[150px]"
               >
-                {name}
+                {competition}
+                <ChevronDown className="size-3 flex-shrink-0" />
               </Button>
-            ))}
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48 max-h-64 overflow-y-auto">
+              {(competitions ?? ["All Leagues"]).map((name) => (
+                <DropdownMenuItem
+                  key={name}
+                  onClick={() => setCompetition(name)}
+                  className={competition === name ? "bg-accent" : ""}
+                >
+                  {name}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
+      {/* Synced Events Table */}
       <div className="border border-border rounded-lg bg-card overflow-hidden">
         <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-3">
           <h2 className="text-sm font-bold">Synced Events</h2>
