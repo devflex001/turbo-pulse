@@ -26,19 +26,8 @@ function formatStartTime(startTime: number) {
   })
 }
 
-function statusLabel(match: SportsMatchWithOdds) {
-  if (match.isLive) return "Live"
-  return match.statusDesc || "Upcoming"
-}
-
 function eventName(match: SportsMatchWithOdds) {
   return `${match.homeTeam} vs ${match.awayTeam}`
-}
-
-function sourceLabel(source?: string) {
-  if (!source) return "Unknown"
-  if (source === "kwikbet") return "KwikBet"
-  return source
 }
 
 const SPORTS = [
@@ -54,7 +43,7 @@ const STATUSES = [
 
 export function AdminEventsPanel() {
   const [search, setSearch] = React.useState("")
-  const [sport, setSport] = React.useState("football")
+  const [sport, setSport] = React.useState("all")
   const [competition, setCompetition] = React.useState("All Leagues")
   const [status, setStatus] = React.useState<"all" | "live" | "upcoming">("all")
   const [selectedMatch, setSelectedMatch] = React.useState<SportsMatchWithOdds | null>(null)
@@ -188,54 +177,52 @@ export function AdminEventsPanel() {
           </div>
         ) : matches.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] text-left text-xs">
-              <thead className="border-b border-border text-[10px] uppercase text-muted-foreground">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-border text-muted-foreground text-[9px] uppercase font-bold tracking-wider">
                 <tr>
-                  <th className="px-4 py-2">Start</th>
-                  <th className="px-4 py-2">Event</th>
-                  <th className="px-4 py-2">Home</th>
-                  <th className="px-4 py-2">Away</th>
-                  <th className="px-4 py-2">Competition</th>
-                  <th className="px-4 py-2">Status</th>
-                  <th className="px-4 py-2">Markets</th>
-                  <th className="px-4 py-2">Source</th>
-                  <th className="px-4 py-2 text-right">Details</th>
+                  <th className="px-3 py-2">Start</th>
+                  <th className="px-3 py-2">Event</th>
+                  <th className="px-3 py-2">Competition</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2 text-right">Markets</th>
+                  <th className="px-3 py-2 text-right">Details</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {matches.map((match) => (
-                  <tr key={match.sourceMatchId} className="hover:bg-muted/30">
-                    <td className="px-4 py-3 font-medium">{formatStartTime(match.startTime)}</td>
-                    <td className="px-4 py-3 font-semibold text-foreground">
+                  <tr key={match.sourceMatchId} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-3 py-2 font-mono text-muted-foreground text-[11px]">
+                      {formatStartTime(match.startTime)}
+                    </td>
+                    <td className="px-3 py-2 font-semibold text-foreground">
                       {eventName(match)}
                     </td>
-                    <td className="px-4 py-3 font-medium">{match.homeTeam}</td>
-                    <td className="px-4 py-3 font-medium">{match.awayTeam}</td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{match.competitionName}</div>
-                      <div className="text-muted-foreground">{match.statusDesc}</div>
+                    <td className="px-3 py-2 text-muted-foreground text-[11px]">
+                      {match.competitionName}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2">
                       <Badge
-                        variant={match.isLive ? "destructive" : "secondary"}
-                        className="text-[10px] uppercase"
+                        className={
+                          match.isLive
+                            ? "bg-rose-500/15 text-rose-600 hover:bg-rose-500/15 rounded-sm text-[9px] font-bold border border-rose-500/20"
+                            : "bg-yellow-500/15 text-yellow-600 hover:bg-yellow-500/15 rounded-sm text-[9px] font-bold border border-yellow-500/20"
+                        }
                       >
-                        {statusLabel(match)}
+                        {match.isLive ? "Live" : "Upcoming"}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3 font-mono">{match.totalMarkets}</td>
-                    <td className="px-4 py-3 font-medium">
-                      {sourceLabel(match.source)}
+                    <td className="px-3 py-2 text-right font-mono text-muted-foreground text-[11px]">
+                      {match.totalMarkets}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-3 py-2 text-right">
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-8 text-xs gap-1.5"
+                        className="h-7 text-xs gap-1 px-2"
                         onClick={() => setSelectedMatch(match)}
                       >
-                        <ListPlus className="size-3.5" />
-                        Markets
+                        <ListPlus className="size-3" />
+                        View
                       </Button>
                     </td>
                   </tr>
