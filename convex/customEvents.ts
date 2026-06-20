@@ -345,7 +345,7 @@ export const listCustomEvents = query({
     const limit = Math.max(1, Math.min(args.limit ?? 50, 100));
     const search = (args.search ?? "").toLowerCase().trim();
 
-    let results: typeof ctx.db.$public.query.default;
+    let results;
 
     if (args.status) {
       results = await ctx.db
@@ -360,12 +360,12 @@ export const listCustomEvents = query({
 
     // Filter by sport if provided
     if (args.sport) {
-      results = results.filter((e) => e.sport === args.sport);
+      results = results.filter((e: any) => e.sport === args.sport);
     }
 
     // Filter by search if provided
     if (search) {
-      results = results.filter((e) => {
+      results = results.filter((e: any) => {
         const text = `${e.homeTeam} ${e.awayTeam} ${e.competition}`.toLowerCase();
         return text.includes(search);
       });
