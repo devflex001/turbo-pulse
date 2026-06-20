@@ -94,7 +94,7 @@ export function AdminScraperPanel() {
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <h1 className="text-lg font-bold tracking-tight">API Scrape</h1>
           <p className="text-xs text-muted-foreground">Manage KwikBet fixture ingestion</p>
         </div>
@@ -110,43 +110,29 @@ export function AdminScraperPanel() {
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+      <div className="grid grid-cols-3 gap-2">
         <StatCard
           label="Success Rate"
           value={`${successRate}%`}
-          subtitle={`${successfulRuns} of ${totalRuns}`}
         />
-        <StatCard label="Total Runs" value={totalRuns} subtitle="All time" />
+        <StatCard label="Total Runs" value={totalRuns} />
         <StatCard
           label="Last Run"
           value={formatTime(overview.settings.lastRunAt)}
-          badge={
-            currentRun
-              ? {
-                label: currentRun.status,
-                variant:
-                  currentRun.status === "success"
-                    ? "default"
-                    : currentRun.status === "running"
-                      ? "secondary"
-                      : "destructive",
-              }
-              : undefined
-          }
         />
       </div>
 
       {/* Live Logs (when running) */}
       {isCurrentlyRunning && (
-        <div className="flex flex-col gap-3 border border-border rounded-xl bg-card p-4 text-card-foreground space-y-3 shadow-sm">
+        <div className="flex flex-col gap-3 border border-border rounded-lg bg-card p-3 sm:p-4 space-y-3 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-foreground">Live Logs</span>
+            <span className="text-xs font-semibold">Live Logs</span>
             <span className="flex items-center gap-1.5">
               <span className="inline-flex h-2 w-2 bg-green-500 rounded-full animate-pulse" />
               <span className="text-xs text-muted-foreground">Running</span>
             </span>
           </div>
-          <div className="bg-black/5 dark:bg-black/20 font-mono text-[11px] h-32 overflow-y-auto space-y-1 rounded-md p-3">
+          <div className="bg-black/5 dark:bg-black/20 font-mono text-[10px] sm:text-[11px] h-32 overflow-y-auto space-y-1 rounded-md p-2 sm:p-3">
             <div className="text-muted-foreground">[INFO] Starting run for Soccer...</div>
             <div className="text-muted-foreground">[INFO] Fetching matches...</div>
             <div className="text-muted-foreground">[INFO] Discovered 247 matches</div>
@@ -156,20 +142,22 @@ export function AdminScraperPanel() {
 
       {/* Runs Table */}
       {overview.runs.length > 0 && (
-        <div className="space-y-3 border border-border rounded-xl bg-card p-4 text-card-foreground shadow-sm">
-          <span className="text-sm font-bold text-foreground">Run History</span>
-          <div className="overflow-x-auto -mx-1">
+        <div className="space-y-3 border border-border rounded-lg bg-card p-3 sm:p-4 shadow-sm">
+          <span className="text-sm font-semibold">Run History</span>
+
+          {/* Desktop Table */}
+          <div className="hidden lg:block overflow-x-auto -mx-1">
             <table className="w-full text-left text-xs border-collapse min-w-[520px]">
               <thead>
-                <tr className="border-b border-border text-muted-foreground text-[10px] uppercase font-bold tracking-wider">
-                  <th className="py-2.5 px-3">Time</th>
-                  <th className="py-2.5 px-3">Status</th>
-                  <th className="py-2.5 px-3">Sport</th>
-                  <th className="py-2.5 px-3 text-right">Duration</th>
-                  <th className="py-2.5 px-3 text-right">Discovered</th>
-                  <th className="py-2.5 px-3 text-right">Saved</th>
-                  <th className="py-2.5 px-3 text-right">Markets</th>
-                  <th className="py-2.5 px-3 text-right">Odds</th>
+                <tr className="border-b border-border text-muted-foreground text-[10px] font-semibold">
+                  <th className="py-2 px-3 text-left">Time</th>
+                  <th className="py-2 px-3 text-left">Status</th>
+                  <th className="py-2 px-3 text-left">Sport</th>
+                  <th className="py-2 px-3 text-right">Duration</th>
+                  <th className="py-2 px-3 text-right">Discovered</th>
+                  <th className="py-2 px-3 text-right">Saved</th>
+                  <th className="py-2 px-3 text-right">Markets</th>
+                  <th className="py-2 px-3 text-right">Odds</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -183,36 +171,36 @@ export function AdminScraperPanel() {
 
                   return (
                     <tr key={run._id} className="hover:bg-muted/30 transition-colors">
-                      <td className="py-3 px-3 font-mono text-muted-foreground">
+                      <td className="py-2.5 px-3 font-mono text-muted-foreground text-[10px]">
                         {formatTime(run.startedAt)}
                       </td>
-                      <td className="py-3 px-3">
+                      <td className="py-2.5 px-3">
                         <Badge
                           className={
                             run.status === "success"
-                              ? "bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15 rounded-sm text-[10px] font-bold border border-emerald-500/20"
+                              ? "bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15 rounded-sm text-[9px] font-semibold border border-emerald-500/20"
                               : run.status === "running"
-                                ? "bg-yellow-500/15 text-yellow-600 hover:bg-yellow-500/15 rounded-sm text-[10px] font-bold border border-yellow-500/20"
-                                : "bg-rose-500/15 text-rose-600 hover:bg-rose-500/15 rounded-sm text-[10px] font-bold border border-rose-500/20"
+                                ? "bg-yellow-500/15 text-yellow-600 hover:bg-yellow-500/15 rounded-sm text-[9px] font-semibold border border-yellow-500/20"
+                                : "bg-rose-500/15 text-rose-600 hover:bg-rose-500/15 rounded-sm text-[9px] font-semibold border border-rose-500/20"
                           }
                         >
                           {run.status}
                         </Badge>
                       </td>
-                      <td className="py-3 px-3 text-muted-foreground">{sportNames || "—"}</td>
-                      <td className="py-3 px-3 text-right font-mono text-muted-foreground">
+                      <td className="py-2.5 px-3 text-muted-foreground text-[10px]">{sportNames || "—"}</td>
+                      <td className="py-2.5 px-3 text-right font-mono text-muted-foreground text-[10px]">
                         {formatDuration(run.durationMs)}
                       </td>
-                      <td className="py-3 px-3 text-right font-mono font-medium">
+                      <td className="py-2.5 px-3 text-right font-mono font-medium text-[10px]">
                         {run.matchesDiscovered}
                       </td>
-                      <td className="py-3 px-3 text-right font-mono font-medium">
+                      <td className="py-2.5 px-3 text-right font-mono font-medium text-[10px]">
                         {run.matchesUpserted}
                       </td>
-                      <td className="py-3 px-3 text-right font-mono font-medium">
+                      <td className="py-2.5 px-3 text-right font-mono font-medium text-[10px]">
                         {run.marketsUpserted}
                       </td>
-                      <td className="py-3 px-3 text-right font-mono font-medium">
+                      <td className="py-2.5 px-3 text-right font-mono font-medium text-[10px]">
                         {run.oddsUpserted}
                       </td>
                     </tr>
@@ -220,6 +208,61 @@ export function AdminScraperPanel() {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards */}
+          <div className="lg:hidden space-y-2">
+            {overview.runs.slice(0, 10).map((run: any) => {
+              const sportNames = (run.selectedSports || [])
+                .map((sportId: string | number) => {
+                  const sport = AVAILABLE_SPORTS.find(s => String(s.id) === String(sportId))
+                  return sport?.label || String(sportId)
+                })
+                .join(", ")
+
+              return (
+                <div key={run._id} className="border border-border rounded-lg p-3 bg-card space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-mono text-[10px] text-muted-foreground mb-1">
+                        {formatTime(run.startedAt)}
+                      </div>
+                      <div className="text-xs text-foreground truncate">{sportNames || "—"}</div>
+                    </div>
+                    <Badge
+                      className={
+                        run.status === "success"
+                          ? "bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15 rounded-sm text-[9px] font-semibold border border-emerald-500/20"
+                          : run.status === "running"
+                            ? "bg-yellow-500/15 text-yellow-600 hover:bg-yellow-500/15 rounded-sm text-[9px] font-semibold border border-yellow-500/20"
+                            : "bg-rose-500/15 text-rose-600 hover:bg-rose-500/15 rounded-sm text-[9px] font-semibold border border-rose-500/20"
+                      }
+                    >
+                      {run.status}
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-2 pt-2 border-t border-border">
+                    <div>
+                      <div className="text-[9px] text-muted-foreground mb-0.5">Duration</div>
+                      <div className="font-mono text-[10px] font-medium">{formatDuration(run.durationMs)}</div>
+                    </div>
+                    <div>
+                      <div className="text-[9px] text-muted-foreground mb-0.5">Found</div>
+                      <div className="font-mono text-[10px] font-medium">{run.matchesDiscovered}</div>
+                    </div>
+                    <div>
+                      <div className="text-[9px] text-muted-foreground mb-0.5">Saved</div>
+                      <div className="font-mono text-[10px] font-medium">{run.matchesUpserted}</div>
+                    </div>
+                    <div>
+                      <div className="text-[9px] text-muted-foreground mb-0.5">Odds</div>
+                      <div className="font-mono text-[10px] font-medium">{run.oddsUpserted}</div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}

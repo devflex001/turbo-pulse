@@ -15,8 +15,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SmallLoader } from "@/components/small-loader"
+import { useMediaQuery } from "@/hooks/use-media-query"
 
 type SportsOdd = {
   sourceOddId: string
@@ -184,12 +186,12 @@ export function MarketsBrowser({
           readOnly && "cursor-default hover:bg-background",
           selected
             ? "bg-primary text-primary-foreground border-primary hover:bg-primary/95 hover:border-primary"
-            : "bg-muted/5 hover:border-muted-foreground/30 text-foreground"
+            : "bg-card hover:border-muted-foreground/30 text-foreground"
         )}
         onClick={() => handleOdd(odd)}
       >
         <span className={cn(
-          "min-w-0 w-full truncate text-[9px] uppercase font-bold tracking-wide leading-none",
+          "min-w-0 w-full truncate text-[9px] font-semibold leading-none",
           selected ? "text-primary-foreground/90" : "text-muted-foreground"
         )}>
           {outcome.code}
@@ -205,7 +207,7 @@ export function MarketsBrowser({
           </span>
         )}
         <span className={cn(
-          "font-mono text-[11px] font-extrabold leading-none",
+          "font-mono text-[11px] font-bold leading-none",
           selected ? "text-primary-foreground" : "text-foreground"
         )}>
           {odd.oddValue.toFixed(2)}
@@ -224,14 +226,14 @@ export function MarketsBrowser({
         <Button
           key={market.marketKey}
           variant={effectiveMarketKey === market.marketKey ? "secondary" : "ghost"}
-          className="h-auto min-h-11 w-full justify-between gap-3 px-3 py-2 text-left"
+          className="h-auto min-h-9 w-full justify-between gap-3 px-3 py-1.5 text-left"
           onClick={() => setSelectedMarketKey(market.marketKey)}
         >
           <span className="min-w-0 flex-1">
-            <span className="block whitespace-normal break-words text-xs font-bold uppercase tracking-wider leading-snug">
+            <span className="block whitespace-normal break-words text-xs font-semibold leading-tight">
               {formatMarketName(market, match)}
             </span>
-            <span className="block whitespace-normal break-words text-[10px] uppercase tracking-wide leading-snug text-muted-foreground">
+            <span className="block whitespace-normal break-words text-[10px] leading-tight text-muted-foreground">
               {market.marketTypes.length > 0 ? market.marketTypes.join(", ") : market.marketType || "Other"}
             </span>
           </span>
@@ -247,8 +249,8 @@ export function MarketsBrowser({
     <div className="space-y-4 p-4">
       {selectedMarket && (
         <div className="space-y-1">
-          <h3 className="text-sm font-extrabold uppercase tracking-wider leading-tight">{formatMarketName(selectedMarket, match)}</h3>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          <h3 className="text-sm font-semibold leading-tight">{formatMarketName(selectedMarket, match)}</h3>
+          <p className="text-xs text-muted-foreground">
             {selectedMarket.marketTypes.length > 0
               ? selectedMarket.marketTypes.join(", ")
               : selectedMarket.marketType || "Other"}
@@ -303,26 +305,26 @@ export function MarketsBrowser({
         if (!marketOdds.length) return null
 
         return (
-            <section key={market.marketKey} className="rounded-lg border border-border bg-card">
-              <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5">
-                <div className="min-w-0">
-                  <h3 className="truncate text-[11px] font-extrabold uppercase tracking-wider leading-tight text-foreground/90">
-                    {formatMarketName(market, match)}
-                  </h3>
-                  <p className="truncate text-[9px] font-semibold text-muted-foreground uppercase">
-                    {market.marketTypes.length > 0
-                      ? market.marketTypes.join(", ")
-                      : market.marketType || "Other"}
-                  </p>
-                </div>
+          <section key={market.marketKey} className="rounded-lg border border-border bg-card">
+            <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2">
+              <div className="min-w-0">
+                <h3 className="truncate text-[11px] font-semibold leading-tight text-foreground/90">
+                  {formatMarketName(market, match)}
+                </h3>
+                <p className="truncate text-[9px] font-medium text-muted-foreground">
+                  {market.marketTypes.length > 0
+                    ? market.marketTypes.join(", ")
+                    : market.marketType || "Other"}
+                </p>
               </div>
+            </div>
 
-              <div className={cn(
-                "grid gap-2 p-3",
-                marketOdds.length === 2 || marketOdds.length === 4 ? "grid-cols-2" : "grid-cols-3"
-              )}>
-                {marketOdds.map(renderOddButton)}
-              </div>
+            <div className={cn(
+              "grid gap-2 p-3",
+              marketOdds.length === 2 || marketOdds.length === 4 ? "grid-cols-2" : "grid-cols-3"
+            )}>
+              {marketOdds.map(renderOddButton)}
+            </div>
           </section>
         )
       })}
@@ -370,24 +372,49 @@ export function MarketsBrowser({
 
 export function MarketsPanel({ open, onOpenChange, match, readOnly = false }: MarketsPanelProps) {
   const matchName = `${match.homeTeam} vs ${match.awayTeam}`
+  const isMobile = useMediaQuery("(max-width: 768px)")
+
+  const content = (
+    <MarketsBrowser
+      match={match}
+      readOnly={readOnly}
+      queryEnabled={open}
+      mode="sheet"
+    />
+  )
+
+  const header = (
+    <>
+      <div className="truncate text-sm font-semibold">{matchName}</div>
+      <p className="truncate text-xs text-muted-foreground">{match.competitionName}</p>
+    </>
+  )
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="h-[90vh] flex flex-col overflow-hidden p-0 bg-card">
+          <DrawerHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
+            <DrawerTitle className="truncate text-sm font-semibold">{matchName}</DrawerTitle>
+            <p className="truncate text-xs text-muted-foreground">{match.competitionName}</p>
+          </DrawerHeader>
+          {content}
+        </DrawerContent>
+      </Drawer>
+    )
+  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="!w-[min(92vw,1120px)] !max-w-none flex h-dvh flex-col overflow-hidden p-0"
+        className="!w-[min(50vw,720px)] !max-w-none flex h-dvh flex-col overflow-hidden p-0 bg-card"
       >
         <SheetHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
-          <SheetTitle className="truncate text-sm font-bold">{matchName}</SheetTitle>
+          <SheetTitle className="truncate text-sm font-semibold">{matchName}</SheetTitle>
           <p className="truncate text-xs text-muted-foreground">{match.competitionName}</p>
         </SheetHeader>
-
-        <MarketsBrowser
-          match={match}
-          readOnly={readOnly}
-          queryEnabled={open}
-          mode="sheet"
-        />
+        {content}
       </SheetContent>
     </Sheet>
   )
