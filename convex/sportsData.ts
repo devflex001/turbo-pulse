@@ -15,7 +15,7 @@ export const listMatches = query({
     status: v.optional(v.union(v.literal("live"), v.literal("upcoming"))),
     search: v.optional(v.string()),
     limit: v.optional(v.number()),
-    includeFirstMarket: v.optional(v.boolean()), // New option for homepage
+    includeFirstMarket: v.optional(v.boolean()), // Add validator for new parameter
   },
   handler: async (ctx, args) => {
     const limit = Math.max(1, Math.min(args.limit ?? 80, 120));
@@ -190,10 +190,9 @@ export const getMatchWithMainOdds = query({
     const mainMarket = await ctx.db
       .query("sportsMarkets")
       .withIndex("by_sourceMatchId_and_marketKey", (q) =>
-        q.eq("sourceMatchId", match.sourceMatchId).eq(
-          "marketKey",
-          `${match.sourceMatchId}:1:1x2:main`
-        )
+        q
+          .eq("sourceMatchId", args.sourceMatchId)
+          .eq("marketKey", `${args.sourceMatchId}:1:1x2:main`)
       )
       .unique();
 
@@ -201,7 +200,9 @@ export const getMatchWithMainOdds = query({
       ? await ctx.db
         .query("sportsOdds")
         .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
-          q.eq("sourceMatchId", match.sourceMatchId).eq("marketKey", mainMarket.marketKey)
+          q
+            .eq("sourceMatchId", args.sourceMatchId)
+            .eq("marketKey", mainMarket.marketKey)
         )
         .take(3)
       : [];
@@ -242,44 +243,6 @@ export const getMarketsCount = query({
       hasMainMarket: markets.some(m => m.marketKey.includes(":1x2:main")),
       marketTypes: [...new Set(markets.flatMap(m => m.marketTypes || [m.marketType]).filter(Boolean))],
     };
-  },
-});
-
-export const getMatchWithMainOdds = query({
-  args: {
-    sourceMatchId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const match = await ctx.db
-      .query("sportsMatches")
-      .withIndex("by_source_and_sourceMatchId", (q) =>
-        q.eq("source", SOURCE).eq("sourceMatchId", args.sourceMatchId)
-      )
-      .unique();
-
-    if (!match) return null;
-
-    const mainMarket = await ctx.db
-      .query("sportsMarkets")
-      .withIndex("by_sourceMatchId_and_marketKey", (q) =>
-        q
-          .eq("sourceMatchId", args.sourceMatchId)
-          .eq("marketKey", `${args.sourceMatchId}:1:1x2:main`)
-      )
-      .unique();
-
-    const mainOdds = mainMarket
-      ? await ctx.db
-        .query("sportsOdds")
-        .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
-          q
-            .eq("sourceMatchId", args.sourceMatchId)
-            .eq("marketKey", mainMarket.marketKey)
-        )
-        .take(3)
-      : [];
-
-    return { ...match, mainOdds };
   },
 });
 
