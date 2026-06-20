@@ -190,10 +190,10 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
   })
 
   // Dynamic balance, bets, transactions, and adminStats - check if queries returned data
-  const walletBalance: number = convexUser ? (dbBalance ?? 1000) : localBalance
-  const myBets: PlacedBet[] = convexUser ? (dbBets as PlacedBet[] | undefined) ?? [] : localBets
-  const transactions: Transaction[] = convexUser ? (dbTransactions as Transaction[] | undefined) ?? [] : localTransactions
-  const adminStats = convexUser ? (dbAdminStats ?? localAdminStats) : localAdminStats
+  const walletBalance: number = isAuthenticated ? (dbBalance ?? 1000) : localBalance
+  const myBets: PlacedBet[] = isAuthenticated ? (dbBets as PlacedBet[] | undefined) ?? [] : localBets
+  const transactions: Transaction[] = isAuthenticated ? (dbTransactions as Transaction[] | undefined) ?? [] : localTransactions
+  const adminStats = isAuthenticated ? (dbAdminStats ?? localAdminStats) : localAdminStats
 
   React.useEffect(() => {
     if (typeof window !== "undefined") {
