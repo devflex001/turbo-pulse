@@ -2,23 +2,15 @@
 
 import * as React from "react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { CustomEventEditor } from "@/components/custom-event-editor"
 import { CustomEventsList } from "@/components/custom-events-list"
 import { CustomEventDetail } from "@/components/custom-event-detail"
-import { Plus, ChevronDown } from "lucide-react"
+import { Plus } from "lucide-react"
 import { Id } from "@/convex/_generated/dataModel"
 
 type ViewMode = "list" | "detail"
 
 export function AdminCustomEventsPanel() {
-  const [status, setStatus] = React.useState<"draft" | "published">("draft")
   const [viewMode, setViewMode] = React.useState<ViewMode>("list")
   const [selectedEventId, setSelectedEventId] = React.useState<string | null>(null)
   const [editorOpen, setEditorOpen] = React.useState(false)
@@ -32,8 +24,6 @@ export function AdminCustomEventsPanel() {
     setViewMode("list")
     setSelectedEventId(null)
   }
-
-  const statusLabel = status === "draft" ? "Drafts" : "Published"
 
   return (
     <div className="space-y-5">
@@ -56,37 +46,9 @@ export function AdminCustomEventsPanel() {
       {/* Main Content */}
       {viewMode === "list" ? (
         <>
-          {/* Status Filter Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 text-xs gap-1.5 border-border"
-              >
-                {statusLabel}
-                <ChevronDown className="size-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-40">
-              <DropdownMenuItem
-                onClick={() => setStatus("draft")}
-                className={status === "draft" ? "bg-accent" : ""}
-              >
-                Drafts
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => setStatus("published")}
-                className={status === "published" ? "bg-accent" : ""}
-              >
-                Published
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
           {/* Events List */}
           <CustomEventsList
-            status={status}
+            status="draft"
             onSelectEvent={handleSelectEvent}
           />
         </>
