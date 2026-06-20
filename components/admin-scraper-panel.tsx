@@ -32,6 +32,14 @@ function formatTime(value: number | null) {
   })
 }
 
+function formatDuration(ms: number | null) {
+  if (!ms) return "—"
+  const seconds = Math.floor(ms / 1000)
+  if (seconds < 60) return `${seconds}s`
+  const minutes = Math.floor(seconds / 60)
+  return `${minutes}m ${seconds % 60}s`
+}
+
 export function AdminScraperPanel() {
   const overview = useQuery(api.scraper.getAdminOverview)
   const triggerNow = useMutation(api.scraper.triggerNow)
@@ -75,124 +83,106 @@ export function AdminScraperPanel() {
     return <SmallLoader />
   }
 
-  const sportLabel = AVAILABLE_SPORTS.find(s => String(s.id) === selectedSport)?.label || "Soccer"
+  // Calculate metrics
+  const totalRuns = overview.runs.length
+  const successfulRuns = overview.runs.filter((r: any) => r.status === "success").length
+  const successRate = totalRuns > 0 ? Math.round((successfulRuns / totalRuns) * 100) : 0
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1">
           <h1 className="text-lg font-bold tracking-tight">API Scrape</h1>
           <p className="text-xs text-muted-foreground">Manage KwikBet fixture ingestion</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Badge variant={isCurrentlyRunning ? "secondary" : "outline"} className="text-[10px] uppercase">
-            {isCurrentlyRunning ? "● Running" : "● Idle"}
-          </Badge>
-          <Button
-            size="sm"
-            className="h-8 text-xs font-semibold gap-1.5"
-            onClick={() => setConfigOpen(true)}
-            disabled={running || isCurrentlyRunning}
-          >
-            <PlayCircle className="size-3.5" />
-            Scrape
-          </Button>
-        </div>
+        <Button
+          size="sm"
+          className="h-8 text-xs font-semibold gap-1.5"
+          onClick={() => setConfigOpen(true)}
+          disabled={running || isCurrentlyRunning}
+        >
+          <PlayCircle className="size-3.5" />
+          Scrape
+        </Button>
       </div>
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {/* Key Metrics */}
+      <div className="grid grid-cols-3 gap-3">
         <div className="border rounded-md p-3">
-          <p className="text-[10px] text-muted-foreground mb-1">Last Run</p>
-          <p className="text-xs font-medium">{formatTime(overview.settings.lastRunAt)}</p>
+          <p className="text-[10px] text-muted-foreground mb-1.5 uppercase font-medium">Success Rate</p>
+          <p className="text-lg font-bold">{successRate}%</p>
+          <p className="text-[10px] text-muted-foreground mt-1">{successfulRuns} of {totalRuns}</p>
         </div>
 
         <div className="border rounded-md p-3">
-          <p className="text-[10px] text-muted-foreground mb-1">Sport</p>
-          <p className="text-xs font-medium">{sportLabel}</p>
+          <p className="text-[10px] text-muted-foreground mb-1.5 uppercase font-medium">Total Runs</p>
+          <p className="text-lg font-bold">{totalRuns}</p>
+          <p className="text-[10px] text-muted-foreground mt-1">All time</p>
         </div>
 
         <div className="border rounded-md p-3">
-          <p className="text-[10px] text-muted-foreground mb-1">Date Range</p>
-          <p className="text-xs font-medium">{dateWindowDays} day(s)</p>
-        </div>
-
-        <div className="border rounded-md p-3">
-          <p className="text-[10px] text-muted-foreground mb-1">Mode</p>
-          <p className="text-xs font-medium">On-Demand</p>
-        </div>
-      </div>
-
-      {/* Latest Run Summary */}
-      {currentRun && (
-        <div className="border rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b bg-muted/50">
-            <p className="text-sm font-semibold">Latest Run</p>
-          </div>
-          <div className="p-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">
-                  Started {formatTime(currentRun.startedAt)}
-                </span>
-                <Badge
-                  variant={
-                    currentRun.status === "success"
-                      ? "default"
-                      : currentRun.status === "running"
+          <p className="text-[10px] text-muted-foreground mb-1.5 uppercase font-medium">Last Run</p>
+          <p className="text-xs font-medium truncate">{formatTime(overview.settings.lastRunAt)}</p>
+          {currentRun && (
+            <p className="text-[10px] text-muted-foreground mt-1">
+              <Badge
+                variant={
+                  currentRun.status === "success"
+                    ? "default"
+                    : currentRun.status === "running"
                       ? "secondary"
                       : "destructive"
-                  }
-                  className="text-[10px] uppercase"
-                >
-                  {currentRun.status}
-                </Badge>
-              </div>
+                }
+                className="text-[9px] uppercase"
+              >
+                {currentRun.status}
+              </Badge>
+            </p>
+          )}
+        </div>
+      </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <div className="border rounded-md p-2 text-center">
-                  <p className="text-[10px] text-muted-foreground mb-0.5">Discovered</p>
-                  <p className="text-sm font-semibold font-mono">{currentRun.matchesDiscovered}</p>
-                </div>
-                <div className="border rounded-md p-2 text-center">
-                  <p className="text-[10px] text-muted-foreground mb-0.5">Saved</p>
-                  <p className="text-sm font-semibold font-mono">{currentRun.matchesUpserted}</p>
-                </div>
-                <div className="border rounded-md p-2 text-center">
-                  <p className="text-[10px] text-muted-foreground mb-0.5">Markets</p>
-                  <p className="text-sm font-semibold font-mono">{currentRun.marketsUpserted}</p>
-                </div>
-                <div className="border rounded-md p-2 text-center">
-                  <p className="text-[10px] text-muted-foreground mb-0.5">Odds</p>
-                  <p className="text-sm font-semibold font-mono">{currentRun.oddsUpserted}</p>
-                </div>
-              </div>
-            </div>
+      {/* Live Logs (when running) */}
+      {isCurrentlyRunning && (
+        <div className="border rounded-lg overflow-hidden bg-muted/30">
+          <div className="px-4 py-2 border-b bg-muted/50 flex items-center justify-between">
+            <p className="text-sm font-semibold">Live Logs</p>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-flex h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-xs text-muted-foreground">Running</span>
+            </span>
+          </div>
+          <div className="p-3 bg-black/5 dark:bg-black/20 font-mono text-[11px] h-32 overflow-y-auto space-y-1">
+            <div className="text-muted-foreground">[INFO] Starting run for Soccer...</div>
+            <div className="text-muted-foreground">[INFO] Fetching matches...</div>
+            <div className="text-muted-foreground">[INFO] Discovered 247 matches</div>
           </div>
         </div>
       )}
 
-      {/* Recent Runs */}
-      {overview.runs.length > 1 && (
+      {/* Runs Table */}
+      {overview.runs.length > 0 && (
         <div className="border rounded-lg overflow-hidden">
           <div className="px-4 py-3 border-b bg-muted/50">
-            <p className="text-sm font-semibold">Recent Runs</p>
+            <p className="text-sm font-semibold">Run History</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead className="border-b bg-muted/30 text-muted-foreground text-[10px] uppercase">
                 <tr>
-                  <th className="px-4 py-2 text-left font-semibold">Time</th>
-                  <th className="px-4 py-2 text-left font-semibold">Status</th>
-                  <th className="px-4 py-2 text-left font-semibold">Sport</th>
-                  <th className="px-4 py-2 text-right font-semibold">Matches</th>
-                  <th className="px-4 py-2 text-right font-semibold">Markets</th>
-                  <th className="px-4 py-2 text-right font-semibold">Odds</th>
+                  <th className="px-4 py-2.5 text-left font-semibold">Time</th>
+                  <th className="px-4 py-2.5 text-left font-semibold">Status</th>
+                  <th className="px-4 py-2.5 text-left font-semibold">Sport</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">Duration</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">Discovered</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">Saved</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">Markets</th>
+                  <th className="px-4 py-2.5 text-right font-semibold">Odds</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {overview.runs.slice(1, 10).map((run: any) => {
+                {overview.runs.slice(0, 10).map((run: any) => {
                   const sportNames = (run.selectedSports || [])
                     .map((sportId: string | number) => {
                       const sport = AVAILABLE_SPORTS.find(s => String(s.id) === String(sportId))
@@ -201,28 +191,30 @@ export function AdminScraperPanel() {
                     .join(", ")
 
                   return (
-                    <tr key={run._id} className="hover:bg-muted/30">
-                      <td className="px-4 py-2.5 font-mono">{formatTime(run.startedAt)}</td>
+                    <tr key={run._id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-2.5 font-mono text-muted-foreground">{formatTime(run.startedAt)}</td>
                       <td className="px-4 py-2.5">
                         <Badge
                           variant={
                             run.status === "success"
                               ? "default"
                               : run.status === "running"
-                              ? "secondary"
-                              : "destructive"
+                                ? "secondary"
+                                : "destructive"
                           }
                           className="text-[9px] uppercase"
                         >
                           {run.status}
                         </Badge>
                       </td>
-                      <td className="px-4 py-2.5">{sportNames || "—"}</td>
-                      <td className="px-4 py-2.5 text-right font-mono">
-                        {run.matchesUpserted}/{run.matchesDiscovered}
+                      <td className="px-4 py-2.5 text-muted-foreground">{sportNames || "—"}</td>
+                      <td className="px-4 py-2.5 text-right font-mono text-muted-foreground">
+                        {formatDuration(run.durationMs)}
                       </td>
-                      <td className="px-4 py-2.5 text-right font-mono">{run.marketsUpserted}</td>
-                      <td className="px-4 py-2.5 text-right font-mono">{run.oddsUpserted}</td>
+                      <td className="px-4 py-2.5 text-right font-mono font-medium">{run.matchesDiscovered}</td>
+                      <td className="px-4 py-2.5 text-right font-mono font-medium">{run.matchesUpserted}</td>
+                      <td className="px-4 py-2.5 text-right font-mono font-medium">{run.marketsUpserted}</td>
+                      <td className="px-4 py-2.5 text-right font-mono font-medium">{run.oddsUpserted}</td>
                     </tr>
                   )
                 })}
