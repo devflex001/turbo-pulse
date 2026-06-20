@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { SmallLoader } from "@/components/small-loader"
-import { MarketsPanel, type SportsMatchWithOdds } from "@/components/markets-panel"
+import { MarketsPanel, type SportsMatchWithOdds, type SportsMatch } from "@/components/markets-panel"
 import { ListPlus, Search, ChevronDown } from "lucide-react"
 
 function formatStartTime(startTime: number) {
