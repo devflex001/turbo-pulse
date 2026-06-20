@@ -185,6 +185,55 @@ const schema = defineSchema({
   })
     .index("by_txId", ["txId"])
     .index("by_checkoutRequestID", ["checkoutRequestID"]),
+
+  customEvents: defineTable({
+    title: v.string(),
+    description: v.optional(v.string()),
+    homeTeam: v.string(),
+    awayTeam: v.string(),
+    startTime: v.number(),
+    startTimeIso: v.string(),
+    sport: v.string(),
+    competition: v.string(),
+    status: v.union(v.literal("draft"), v.literal("published")), // draft or published
+    totalMarkets: v.number(),
+    createdBy: v.string(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+    publishedAt: v.optional(v.number()),
+  })
+    .index("by_status", ["status"])
+    .index("by_startTime", ["startTime"])
+    .index("by_status_and_startTime", ["status", "startTime"])
+    .index("by_createdBy", ["createdBy"]),
+
+  customMarkets: defineTable({
+    eventId: v.id("customEvents"),
+    marketKey: v.string(),
+    name: v.string(),
+    marketType: v.string(),
+    marketTypes: v.array(v.string()),
+    description: v.optional(v.string()),
+    priority: v.number(),
+    isActive: v.boolean(),
+  })
+    .index("by_eventId", ["eventId"])
+    .index("by_eventId_and_priority", ["eventId", "priority"]),
+
+  customOdds: defineTable({
+    marketId: v.id("customMarkets"),
+    eventId: v.id("customEvents"),
+    outcomeId: v.string(),
+    outcomeName: v.string(),
+    outcomeAlias: v.optional(v.string()),
+    specifiers: v.optional(v.string()),
+    oddValue: v.number(),
+    priority: v.number(),
+    isActive: v.boolean(),
+  })
+    .index("by_marketId", ["marketId"])
+    .index("by_eventId", ["eventId"])
+    .index("by_marketId_and_priority", ["marketId", "priority"]),
 });
 
 export default schema;
