@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Save, Send, Trash2, EyeOff } from "lucide-react"
 import { SmallLoader } from "@/components/small-loader"
 import { toast } from "sonner"
-
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 export default function CustomEventDetailPage() {
   const router = useRouter()
@@ -461,92 +461,66 @@ export default function CustomEventDetailPage() {
           </div>
         </div>
 
-        {/* Markets and Odds Table */}
-        <div className="border rounded-lg bg-card overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table className="text-xs">
-              <TableHeader className="bg-muted/50 sticky top-0">
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="h-8 p-2 font-semibold">
-                    Market
-                  </TableHead>
-                  <TableHead className="h-8 p-2 font-semibold">Type</TableHead>
-                  <TableHead className="h-8 p-2 font-semibold">
-                    Outcome
-                  </TableHead>
-                  <TableHead className="h-8 p-2 font-semibold text-right">
-                    Odds
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {markets.map((market) => {
-                  const marketOdds = oddsbyMarket[market._id] || []
-                  const isFirstRow = true
+        {/* Markets and Odds */}
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold">Markets & Odds</h2>
+          <div className="border rounded-lg bg-card overflow-hidden">
+            <div className="space-y-0">
+              {markets.map((market) => {
+                const marketOdds = oddsbyMarket[market._id] || []
 
-                  return (
-                    <React.Fragment key={market._id}>
-                      {marketOdds.length === 0 ? (
-                        <TableRow className="hover:bg-muted/20">
-                          <TableCell className="p-2">{market.name}</TableCell>
-                          <TableCell className="p-2 text-muted-foreground">
+                return (
+                  <div key={market._id} className="border-b last:border-b-0">
+                    <div className="bg-muted/50 px-3 py-2 border-b">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-semibold">{market.name}</p>
+                          <p className="text-xs text-muted-foreground">
                             {market.marketType}
-                          </TableCell>
-                          <TableCell className="p-2 text-muted-foreground">
-                            —
-                          </TableCell>
-                          <TableCell className="p-2" />
-                        </TableRow>
-                      ) : (
-                        marketOdds.map((odd, idx) => (
-                          <TableRow key={odd._id} className="hover:bg-muted/20">
-                            {idx === 0 && (
-                              <>
-                                <TableCell className="p-2 font-medium">
-                                  {market.name}
-                                </TableCell>
-                                <TableCell className="p-2 text-muted-foreground">
-                                  {market.marketType}
-                                </TableCell>
-                              </>
-                            )}
-                            {idx !== 0 && (
-                              <>
-                                <TableCell className="p-2" />
-                                <TableCell className="p-2" />
-                              </>
-                            )}
-                            <TableCell className="p-2">
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    {marketOdds.length === 0 ? (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">
+                        No odds available
+                      </div>
+                    ) : (
+                      <div className="space-y-2 p-3">
+                        {marketOdds.map((odd) => (
+                          <div
+                            key={odd._id}
+                            className="flex items-center justify-between gap-2"
+                          >
+                            <label className="text-xs font-medium min-w-fit">
                               {odd.outcomeName}
-                            </TableCell>
-                            <TableCell className="p-2">
-                              <Input
-                                type="number"
-                                step={0.01}
-                                min={1}
-                                value={
-                                  oddsEdits[odd._id as any] ?? odd.oddValue
+                            </label>
+                            <Input
+                              type="number"
+                              step={0.01}
+                              min={1}
+                              value={
+                                oddsEdits[odd._id as any] ?? odd.oddValue
+                              }
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value)
+                                if (!isNaN(val)) {
+                                  setOddsEdits({
+                                    ...oddsEdits,
+                                    [odd._id]: val,
+                                  })
                                 }
-                                onChange={(e) => {
-                                  const val = parseFloat(e.target.value)
-                                  if (!isNaN(val)) {
-                                    setOddsEdits({
-                                      ...oddsEdits,
-                                      [odd._id]: val,
-                                    })
-                                  }
-                                }}
-                                className="h-7 text-xs text-right w-24"
-                              />
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </React.Fragment>
-                  )
-                })}
-              </TableBody>
-            </Table>
+                              }}
+                              className="h-7 text-xs text-right w-20"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           </div>
         </div>
       </div>
