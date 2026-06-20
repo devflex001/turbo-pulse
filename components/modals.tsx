@@ -93,7 +93,7 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
     <ResponsiveModal
       open={open}
       onOpenChange={onOpenChange}
-      title="Login to BetFlow"
+      title="Login to BetFlexx"
       description="Enter your registered phone number and password to access your account."
     >
       <form onSubmit={handleSubmit} className="space-y-4 py-2">
@@ -222,7 +222,7 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
         return
       }
 
-      toast.success("Account created successfully! Welcome to BetFlow.")
+      toast.success("Account created successfully! Welcome to BetFlexx.")
       onOpenChange(false)
       setPhone("")
       setPassword("")
@@ -247,7 +247,7 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
     <ResponsiveModal
       open={open}
       onOpenChange={onOpenChange}
-      title="Join BetFlow"
+      title="Join BetFlexx"
       description="Create an account to start tracking your bets and managing your insights."
     >
       <form onSubmit={handleSubmit} className="space-y-4 py-2">
@@ -578,7 +578,7 @@ export function ShareModal({ open, onOpenChange, matchName }: ShareModalProps) {
   const shareUrl =
     typeof window !== "undefined"
       ? window.location.href
-      : "https://betflow.com/user"
+      : "https://betflexx.com/user"
 
   const handleCopy = () => {
     navigator.clipboard.writeText(shareUrl + "?ref=share_match")

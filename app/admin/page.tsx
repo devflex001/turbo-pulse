@@ -100,7 +100,7 @@ export default function AdminDashboard() {
       new Promise((resolve) => setTimeout(resolve, 1200)),
       {
         loading: "Compiling transaction logs...",
-        success: "betflow_transactions_export.csv downloaded!",
+        success: "betflexx_transactions_export.csv downloaded!",
         error: "Export failed.",
       }
     )

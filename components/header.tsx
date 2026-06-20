@@ -67,7 +67,7 @@ export function Header() {
           {/* Brand/Logo */}
           <div className="flex items-center gap-2 cursor-pointer md:justify-self-start" onClick={handleLogoClick}>
             <span className="text-xl font-bold tracking-tight text-foreground">
-              BetFlow
+              BetFlexx
             </span>
           </div>
 

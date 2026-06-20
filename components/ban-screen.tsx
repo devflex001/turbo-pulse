@@ -211,7 +211,7 @@ export function BanScreen({ embedded = false }: BanScreenProps) {
       {/* Contact note */}
       <p className="text-[11px] text-muted-foreground text-center">
         For urgent matters, contact support at{" "}
-        <span className="font-semibold text-foreground">support@betflow.co.ke</span>
+        <span className="font-semibold text-foreground">support@betflexx.co.ke</span>
       </p>
     </div>
   )

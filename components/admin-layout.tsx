@@ -171,7 +171,7 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
         <div className="flex items-center justify-between px-3 h-14 border-b border-border shrink-0">
           {!sidebarCollapsed && (
             <span className="text-sm font-bold tracking-tight text-foreground select-none truncate">
-              BetFlow Admin
+              BetFlexx Admin
             </span>
           )}
           <Button
@@ -200,7 +200,7 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
       <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
         <SheetContent side="left" className="w-64 p-0 flex flex-col">
           <SheetHeader className="px-4 h-14 border-b border-border flex-row items-center justify-between space-y-0 shrink-0">
-            <SheetTitle className="text-sm font-bold">BetFlow Admin</SheetTitle>
+            <SheetTitle className="text-sm font-bold">BetFlexx Admin</SheetTitle>
             <Button
               variant="ghost"
               size="icon"

@@ -52,7 +52,7 @@ const AVAILABLE_SPORTS = [
   { id: "12", label: "Rugby" },
 ]
 
-const MATCH_LIMITS = [20, 50, 100, 200, 300, 500]
+const MATCH_LIMITS = [10, 20, 50, 100, 200, 300, 500]
 
 export function ScraperConfigDrawer({
   open,
@@ -63,7 +63,7 @@ export function ScraperConfigDrawer({
 }: ScraperConfigDrawerProps) {
   const [selectedSport, setSelectedSport] = React.useState(initialValues?.selectedSport ?? "1")
   const [dateWindowDays, setDateWindowDays] = React.useState(initialValues?.dateWindowDays ?? "2")
-  const [matchLimit, setMatchLimit] = React.useState(initialValues?.matchLimit ?? "50")
+  const [matchLimit, setMatchLimit] = React.useState(initialValues?.matchLimit ?? "10")
   const isDesktop = useMediaQuery("(min-width: 768px)")
 
   React.useEffect(() => {

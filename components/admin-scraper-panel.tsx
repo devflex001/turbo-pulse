@@ -39,7 +39,7 @@ export function AdminScraperPanel() {
   const [configOpen, setConfigOpen] = React.useState(false)
   const [selectedSport, setSelectedSport] = React.useState<string>("1")
   const [dateWindowDays, setDateWindowDays] = React.useState<string>("2")
-  const [matchLimit, setMatchLimit] = React.useState<string>("50")
+  const [matchLimit, setMatchLimit] = React.useState<string>("10")
   const [running, setRunning] = React.useState(false)
 
   const settings = overview?.settings as any

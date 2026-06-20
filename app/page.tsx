@@ -26,7 +26,7 @@ import type { SportsMatchWithOdds } from "@/components/markets-panel"
 const SLIDES = [
   {
     id: "live",
-    title: "BetFlow Markets",
+    title: "BetFlexx Markets",
     subtitle: "Live KwikBet fixtures with full market depth.",
     cta: "Browse Fixtures",
     image: "/images/football-hero-live.svg",
@@ -342,7 +342,7 @@ export default function Page() {
 
           {activeTab === "how-it-works" && (
             <div className="space-y-6">
-              <h2 className="text-lg font-bold text-foreground">How BetFlow Works</h2>
+              <h2 className="text-lg font-bold text-foreground">How BetFlexx Works</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
                   ["1", "Sync Markets", "Admins run the scraper or let the schedule refresh upcoming KwikBet fixtures."],
@@ -365,7 +365,7 @@ export default function Page() {
               <h2 className="text-lg font-bold text-foreground">Frequently Asked Questions</h2>
               <div className="space-y-4">
                 {[
-                  ["Is this real-money betting?", "No. BetFlow is a mock sports betting dashboard for market ingestion and slip simulations."],
+                  ["Is this real-money betting?", "No. BetFlexx is a mock sports betting dashboard for market ingestion and slip simulations."],
                   ["Where do fixtures come from?", "Fixtures and odds are scraped from the configured KwikBet sports API and stored in Convex."],
                   ["How do I view all markets?", "Click the markets button on a fixture card to open the full market browser."],
                 ].map(([question, answer]) => (
@@ -385,7 +385,7 @@ export default function Page() {
               <div className="border border-border rounded-lg bg-card p-4 space-y-4">
                 <div>
                   <h2 className="text-sm font-bold">Contact Support</h2>
-                  <p className="text-xs text-muted-foreground">Send a message to the BetFlow support team.</p>
+                  <p className="text-xs text-muted-foreground">Send a message to the BetFlexx support team.</p>
                 </div>
                 <form onSubmit={handleContactSubmit} className="space-y-4">
                   <div className="space-y-2">
@@ -417,7 +417,7 @@ export default function Page() {
 
           <footer className="mt-auto pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
             <div className="flex flex-col gap-1 text-center sm:text-left">
-              <span className="font-bold text-foreground text-sm">BetFlow</span>
+              <span className="font-bold text-foreground text-sm">BetFlexx</span>
               <span>Smart betting tracker with full market ingestion. Play responsibly.</span>
             </div>
             <div className="flex gap-4">
