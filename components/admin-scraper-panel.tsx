@@ -5,10 +5,12 @@ import { useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { SmallLoader } from "@/components/small-loader"
 import { toast } from "sonner"
 import { PlayCircle } from "lucide-react"
 import { ScraperConfigDrawer, type ScraperConfig } from "@/components/scraper-config-drawer"
+import { StatCard } from "@/components/stat-card"
 
 // 8 Most popular sports from KwikBet
 const AVAILABLE_SPORTS = [
@@ -109,119 +111,126 @@ export function AdminScraperPanel() {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="border rounded-md p-3">
-          <p className="text-[10px] text-muted-foreground mb-1.5 uppercase font-medium">Success Rate</p>
-          <p className="text-lg font-bold">{successRate}%</p>
-          <p className="text-[10px] text-muted-foreground mt-1">{successfulRuns} of {totalRuns}</p>
-        </div>
-
-        <div className="border rounded-md p-3">
-          <p className="text-[10px] text-muted-foreground mb-1.5 uppercase font-medium">Total Runs</p>
-          <p className="text-lg font-bold">{totalRuns}</p>
-          <p className="text-[10px] text-muted-foreground mt-1">All time</p>
-        </div>
-
-        <div className="border rounded-md p-3">
-          <p className="text-[10px] text-muted-foreground mb-1.5 uppercase font-medium">Last Run</p>
-          <p className="text-xs font-medium truncate">{formatTime(overview.settings.lastRunAt)}</p>
-          {currentRun && (
-            <p className="text-[10px] text-muted-foreground mt-1">
-              <Badge
-                variant={
+        <StatCard
+          label="Success Rate"
+          value={`${successRate}%`}
+          subtitle={`${successfulRuns} of ${totalRuns}`}
+        />
+        <StatCard label="Total Runs" value={totalRuns} subtitle="All time" />
+        <StatCard
+          label="Last Run"
+          value={formatTime(overview.settings.lastRunAt)}
+          badge={
+            currentRun
+              ? {
+                label: currentRun.status,
+                variant:
                   currentRun.status === "success"
                     ? "default"
                     : currentRun.status === "running"
                       ? "secondary"
-                      : "destructive"
-                }
-                className="text-[9px] uppercase"
-              >
-                {currentRun.status}
-              </Badge>
-            </p>
-          )}
-        </div>
+                      : "destructive",
+              }
+              : undefined
+          }
+        />
       </div>
 
       {/* Live Logs (when running) */}
       {isCurrentlyRunning && (
-        <div className="border rounded-lg overflow-hidden bg-muted/30">
-          <div className="px-4 py-2 border-b bg-muted/50 flex items-center justify-between">
-            <p className="text-sm font-semibold">Live Logs</p>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-flex h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-xs text-muted-foreground">Running</span>
-            </span>
-          </div>
-          <div className="p-3 bg-black/5 dark:bg-black/20 font-mono text-[11px] h-32 overflow-y-auto space-y-1">
-            <div className="text-muted-foreground">[INFO] Starting run for Soccer...</div>
-            <div className="text-muted-foreground">[INFO] Fetching matches...</div>
-            <div className="text-muted-foreground">[INFO] Discovered 247 matches</div>
-          </div>
-        </div>
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm">Live Logs</CardTitle>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-flex h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-xs text-muted-foreground">Running</span>
+              </span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-black/5 dark:bg-black/20 font-mono text-[11px] h-32 overflow-y-auto space-y-1 rounded-md p-3">
+              <div className="text-muted-foreground">[INFO] Starting run for Soccer...</div>
+              <div className="text-muted-foreground">[INFO] Fetching matches...</div>
+              <div className="text-muted-foreground">[INFO] Discovered 247 matches</div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Runs Table */}
       {overview.runs.length > 0 && (
-        <div className="border rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b bg-muted/50">
-            <p className="text-sm font-semibold">Run History</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead className="border-b bg-muted/30 text-muted-foreground text-[10px] uppercase">
-                <tr>
-                  <th className="px-4 py-2.5 text-left font-semibold">Time</th>
-                  <th className="px-4 py-2.5 text-left font-semibold">Status</th>
-                  <th className="px-4 py-2.5 text-left font-semibold">Sport</th>
-                  <th className="px-4 py-2.5 text-right font-semibold">Duration</th>
-                  <th className="px-4 py-2.5 text-right font-semibold">Discovered</th>
-                  <th className="px-4 py-2.5 text-right font-semibold">Saved</th>
-                  <th className="px-4 py-2.5 text-right font-semibold">Markets</th>
-                  <th className="px-4 py-2.5 text-right font-semibold">Odds</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {overview.runs.slice(0, 10).map((run: any) => {
-                  const sportNames = (run.selectedSports || [])
-                    .map((sportId: string | number) => {
-                      const sport = AVAILABLE_SPORTS.find(s => String(s.id) === String(sportId))
-                      return sport?.label || String(sportId)
-                    })
-                    .join(", ")
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">Run History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="border-b bg-muted/30 text-muted-foreground text-[10px] uppercase">
+                  <tr>
+                    <th className="px-3 py-2.5 text-left font-semibold">Time</th>
+                    <th className="px-3 py-2.5 text-left font-semibold">Status</th>
+                    <th className="px-3 py-2.5 text-left font-semibold">Sport</th>
+                    <th className="px-3 py-2.5 text-right font-semibold">Duration</th>
+                    <th className="px-3 py-2.5 text-right font-semibold">Discovered</th>
+                    <th className="px-3 py-2.5 text-right font-semibold">Saved</th>
+                    <th className="px-3 py-2.5 text-right font-semibold">Markets</th>
+                    <th className="px-3 py-2.5 text-right font-semibold">Odds</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {overview.runs.slice(0, 10).map((run: any) => {
+                    const sportNames = (run.selectedSports || [])
+                      .map((sportId: string | number) => {
+                        const sport = AVAILABLE_SPORTS.find(s => String(s.id) === String(sportId))
+                        return sport?.label || String(sportId)
+                      })
+                      .join(", ")
 
-                  return (
-                    <tr key={run._id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-2.5 font-mono text-muted-foreground">{formatTime(run.startedAt)}</td>
-                      <td className="px-4 py-2.5">
-                        <Badge
-                          variant={
-                            run.status === "success"
-                              ? "default"
-                              : run.status === "running"
-                                ? "secondary"
-                                : "destructive"
-                          }
-                          className="text-[9px] uppercase"
-                        >
-                          {run.status}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-2.5 text-muted-foreground">{sportNames || "—"}</td>
-                      <td className="px-4 py-2.5 text-right font-mono text-muted-foreground">
-                        {formatDuration(run.durationMs)}
-                      </td>
-                      <td className="px-4 py-2.5 text-right font-mono font-medium">{run.matchesDiscovered}</td>
-                      <td className="px-4 py-2.5 text-right font-mono font-medium">{run.matchesUpserted}</td>
-                      <td className="px-4 py-2.5 text-right font-mono font-medium">{run.marketsUpserted}</td>
-                      <td className="px-4 py-2.5 text-right font-mono font-medium">{run.oddsUpserted}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                    return (
+                      <tr key={run._id} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-3 py-2.5 font-mono text-muted-foreground">
+                          {formatTime(run.startedAt)}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <Badge
+                            variant={
+                              run.status === "success"
+                                ? "default"
+                                : run.status === "running"
+                                  ? "secondary"
+                                  : "destructive"
+                            }
+                            className="text-[9px] uppercase"
+                          >
+                            {run.status}
+                          </Badge>
+                        </td>
+                        <td className="px-3 py-2.5 text-muted-foreground">{sportNames || "—"}</td>
+                        <td className="px-3 py-2.5 text-right font-mono text-muted-foreground">
+                          {formatDuration(run.durationMs)}
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-mono font-medium">
+                          {run.matchesDiscovered}
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-mono font-medium">
+                          {run.matchesUpserted}
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-mono font-medium">
+                          {run.marketsUpserted}
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-mono font-medium">
+                          {run.oddsUpserted}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Config Dialog/Drawer */}
