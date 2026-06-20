@@ -12,7 +12,13 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SmallLoader } from "@/components/small-loader"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
-import { ArrowLeft, Edit2, Trash2, Share2, Clock, MapPin, TrendingUp } from "lucide-react"
+import { ArrowLeft, Edit2, Trash2, Share2, Search, ChevronDown } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface CustomEventDetailProps {
   eventId: Id<"customEvents">
@@ -80,6 +86,13 @@ export function CustomEventDetail({
       .sort((a, b) => a.priority - b.priority)
   }, [markets, selectedCategory, searchTerm])
 
+  // Auto-select first market
+  React.useEffect(() => {
+    if (selectedMarketId === null && filteredMarkets.length > 0) {
+      setSelectedMarketId(filteredMarkets[0]._id)
+    }
+  }, [selectedCategory, filteredMarkets, selectedMarketId])
+
   const handlePublish = async () => {
     if (!confirm("Publish this event? It will be visible to users.")) return
 
@@ -118,26 +131,21 @@ export function CustomEventDetail({
   }
 
   return (
-    <div className="flex flex-col h-full space-y-4">
-      {/* Header */}
-      <div className="space-y-3 border-b border-border pb-4 px-4 pt-4">
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2 text-xs gap-1.5"
-            onClick={onBack}
-          >
-            <ArrowLeft className="size-3" />
-            Back
-          </Button>
-          <div className="flex gap-1.5">
+    <div className="flex flex-col h-full bg-card">
+      {/* Header with Event Title and Controls */}
+      <div className="shrink-0 border-b border-border px-4 py-3 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base font-bold truncate">{event.title}</h1>
+            <p className="text-xs text-muted-foreground">{event.competition}</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
             {event.status === "draft" && (
               <>
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 px-2 text-xs gap-1.5"
+                  className="h-8 px-2.5 text-xs gap-1.5"
                   onClick={onEdit}
                 >
                   <Edit2 className="size-3" />
@@ -145,7 +153,7 @@ export function CustomEventDetail({
                 </Button>
                 <Button
                   size="sm"
-                  className="h-8 px-3 text-xs"
+                  className="h-8 px-3 text-xs bg-orange-600 hover:bg-orange-700 text-white border-0"
                   onClick={handlePublish}
                 >
                   Publish
@@ -156,7 +164,7 @@ export function CustomEventDetail({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 px-2 text-xs gap-1.5"
+                className="h-8 px-2.5 text-xs gap-1.5"
               >
                 <Share2 className="size-3" />
                 Share
@@ -166,7 +174,7 @@ export function CustomEventDetail({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 px-2 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                className="h-8 px-2.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
                 onClick={handleDelete}
               >
                 <Trash2 className="size-3" />
@@ -175,179 +183,165 @@ export function CustomEventDetail({
           </div>
         </div>
 
-        {/* Event Info */}
-        <div className="space-y-2">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h1 className="text-lg font-bold">{event.title}</h1>
-              <p className="text-sm font-semibold text-foreground">
-                {event.homeTeam} vs {event.awayTeam}
-              </p>
-              {event.description && (
-                <p className="text-xs text-muted-foreground mt-1">{event.description}</p>
-              )}
-            </div>
-            <Badge
-              className={cn(
-                "text-[10px] font-semibold",
-                event.status === "draft"
-                  ? "bg-yellow-500/15 text-yellow-600 border border-yellow-500/30"
-                  : "bg-green-500/15 text-green-600 border border-green-500/30"
-              )}
-            >
-              {event.status}
-            </Badge>
+        {/* Event Meta Info */}
+        <div className="flex items-center justify-between text-xs pt-2 border-t border-border">
+          <div className="flex items-center gap-4 text-muted-foreground">
+            <span>{formatTime(event.startTime)}</span>
+            <span className="text-muted-foreground/50">•</span>
+            <span>{event.totalMarkets} markets</span>
           </div>
-
-          <div className="grid grid-cols-3 gap-3 text-xs">
-            <div className="flex items-center gap-1.5">
-              <Clock className="size-3.5 text-muted-foreground" />
-              <span className="text-muted-foreground">{formatTime(event.startTime)}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <MapPin className="size-3.5 text-muted-foreground" />
-              <span className="text-muted-foreground">{event.competition}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <TrendingUp className="size-3.5 text-muted-foreground" />
-              <span className="text-muted-foreground">{event.totalMarkets} markets</span>
-            </div>
-          </div>
+          <Badge
+            className={cn(
+              "text-[10px] font-semibold shrink-0",
+              event.status === "draft"
+                ? "bg-yellow-500/15 text-yellow-600 border border-yellow-500/30"
+                : "bg-green-500/15 text-green-600 border border-green-500/30"
+            )}
+          >
+            {event.status}
+          </Badge>
         </div>
       </div>
 
-      {/* Markets Browser */}
-      {markets ? (
-        <div className="flex-1 min-h-0 flex flex-col gap-3 px-4 pb-4">
-          {/* Category Tabs */}
-          <Tabs
-            value={selectedCategory}
-            onValueChange={setSelectedCategory}
-            className="w-full"
-          >
-            <ScrollArea>
-              <TabsList className="h-8 w-max gap-1 bg-transparent p-0 border-b border-border">
+      {/* Search and Filter Bar */}
+      <div className="shrink-0 border-b border-border px-4 py-3 space-y-3">
+        <div className="flex items-center gap-2">
+          {/* Search */}
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search markets"
+              className="h-8 pl-8 text-xs focus-visible:ring-primary bg-muted/50"
+            />
+          </div>
+
+          {/* Category Filter - Only show if more than one category */}
+          {categories.length > 1 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-1.5 border-border"
+                >
+                  {selectedCategory}
+                  <ChevronDown className="size-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
                 {categories.map((cat) => (
-                  <TabsTrigger
+                  <DropdownMenuItem
                     key={cat}
-                    value={cat}
-                    className="h-7 px-3 text-xs rounded-none border-b-2 border-b-transparent data-[state=active]:border-b-primary"
+                    onClick={() => setSelectedCategory(cat)}
+                    className={selectedCategory === cat ? "bg-accent" : ""}
                   >
                     {cat}
-                  </TabsTrigger>
+                  </DropdownMenuItem>
                 ))}
-              </TabsList>
-            </ScrollArea>
-          </Tabs>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+      </div>
 
-          <div className="flex-1 min-h-0 flex gap-3 overflow-hidden">
-            {/* Markets List */}
-            <div className="w-32 flex flex-col gap-2 border-r border-border pr-3 overflow-hidden">
-              <Input
-                placeholder="Search markets..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-8 text-xs bg-muted/50 shrink-0"
-              />
-
-              <ScrollArea className="flex-1">
-                <div className="space-y-1 pr-3">
-                  {filteredMarkets.length === 0 ? (
-                    <div className="p-4 text-center text-muted-foreground text-xs">
-                      No markets found
-                    </div>
-                  ) : (
-                    filteredMarkets.map((market) => (
-                      <Button
-                        key={market._id}
-                        variant={selectedMarketId === market._id ? "secondary" : "ghost"}
-                        className={cn(
-                          "h-auto min-h-9 w-full justify-between gap-2 px-2 py-1.5 text-left text-xs",
-                          !market.isActive && "opacity-50"
-                        )}
-                        onClick={() => setSelectedMarketId(market._id)}
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="text-xs font-semibold truncate">{market.name}</div>
-                          <div className="text-[10px] text-muted-foreground line-clamp-1">
-                            {market.marketTypes.join(", ")}
-                          </div>
-                        </div>
-                        {!market.isActive && (
-                          <Badge variant="outline" className="text-[9px] shrink-0">
-                            Inactive
-                          </Badge>
-                        )}
-                      </Button>
-                    ))
-                  )}
-                </div>
-              </ScrollArea>
-            </div>
-
-            {/* Odds Grid */}
-            <div className="flex-1 flex flex-col gap-2 min-w-0 overflow-hidden">
-              {selectedMarket ? (
-                <>
-                  <div>
-                    <h3 className="text-sm font-semibold truncate">{selectedMarket.name}</h3>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {selectedMarket.marketTypes.join(", ")}
-                    </p>
+      {/* Markets Content */}
+      {markets ? (
+        <div className="flex-1 min-h-0 flex overflow-hidden">
+          {/* Markets List Panel */}
+          <div className="w-40 flex flex-col border-r border-border overflow-hidden shrink-0">
+            <ScrollArea className="flex-1">
+              <div className="space-y-1 p-2">
+                {filteredMarkets.length === 0 ? (
+                  <div className="p-4 text-center text-muted-foreground text-xs">
+                    No markets found
                   </div>
+                ) : (
+                  filteredMarkets.map((market) => (
+                    <Button
+                      key={market._id}
+                      variant={selectedMarketId === market._id ? "secondary" : "ghost"}
+                      className={cn(
+                        "h-auto w-full justify-start gap-2 px-2.5 py-2 text-left text-xs font-medium rounded-sm",
+                        !market.isActive && "opacity-50"
+                      )}
+                      onClick={() => setSelectedMarketId(market._id)}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-semibold truncate">{market.name}</div>
+                        <div className="text-[10px] text-muted-foreground line-clamp-1">
+                          {market.marketTypes.join(", ")}
+                        </div>
+                      </div>
+                    </Button>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          </div>
 
-                  {odds ? (
-                    odds.length > 0 ? (
-                      <ScrollArea className="flex-1 border border-border rounded-lg overflow-hidden">
-                        <div className="p-3 space-y-1.5">
-                          {odds
-                            .filter((o) => o.isActive)
-                            .sort((a, b) => a.priority - b.priority)
-                            .map((odd) => (
-                              <div
-                                key={odd._id}
-                                className="flex items-center justify-between p-2 rounded border border-border bg-card hover:bg-muted/50 transition-colors"
-                              >
-                                <div className="min-w-0 flex-1">
-                                  <div className="text-sm font-semibold truncate">{odd.outcomeName}</div>
-                                  {odd.oddValue && (
-                                    <div className="text-xs text-muted-foreground">
-                                      Odds: {odd.oddValue.toFixed(2)}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2 shrink-0 ml-2">
-                                  <div className="text-right">
-                                    <div className="font-mono font-bold text-sm">
-                                      {odd.oddValue.toFixed(2)}
-                                    </div>
-                                  </div>
+          {/* Odds Display Panel */}
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+            {selectedMarket ? (
+              <>
+                {/* Market Header */}
+                <div className="shrink-0 px-4 py-3 border-b border-border">
+                  <h3 className="text-sm font-bold truncate">{selectedMarket.name}</h3>
+                  <p className="text-xs text-muted-foreground truncate mt-1">
+                    {selectedMarket.marketTypes.join(" • ")}
+                  </p>
+                </div>
+
+                {/* Odds Grid */}
+                {odds ? (
+                  odds.length > 0 ? (
+                    <ScrollArea className="flex-1 overflow-hidden">
+                      <div className="p-4 space-y-2">
+                        {odds
+                          .filter((o) => o.isActive)
+                          .sort((a, b) => a.priority - b.priority)
+                          .map((odd) => (
+                            <div
+                              key={odd._id}
+                              className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border bg-background hover:bg-muted/50 transition-colors"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-semibold text-foreground">
+                                  {odd.outcomeName}
                                 </div>
                               </div>
-                            ))}
-                        </div>
-                      </ScrollArea>
-                    ) : (
-                      <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">
-                        No odds configured
+                              <div className="text-right shrink-0">
+                                <div className="font-mono font-bold text-lg text-primary">
+                                  {odd.oddValue.toFixed(2)}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                       </div>
-                    )
+                    </ScrollArea>
                   ) : (
-                    <div className="flex-1 flex items-center justify-center">
-                      <SmallLoader />
+                    <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+                      No odds configured for this market
                     </div>
-                  )}
-                </>
-              ) : (
-                <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-                  Select a market to view odds
-                </div>
-              )}
-            </div>
+                  )
+                ) : (
+                  <div className="flex-1 flex items-center justify-center">
+                    <SmallLoader />
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+                Select a market to view odds
+              </div>
+            )}
           </div>
         </div>
       ) : (
-        <SmallLoader />
+        <div className="flex-1 flex items-center justify-center">
+          <SmallLoader />
+        </div>
       )}
     </div>
   )
