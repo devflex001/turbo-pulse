@@ -118,9 +118,9 @@ export function CustomEventDetail({
   }
 
   return (
-    <div className="flex flex-col h-full space-y-4 p-4">
+    <div className="flex flex-col h-full space-y-4">
       {/* Header */}
-      <div className="space-y-3 border-b border-border pb-4">
+      <div className="space-y-3 border-b border-border pb-4 px-4 pt-4">
         <div className="flex items-center justify-between">
           <Button
             variant="ghost"
@@ -218,7 +218,7 @@ export function CustomEventDetail({
 
       {/* Markets Browser */}
       {markets ? (
-        <div className="flex-1 min-h-0 flex flex-col gap-3">
+        <div className="flex-1 min-h-0 flex flex-col gap-3 px-4 pb-4">
           {/* Category Tabs */}
           <Tabs
             value={selectedCategory}
@@ -240,14 +240,14 @@ export function CustomEventDetail({
             </ScrollArea>
           </Tabs>
 
-          <div className="flex-1 min-h-0 flex gap-3">
+          <div className="flex-1 min-h-0 flex gap-3 overflow-hidden">
             {/* Markets List */}
-            <div className="w-80 flex flex-col gap-2 border-r border-border pr-3">
+            <div className="w-32 flex flex-col gap-2 border-r border-border pr-3 overflow-hidden">
               <Input
                 placeholder="Search markets..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-8 text-xs bg-muted/50"
+                className="h-8 text-xs bg-muted/50 shrink-0"
               />
 
               <ScrollArea className="flex-1">
@@ -262,19 +262,19 @@ export function CustomEventDetail({
                         key={market._id}
                         variant={selectedMarketId === market._id ? "secondary" : "ghost"}
                         className={cn(
-                          "h-auto min-h-9 w-full justify-between gap-2 px-2 py-1.5 text-left",
+                          "h-auto min-h-9 w-full justify-between gap-2 px-2 py-1.5 text-left text-xs",
                           !market.isActive && "opacity-50"
                         )}
                         onClick={() => setSelectedMarketId(market._id)}
                       >
                         <div className="min-w-0 flex-1">
                           <div className="text-xs font-semibold truncate">{market.name}</div>
-                          <div className="text-[10px] text-muted-foreground">
+                          <div className="text-[10px] text-muted-foreground line-clamp-1">
                             {market.marketTypes.join(", ")}
                           </div>
                         </div>
                         {!market.isActive && (
-                          <Badge variant="outline" className="text-[9px]">
+                          <Badge variant="outline" className="text-[9px] shrink-0">
                             Inactive
                           </Badge>
                         )}
@@ -286,19 +286,19 @@ export function CustomEventDetail({
             </div>
 
             {/* Odds Grid */}
-            <div className="flex-1 flex flex-col gap-2">
+            <div className="flex-1 flex flex-col gap-2 min-w-0 overflow-hidden">
               {selectedMarket ? (
                 <>
                   <div>
-                    <h3 className="text-sm font-semibold">{selectedMarket.name}</h3>
-                    <p className="text-xs text-muted-foreground">
+                    <h3 className="text-sm font-semibold truncate">{selectedMarket.name}</h3>
+                    <p className="text-xs text-muted-foreground truncate">
                       {selectedMarket.marketTypes.join(", ")}
                     </p>
                   </div>
 
                   {odds ? (
                     odds.length > 0 ? (
-                      <ScrollArea className="flex-1 border border-border rounded-lg">
+                      <ScrollArea className="flex-1 border border-border rounded-lg overflow-hidden">
                         <div className="p-3 space-y-1.5">
                           {odds
                             .filter((o) => o.isActive)
@@ -309,14 +309,14 @@ export function CustomEventDetail({
                                 className="flex items-center justify-between p-2 rounded border border-border bg-card hover:bg-muted/50 transition-colors"
                               >
                                 <div className="min-w-0 flex-1">
-                                  <div className="text-sm font-semibold">{odd.outcomeName}</div>
+                                  <div className="text-sm font-semibold truncate">{odd.outcomeName}</div>
                                   {odd.oddValue && (
                                     <div className="text-xs text-muted-foreground">
                                       Odds: {odd.oddValue.toFixed(2)}
                                     </div>
                                   )}
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 shrink-0 ml-2">
                                   <div className="text-right">
                                     <div className="font-mono font-bold text-sm">
                                       {odd.oddValue.toFixed(2)}
