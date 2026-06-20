@@ -280,10 +280,7 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
   }
 
   const addNewUserCount = () => {
-    if (convexUser) {
-      // In Convex, users are registered through signUp, so totalUsers is computed dynamically.
-      // But we can keep local count synced as well.
-    }
+    // No user registration needed - single shared wallet system
     saveAdminStats({
       ...adminStats,
       totalUsers: adminStats.totalUsers + 1
@@ -382,53 +379,49 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
   }
 
   const settleSingleBet = async (betId: string, status: "won" | "lost") => {
-    if (convexUser) {
-      try {
-        await settleSingleBetMutation({ betId: betId as any, status })
-      } catch (err) {
-        console.error(err)
-      }
-    } else {
-      const updated = myBets.map((bet) => {
-        if (bet.id === betId) {
-          return { ...bet, status }
-        }
-        return bet
-      })
-      saveBets(updated)
-      
-      saveAdminStats({
-        ...adminStats,
-        activeBets: Math.max(0, adminStats.activeBets - 1)
-      })
+    try {
+      await settleSingleBetMutation({ betId: betId as any, status })
+    } catch (err) {
+      console.error(err)
     }
+    
+    const updated = myBets.map((bet) => {
+      if (bet.id === betId) {
+        return { ...bet, status }
+      }
+      return bet
+    })
+    saveBets(updated)
+    
+    saveAdminStats({
+      ...adminStats,
+      activeBets: Math.max(0, adminStats.activeBets - 1)
+    })
   }
 
   const settleAllBets = async () => {
-    if (convexUser) {
-      try {
-        await settleAllBetsMutation()
-      } catch (err) {
-        console.error(err)
-      }
-    } else {
-      let settledCount = 0
-      const updated = myBets.map((bet) => {
-        if (bet.status !== "active") return bet
-        settledCount++
-        const won = Math.random() > 0.4
-        return {
-          ...bet,
-          status: won ? ("won" as const) : ("lost" as const),
-        }
-      })
-      saveBets(updated)
-      
-      saveAdminStats({
-        ...adminStats,
-        activeBets: Math.max(0, adminStats.activeBets - settledCount)
-      })
+    try {
+      await settleAllBetsMutation()
+    } catch (err) {
+      console.error(err)
     }
+
+    let settledCount = 0
+    const updated = myBets.map((bet) => {
+      if (bet.status !== "active") return bet
+      settledCount++
+      const won = Math.random() > 0.4
+      return {
+        ...bet,
+        status: won ? ("won" as const) : ("lost" as const),
+      }
+    })
+    saveBets(updated)
+    
+    saveAdminStats({
+      ...adminStats,
+      activeBets: Math.max(0, adminStats.activeBets - settledCount)
+    })
   }
 
   const updateAdminTransactionStatus = async (txId: string, status: "success" | "pending" | "failed", errorDetail?: string) => {
