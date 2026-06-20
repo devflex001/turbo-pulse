@@ -345,13 +345,18 @@ export const listCustomEvents = query({
     const limit = Math.max(1, Math.min(args.limit ?? 50, 100));
     const search = (args.search ?? "").toLowerCase().trim();
 
-    let query = ctx.db.query("customEvents");
+    let results: typeof ctx.db.$public.query.default;
 
     if (args.status) {
-      query = query.withIndex("by_status", (q) => q.eq("status", args.status));
+      results = await ctx.db
+        .query("customEvents")
+        .withIndex("by_status", (q) => q.eq("status", args.status!))
+        .take(limit * 2);
+    } else {
+      results = await ctx.db
+        .query("customEvents")
+        .take(limit * 2);
     }
-
-    let results = await query.take(limit * 2);
 
     // Filter by sport if provided
     if (args.sport) {

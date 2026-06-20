@@ -78,6 +78,18 @@ function dateWindow(dateWindowDays: number) {
   };
 }
 
+// In-memory log storage for active runs - streams logs to clients in real-time
+const activeLogs = new Map<string, string[]>();
+
+// Helper to log messages (both adds to memory and console for debugging)
+function logMessage(runId: string, message: string) {
+  if (!activeLogs.has(runId)) {
+    activeLogs.set(runId, []);
+  }
+  activeLogs.get(runId)!.push(message);
+  console.log(`[${runId}] ${message}`);
+}
+
 async function getOrCreateSettings(ctx: MutationCtx, now: number) {
   const existing = await ctx.db
     .query("scraperSettings")
@@ -128,6 +140,18 @@ export const getAdminOverview = query({
         updatedAt: Date.now(),
       },
       runs,
+    };
+  },
+});
+
+export const getLiveLogs = query({
+  args: {
+    runId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Return logs from in-memory store
+    return {
+      logs: activeLogs.get(args.runId) || [],
     };
   },
 });
@@ -394,31 +418,6 @@ export const updateRunStats = internalMutation({
     }
   },
 });
-
-export const getLiveLogs = query({
-  args: {
-    runId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    // This is a simple in-memory store - logs are not persisted to DB
-    // They're only available while the action is running
-    return {
-      logs: activeLogs.get(args.runId) || [],
-    };
-  },
-});
-
-// In-memory log storage for active runs - streams logs to clients in real-time
-const activeLogs = new Map<string, string[]>();
-
-// Helper to log messages (both adds to memory and console for debugging)
-function logMessage(runId: string, message: string) {
-  if (!activeLogs.has(runId)) {
-    activeLogs.set(runId, []);
-  }
-  activeLogs.get(runId)!.push(message);
-  console.log(`[${runId}] ${message}`);
-}
 
 async function mapConcurrent<T, R>(
   items: T[],
