@@ -143,6 +143,7 @@ export function AdminScraperPanel() {
       addLog(`[INFO] Fetching matches from ${window.dateFrom} to ${window.dateTo}`)
 
       const discovered = new Map<string, unknown>()
+      let totalFetched = 0
 
       for (const date of window.dates) {
         const pageMatches = await kwikbetAdapter.fetchMatchPages({
@@ -153,6 +154,7 @@ export function AdminScraperPanel() {
           sportIds,
         })
 
+        totalFetched += pageMatches.length
         addLog(`[INFO] ${date}: found ${pageMatches.length} matches`)
 
         for (const match of pageMatches) {
@@ -167,7 +169,7 @@ export function AdminScraperPanel() {
         matchesDiscovered: sourceMatchIds.length,
       })
 
-      addLog(`[SUCCESS] Discovered ${sourceMatchIds.length} total matches. Fetching details...`)
+      addLog(`[SUCCESS] Total API results: ${totalFetched}, Unique ${sportNames} matches: ${sourceMatchIds.length}. Fetching details...`)
 
       let successCount = 0
       let failureCount = 0
