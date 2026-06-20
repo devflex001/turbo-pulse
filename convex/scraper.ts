@@ -233,7 +233,6 @@ export const startRun = internalMutation({
       marketsUpserted: 0,
       oddsUpserted: 0,
       failedMatches: 0,
-      errorSummary: null,
     });
   },
 });
@@ -247,7 +246,7 @@ export const upsertMatchDetail = internalMutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
-    
+
     // Batch read all existing data upfront to avoid hitting the read limit
     const existingMatch = await ctx.db
       .query("sportsMatches")
@@ -263,7 +262,7 @@ export const upsertMatchDetail = internalMutation({
         q.eq("sourceMatchId", args.match.sourceMatchId)
       )
       .collect();
-    
+
     const marketKeyMap = new Map(
       existingMarkets.map(m => [m.marketKey, m])
     );
@@ -275,7 +274,7 @@ export const upsertMatchDetail = internalMutation({
         q.eq("sourceMatchId", args.match.sourceMatchId)
       )
       .collect();
-    
+
     const oddIdMap = new Map(
       existingOdds.map(o => [o.sourceOddId, o])
     );
@@ -428,7 +427,7 @@ export const runScrape = internalAction({
   },
   handler: async (ctx, args) => {
     const logs: string[] = [];
-    
+
     const addLog = (message: string) => {
       logs.push(message);
     };
