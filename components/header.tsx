@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import { useBetStore } from "@/hooks/use-bet-store"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -33,6 +34,7 @@ import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescri
 import { Betslip } from "./betslip"
 
 export function Header() {
+  const router = useRouter()
   const { 
     walletBalance, 
     searchQuery, 
@@ -40,8 +42,6 @@ export function Header() {
     setActiveTab,
     betslip
   } = useBetStore()
-
-  const isAdmin = false
 
   const [loginOpen, setLoginOpen] = React.useState(false)
   const [registerOpen, setRegisterOpen] = React.useState(false)

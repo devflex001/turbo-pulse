@@ -47,7 +47,7 @@ export function BanScreen({ embedded = false }: BanScreenProps) {
   const [submitting, setSubmitting] = React.useState(false)
   const [appealSubmitted, setAppealSubmitted] = React.useState(false)
 
-  if (isPending || banStatus === undefined) {
+  if (banStatus === undefined) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="size-6 animate-spin text-muted-foreground" />
