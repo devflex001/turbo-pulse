@@ -372,6 +372,37 @@ export function MarketsBrowser({
 
 export function MarketsPanel({ open, onOpenChange, match, readOnly = false }: MarketsPanelProps) {
   const matchName = `${match.homeTeam} vs ${match.awayTeam}`
+  const isMobile = useMediaQuery("(max-width: 768px)")
+
+  const content = (
+    <MarketsBrowser
+      match={match}
+      readOnly={readOnly}
+      queryEnabled={open}
+      mode="sheet"
+    />
+  )
+
+  const header = (
+    <>
+      <div className="truncate text-sm font-semibold">{matchName}</div>
+      <p className="truncate text-xs text-muted-foreground">{match.competitionName}</p>
+    </>
+  )
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={onOpenChange}>
+        <DrawerContent className="h-[90vh] flex flex-col overflow-hidden p-0 bg-card">
+          <DrawerHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
+            <DrawerTitle className="truncate text-sm font-semibold">{matchName}</DrawerTitle>
+            <p className="truncate text-xs text-muted-foreground">{match.competitionName}</p>
+          </DrawerHeader>
+          {content}
+        </DrawerContent>
+      </Drawer>
+    )
+  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -383,13 +414,7 @@ export function MarketsPanel({ open, onOpenChange, match, readOnly = false }: Ma
           <SheetTitle className="truncate text-sm font-semibold">{matchName}</SheetTitle>
           <p className="truncate text-xs text-muted-foreground">{match.competitionName}</p>
         </SheetHeader>
-
-        <MarketsBrowser
-          match={match}
-          readOnly={readOnly}
-          queryEnabled={open}
-          mode="sheet"
-        />
+        {content}
       </SheetContent>
     </Sheet>
   )
