@@ -85,12 +85,10 @@ export function AdminCustomEventsPanel() {
           </DropdownMenu>
 
           {/* Events List */}
-          <div className="border border-border rounded-lg bg-card p-4">
-            <CustomEventsList
-              status={status}
-              onSelectEvent={handleSelectEvent}
-            />
-          </div>
+          <CustomEventsList
+            status={status}
+            onSelectEvent={handleSelectEvent}
+          />
         </>
       ) : (
         <>

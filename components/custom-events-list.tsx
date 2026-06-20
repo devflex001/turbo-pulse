@@ -110,73 +110,81 @@ export function CustomEventsList({
   }
 
   return (
-    <div className="border border-border rounded-lg bg-card overflow-hidden">
-      {/* Filters */}
-      <div className="px-4 py-3 border-b border-border flex items-center gap-2">
-        {/* Search */}
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search..."
-            className="h-8 pl-8 text-xs focus-visible:ring-primary bg-muted/50"
-          />
+    <div className="space-y-5">
+      {/* Filters Card - matches events page pattern */}
+      <div className="border border-border rounded-lg bg-card p-3 space-y-3">
+        <div className="flex items-center gap-2">
+          {/* Search */}
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search..."
+              className="h-8 pl-8 text-xs focus-visible:ring-primary bg-muted/50"
+            />
+          </div>
+
+          {/* Status Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs gap-1.5 border-border"
+              >
+                {STATUS_OPTIONS.find((s) => s.value === filterStatus)?.label || "Status"}
+                <ChevronDown className="size-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-40">
+              {STATUS_OPTIONS.map((s) => (
+                <DropdownMenuItem
+                  key={s.value}
+                  onClick={() => setFilterStatus(s.value as "draft" | "published" | "all")}
+                  className={filterStatus === s.value ? "bg-accent" : ""}
+                >
+                  {s.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Sort Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs gap-1.5 border-border"
+              >
+                {SORT_OPTIONS.find((s) => s.value === sort)?.label || "Sort"}
+                <ChevronDown className="size-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-48">
+              {SORT_OPTIONS.map((s) => (
+                <DropdownMenuItem
+                  key={s.value}
+                  onClick={() => setSort(s.value as SortOption)}
+                  className={sort === s.value ? "bg-accent" : ""}
+                >
+                  {s.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-
-        {/* Status Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs gap-1.5 border-border"
-            >
-              {STATUS_OPTIONS.find((s) => s.value === filterStatus)?.label || "Status"}
-              <ChevronDown className="size-3" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-40">
-            {STATUS_OPTIONS.map((s) => (
-              <DropdownMenuItem
-                key={s.value}
-                onClick={() => setFilterStatus(s.value as "draft" | "published" | "all")}
-                className={filterStatus === s.value ? "bg-accent" : ""}
-              >
-                {s.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Sort Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs gap-1.5 border-border"
-            >
-              {SORT_OPTIONS.find((s) => s.value === sort)?.label || "Sort"}
-              <ChevronDown className="size-3" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-48">
-            {SORT_OPTIONS.map((s) => (
-              <DropdownMenuItem
-                key={s.value}
-                onClick={() => setSort(s.value as SortOption)}
-                className={sort === s.value ? "bg-accent" : ""}
-              >
-                {s.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
-      {/* Events Table */}
-      <div className="overflow-hidden">
+      {/* Custom Events Table - standalone without outer card */}
+      <div className="border border-border rounded-lg bg-card overflow-hidden">
+        <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-3">
+          <h2 className="text-sm font-bold">Custom Events</h2>
+          <Badge variant="outline" className="text-[10px] font-mono">
+            {sortedEvents.length}
+          </Badge>
+        </div>
 
         {sortedEvents.length > 0 ? (
           <>
