@@ -15,7 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { MarketsPanel, type SportsMatch, type SportsMatchWithOdds } from "./markets-panel"
 
 interface MatchCardProps {
-  match: SportsMatch
+  match: SportsMatch & { firstMarket?: any }
 }
 
 function formatStartTime(startTime: number) {
@@ -42,15 +42,19 @@ export function MatchCard({ match }: MatchCardProps) {
   const [marketsOpen, setMarketsOpen] = React.useState(false)
   const [showMainOdds, setShowMainOdds] = React.useState(false)
 
-  // Load main odds only when user shows interest (hover/click)
+  // Load main odds only when user shows interest (hover/click) and no first market available
+  const shouldLoadOdds = showMainOdds && !match.firstMarket
   const mainOdds = useQuery(
     api.sportsData.getMatchMainOdds,
-    showMainOdds ? { sourceMatchId: match.sourceMatchId } : "skip"
+    shouldLoadOdds ? { sourceMatchId: match.sourceMatchId } : "skip"
   )
+
+  // Use first market odds if available, otherwise use loaded main odds
+  const availableOdds = match.firstMarket?.odds || mainOdds
 
   const matchTitle = `${match.homeTeam} vs ${match.awayTeam}`
   const scores = scoreParts(match.result)
-  const sortedMainOdds = mainOdds ? [...mainOdds].sort(
+  const sortedMainOdds = availableOdds ? [...availableOdds].sort(
     (a, b) => compareFormattedOdds(a, b, match as SportsMatchWithOdds) || a.priority - b.priority
   ) : []
 
@@ -192,8 +196,8 @@ export function MatchCard({ match }: MatchCardProps) {
                   </Button>
                 )
               })
-            ) : mainOdds === undefined ? (
-              // Loading state
+            ) : availableOdds === undefined && !match.firstMarket ? (
+              // Loading state - only show if no first market and still loading
               <Button
                 variant="outline"
                 className="col-span-3 h-11 text-xs font-semibold"

@@ -80,10 +80,12 @@ export default function Page() {
     status: matchStatus,
     search: searchQuery,
     limit: 80,
-  }) as SportsMatch[] | undefined
+    includeFirstMarket: true, // Fetch first market for homepage display
+  }) as (SportsMatch & { firstMarket?: any })[] | undefined
 
   const allMatches = useQuery(api.sportsData.listMatches, {
     limit: 300,
+    includeFirstMarket: false, // No need for market data in sport counting
   }) as SportsMatch[] | undefined
 
   const customEvents = useQuery(api.customEvents.listCustomEvents, {

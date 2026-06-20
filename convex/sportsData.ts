@@ -15,6 +15,7 @@ export const listMatches = query({
     status: v.optional(v.union(v.literal("live"), v.literal("upcoming"))),
     search: v.optional(v.string()),
     limit: v.optional(v.number()),
+    includeFirstMarket: v.optional(v.boolean()), // New option for homepage
   },
   handler: async (ctx, args) => {
     const limit = Math.max(1, Math.min(args.limit ?? 80, 120));
@@ -56,7 +57,41 @@ export const listMatches = query({
       })
       .slice(0, limit);
 
-    // Return matches without odds - significantly reduces data load
+    // Return matches without odds by default - significantly reduces data load
+    // If includeFirstMarket is true, add the first market data for homepage display
+    if (args.includeFirstMarket) {
+      const page = await Promise.all(
+        filtered.map(async (match) => {
+          const firstMarket = await ctx.db
+            .query("sportsMarkets")
+            .withIndex("by_sourceMatchId_and_marketPriority", (q) =>
+              q.eq("sourceMatchId", match.sourceMatchId)
+            )
+            .first();
+
+          // Get odds for the first market only
+          const firstMarketOdds = firstMarket
+            ? await ctx.db
+              .query("sportsOdds")
+              .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
+                q
+                  .eq("sourceMatchId", match.sourceMatchId)
+                  .eq("marketKey", firstMarket.marketKey)
+              )
+              .take(3)
+            : [];
+
+          return {
+            ...match,
+            firstMarket: firstMarket
+              ? { ...firstMarket, odds: firstMarketOdds }
+              : null
+          };
+        })
+      );
+      return page;
+    }
+
     return filtered;
   },
 });
