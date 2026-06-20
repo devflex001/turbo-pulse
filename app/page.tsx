@@ -21,6 +21,8 @@ import {
   PlayCircle,
 } from "lucide-react"
 import type { SportsMatchWithOdds } from "@/components/markets-panel"
+import { CustomEventCard } from "@/components/custom-event-card"
+import { PublishedCustomEventsSection } from "@/components/published-custom-events-section"
 
 const SLIDES = [
   {
@@ -83,6 +85,11 @@ export default function Page() {
   const allMatches = useQuery(api.sportsData.listMatches, {
     limit: 300,
   }) as SportsMatchWithOdds[] | undefined
+
+  const customEvents = useQuery(api.customEvents.listCustomEvents, {
+    status: "published",
+    limit: 10,
+  }) as any[] | undefined
 
   const leagues = useQuery(api.sportsData.listCompetitions, {
     sport: selectedSport,
@@ -204,6 +211,9 @@ export default function Page() {
 
           {activeTab === "home" && (
             <>
+              {/* Published Custom Events Section - Top Most Level */}
+              <PublishedCustomEventsSection />
+
               {matches !== undefined && (
                 <div className="relative overflow-hidden rounded-lg border border-border bg-card h-44 sm:h-52">
                   <Image

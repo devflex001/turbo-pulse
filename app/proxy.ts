@@ -29,7 +29,7 @@ export default async function proxy(request: NextRequest) {
       ? adminPhone
       : `+${adminPhone}`;
 
-    if (session.phone !== normalizedAdmin && session.phone !== adminPhone) {
+    if ((session as any).phone !== normalizedAdmin && (session as any).phone !== adminPhone) {
       return NextResponse.redirect(new URL("/", request.url));
     }
 
