@@ -9,9 +9,7 @@
  */
 
 import type * as bets from "../bets.js";
-import type * as cleanup from "../cleanup.js";
 import type * as crons from "../crons.js";
-import type * as migrations_migrate_remove_user_ids from "../migrations/migrate_remove_user_ids.js";
 import type * as mpesa from "../mpesa.js";
 import type * as scraper from "../scraper.js";
 import type * as scraperValidators from "../scraperValidators.js";
@@ -27,9 +25,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   bets: typeof bets;
-  cleanup: typeof cleanup;
   crons: typeof crons;
-  "migrations/migrate_remove_user_ids": typeof migrations_migrate_remove_user_ids;
   mpesa: typeof mpesa;
   scraper: typeof scraper;
   scraperValidators: typeof scraperValidators;
