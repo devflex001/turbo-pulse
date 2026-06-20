@@ -78,11 +78,7 @@ export function PublishedCustomEventsSection() {
             {sortedByStartTime.map((event) => (
               <div
                 key={event._id}
-                onClick={() => handleOpenDetail(event)}
-                onKeyDown={(keyboardEvent) => handleCardKeyDown(keyboardEvent, event)}
-                role="button"
-                tabIndex={0}
-                className="group relative overflow-hidden rounded-lg border-2 border-yellow-500/60 bg-yellow-50/5 hover:bg-yellow-50/10 transition-all p-4 text-left"
+                className="group relative overflow-hidden rounded-lg border-2 border-yellow-500/60 bg-yellow-50/5 hover:bg-yellow-50/10 transition-all p-4"
               >
                 {/* Golden accent line */}
                 <div className="absolute top-0 left-0 right-0 h-1 bg-yellow-500" />
@@ -113,10 +109,7 @@ export function PublishedCustomEventsSection() {
                     <Button
                       size="sm"
                       className="h-7 text-xs bg-yellow-500/20 text-yellow-700 hover:bg-yellow-500/30 border border-yellow-500/60"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleOpenDetail(event)
-                      }}
+                      onClick={() => handleOpenDetail(event)}
                     >
                       View Markets
                     </Button>
@@ -155,11 +148,7 @@ export function PublishedCustomEventsSection() {
           {sortedByStartTime.map((event) => (
             <div
               key={event._id}
-              onClick={() => handleOpenDetail(event)}
-              onKeyDown={(keyboardEvent) => handleCardKeyDown(keyboardEvent, event)}
-              role="button"
-              tabIndex={0}
-              className="group relative overflow-hidden rounded-lg border-2 border-yellow-500/60 bg-yellow-50/5 hover:bg-yellow-50/10 transition-all p-4 text-left"
+              className="group relative overflow-hidden rounded-lg border-2 border-yellow-500/60 bg-yellow-50/5 hover:bg-yellow-50/10 transition-all p-4"
             >
               {/* Golden accent line */}
               <div className="absolute top-0 left-0 right-0 h-1 bg-yellow-500" />
@@ -190,10 +179,7 @@ export function PublishedCustomEventsSection() {
                   <Button
                     size="sm"
                     className="h-7 text-xs bg-yellow-500/20 text-yellow-700 hover:bg-yellow-500/30 border border-yellow-500/60"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleOpenDetail(event)
-                    }}
+                    onClick={() => handleOpenDetail(event)}
                   >
                     View Markets
                   </Button>

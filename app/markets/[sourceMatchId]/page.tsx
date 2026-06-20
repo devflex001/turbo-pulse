@@ -11,6 +11,7 @@ import { SmallLoader } from "@/components/small-loader"
 import {
   MarketsBrowser,
   type SportsMatchWithOdds,
+  type SportsMatch,
 } from "@/components/markets-panel"
 
 function CountdownTimer({ startTime, isLive }: { startTime: number; isLive: boolean }) {
@@ -91,7 +92,7 @@ export default function MatchMarketsPage() {
   const liveMatches = useQuery(api.sportsData.listMatches, {
     status: "live",
     limit: 80,
-  }) as SportsMatchWithOdds[] | undefined
+  }) as SportsMatch[] | undefined
 
   const liveCount = liveMatches ? liveMatches.filter((m) => m.isLive).length : 0
 
@@ -108,7 +109,7 @@ export default function MatchMarketsPage() {
       navigator.share({
         title: `${match.homeTeam} vs ${match.awayTeam} Odds`,
         url: window.location.href,
-      }).catch(() => {})
+      }).catch(() => { })
     }
   }
 
