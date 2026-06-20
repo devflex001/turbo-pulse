@@ -6,7 +6,7 @@ export const getWalletBalance = query({
   handler: async (ctx) => {
     const wallet = await ctx.db
       .query("wallets")
-      .unique();
+      .first();
     return wallet ? wallet.balance : 1000;
   },
 });
@@ -90,7 +90,7 @@ export const placeBet = mutation({
   handler: async (ctx, args) => {
     let wallet = await ctx.db
       .query("wallets")
-      .unique();
+      .first();
 
     const balance = wallet ? wallet.balance : 1000;
     if (args.stake > balance) throw new Error("Insufficient balance");
@@ -143,7 +143,7 @@ export const createTransaction = mutation({
     if (args.status === "success") {
       let wallet = await ctx.db
         .query("wallets")
-        .unique();
+        .first();
       const currentBalance = wallet ? wallet.balance : 1000;
       const change = args.type === "deposit" ? args.amount : -args.amount;
 
@@ -186,7 +186,7 @@ export const updateTransactionStatus = mutation({
     if (args.status === "success" && oldStatus !== "success") {
       let wallet = await ctx.db
         .query("wallets")
-        .unique();
+        .first();
       const currentBalance = wallet ? wallet.balance : 1000;
       const change =
         transaction.type === "deposit"
@@ -203,7 +203,7 @@ export const updateTransactionStatus = mutation({
     } else if (args.status !== "success" && oldStatus === "success") {
       let wallet = await ctx.db
         .query("wallets")
-        .unique();
+        .first();
       if (wallet) {
         const change =
           transaction.type === "deposit"
@@ -232,7 +232,7 @@ export const settleSingleBet = mutation({
     if (args.status === "won") {
       let wallet = await ctx.db
         .query("wallets")
-        .unique();
+        .first();
       const currentBalance = wallet ? wallet.balance : 1000;
       if (wallet) {
         await ctx.db.patch(wallet._id, {
@@ -276,7 +276,7 @@ export const cancelBet = mutation({
 
     let wallet = await ctx.db
       .query("wallets")
-      .unique();
+      .first();
     const currentBalance = wallet ? wallet.balance : 1000;
 
     if (wallet) {
@@ -306,7 +306,7 @@ export const settleAllBets = mutation({
       if (won) {
         let wallet = await ctx.db
           .query("wallets")
-          .unique();
+          .first();
         const currentBalance = wallet ? wallet.balance : 1000;
         if (wallet) {
           await ctx.db.patch(wallet._id, {

@@ -160,7 +160,6 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
   const dbBalance = useQuery(api.bets.getWalletBalance)
   const dbBets = useQuery(api.bets.getMyBets)
   const dbTransactions = useQuery(api.bets.getTransactions)
-  const dbAdminStats = useQuery(api.admin.getStats)
 
   // Convex mutations
   const placeBetMutation = useMutation(api.bets.placeBet)
@@ -188,7 +187,7 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
   const walletBalance: number = dbBalance ?? 1000
   const myBets: PlacedBet[] = (dbBets as PlacedBet[] | undefined) ?? []
   const transactions: Transaction[] = (dbTransactions as Transaction[] | undefined) ?? []
-  const adminStats = dbAdminStats ?? localAdminStats
+  const adminStats = localAdminStats
 
   React.useEffect(() => {
     if (typeof window !== "undefined") {
