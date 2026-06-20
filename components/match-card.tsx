@@ -2,6 +2,8 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 import { useBetStore } from "@/hooks/use-bet-store"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { compareFormattedOdds, formatOddOutcome } from "@/lib/odds-format"
@@ -10,10 +12,10 @@ import { Badge } from "@/components/ui/badge"
 import { Share2, ListPlus, Radio } from "lucide-react"
 import { ShareModal } from "./modals"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { MarketsPanel, type SportsMatchWithOdds } from "./markets-panel"
+import { MarketsPanel, type SportsMatch, type SportsMatchWithOdds } from "./markets-panel"
 
 interface MatchCardProps {
-  match: SportsMatchWithOdds
+  match: SportsMatch & { firstMarket?: any }
 }
 
 function formatStartTime(startTime: number) {
@@ -38,15 +40,27 @@ export function MatchCard({ match }: MatchCardProps) {
   const { betslip, addToBetslip } = useBetStore()
   const [shareOpen, setShareOpen] = React.useState(false)
   const [marketsOpen, setMarketsOpen] = React.useState(false)
+  const [showMainOdds, setShowMainOdds] = React.useState(false)
+
+  // Load main odds only when user shows interest (hover/click) and no first market available
+  const shouldLoadOdds = showMainOdds && !match.firstMarket
+  const mainOdds = useQuery(
+    api.sportsData.getMatchMainOdds,
+    shouldLoadOdds ? { sourceMatchId: match.sourceMatchId } : "skip"
+  )
+
+  // Use first market odds if available, otherwise use loaded main odds
+  const availableOdds = match.firstMarket?.odds || mainOdds
 
   const matchTitle = `${match.homeTeam} vs ${match.awayTeam}`
   const scores = scoreParts(match.result)
-  const mainOdds = [...match.mainOdds].sort(
-    (a, b) => compareFormattedOdds(a, b, match) || a.priority - b.priority
-  )
+  const sortedMainOdds = availableOdds ? [...availableOdds].sort(
+    (a, b) => compareFormattedOdds(a, b, match as SportsMatchWithOdds) || a.priority - b.priority
+  ) : []
 
-  const handleSelection = (odd: SportsMatchWithOdds["mainOdds"][number]) => {
-    const outcome = formatOddOutcome(odd, match)
+  const handleSelection = (odd: any) => {
+    if (!odd) return
+    const outcome = formatOddOutcome(odd, match as SportsMatchWithOdds)
 
     addToBetslip({
       id: odd.sourceOddId,
@@ -156,20 +170,23 @@ export function MatchCard({ match }: MatchCardProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2.5 pt-1">
-            {mainOdds.length > 0 ? (
-              mainOdds.map((odd) => {
+          <div
+            className="grid grid-cols-3 gap-2.5 pt-1"
+            onMouseEnter={() => setShowMainOdds(true)}
+            onClick={() => setShowMainOdds(true)}
+          >
+            {sortedMainOdds.length > 0 ? (
+              sortedMainOdds.map((odd) => {
                 const selected = betslip.find((item) => item.id === odd.sourceOddId)
-                const outcome = formatOddOutcome(odd, match)
+                const outcome = formatOddOutcome(odd, match as SportsMatchWithOdds)
                 return (
                   <Button
                     key={odd.sourceOddId}
                     variant="outline"
-                    className={`flex flex-col gap-0.5 h-11 py-1 px-2 border-border font-medium transition-colors hover:border-primary/50 hover:bg-accent/40 ${
-                      selected
-                        ? "bg-primary text-primary-foreground border-primary hover:bg-primary/95 hover:border-primary"
-                        : "text-foreground"
-                    }`}
+                    className={`flex flex-col gap-0.5 h-11 py-1 px-2 border-border font-medium transition-colors hover:border-primary/50 hover:bg-accent/40 ${selected
+                      ? "bg-primary text-primary-foreground border-primary hover:bg-primary/95 hover:border-primary"
+                      : "text-foreground"
+                      }`}
                     onClick={() => handleSelection(odd)}
                   >
                     <span className={`text-[9px] ${selected ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
@@ -179,7 +196,17 @@ export function MatchCard({ match }: MatchCardProps) {
                   </Button>
                 )
               })
+            ) : availableOdds === undefined && !match.firstMarket ? (
+              // Loading state - only show if no first market and still loading
+              <Button
+                variant="outline"
+                className="col-span-3 h-11 text-xs font-semibold"
+                disabled
+              >
+                Loading odds...
+              </Button>
             ) : (
+              // No odds available
               <Button
                 variant="outline"
                 className="col-span-3 h-11 text-xs font-semibold"
@@ -193,7 +220,11 @@ export function MatchCard({ match }: MatchCardProps) {
       </div>
 
       <ShareModal open={shareOpen} onOpenChange={setShareOpen} matchName={matchTitle} />
-      <MarketsPanel open={marketsOpen} onOpenChange={setMarketsOpen} match={match} />
+      <MarketsPanel
+        open={marketsOpen}
+        onOpenChange={setMarketsOpen}
+        match={{ ...match, mainOdds: sortedMainOdds }}
+      />
     </>
   )
 }

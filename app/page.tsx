@@ -20,7 +20,7 @@ import {
   HelpCircle,
   PlayCircle,
 } from "lucide-react"
-import type { SportsMatchWithOdds } from "@/components/markets-panel"
+import type { SportsMatch } from "@/components/markets-panel"
 import { CustomEventCard } from "@/components/custom-event-card"
 import { PublishedCustomEventsSection } from "@/components/published-custom-events-section"
 
@@ -80,11 +80,13 @@ export default function Page() {
     status: matchStatus,
     search: searchQuery,
     limit: 80,
-  }) as SportsMatchWithOdds[] | undefined
+    includeFirstMarket: true, // Fetch first market for homepage display
+  }) as (SportsMatch & { firstMarket?: any })[] | undefined
 
   const allMatches = useQuery(api.sportsData.listMatches, {
     limit: 300,
-  }) as SportsMatchWithOdds[] | undefined
+    includeFirstMarket: false, // No need for market data in sport counting
+  }) as SportsMatch[] | undefined
 
   const customEvents = useQuery(api.customEvents.listCustomEvents, {
     status: "published",

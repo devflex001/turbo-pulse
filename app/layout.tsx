@@ -2,13 +2,14 @@ import { Geist_Mono, Figtree, Roboto } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
 import { BetStoreProvider } from "@/hooks/use-bet-store"
 import { ConvexProvider } from "@/components/convex-provider"
+import { Footer } from "@/components/footer"
 
-const robotoHeading = Roboto({subsets:['latin'],variable:'--font-heading'});
+const robotoHeading = Roboto({subsets:['latin'],variable:'--font-heading'})
 
 const figtree = Figtree({subsets:['latin'],variable:'--font-sans'})
 
@@ -33,8 +34,11 @@ export default function RootLayout({
           <ConvexProvider>
             <BetStoreProvider>
               <TooltipProvider>
-                {children}
-                <Toaster richColors position="top-right"/>
+                <div className="min-h-screen flex flex-col">
+                  {children}
+                  <Footer />
+                </div>
+                <Toaster richColors position="top-right" />
               </TooltipProvider>
             </BetStoreProvider>
           </ConvexProvider>

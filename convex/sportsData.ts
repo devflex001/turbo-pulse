@@ -7,6 +7,7 @@ function compactSearch(value: string) {
   return value.trim().toLowerCase();
 }
 
+// Optimized query for initial page load - only match details, no odds
 export const listMatches = query({
   args: {
     sport: v.optional(v.string()),
@@ -14,6 +15,7 @@ export const listMatches = query({
     status: v.optional(v.union(v.literal("live"), v.literal("upcoming"))),
     search: v.optional(v.string()),
     limit: v.optional(v.number()),
+    includeFirstMarket: v.optional(v.boolean()), // Add validator for new parameter
   },
   handler: async (ctx, args) => {
     const limit = Math.max(1, Math.min(args.limit ?? 80, 120));
@@ -55,36 +57,73 @@ export const listMatches = query({
       })
       .slice(0, limit);
 
-    const page = await Promise.all(
-      filtered.map(async (match) => {
-        const mainMarket = await ctx.db
-          .query("sportsMarkets")
-          .withIndex("by_sourceMatchId_and_marketKey", (q) =>
-            q
-              .eq("sourceMatchId", match.sourceMatchId)
-              .eq(
-                "marketKey",
-                `${match.sourceMatchId}:1:1x2:main`
-              )
-          )
-          .unique();
-
-        const mainOdds = mainMarket
-          ? await ctx.db
-            .query("sportsOdds")
-            .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
-              q
-                .eq("sourceMatchId", match.sourceMatchId)
-                .eq("marketKey", mainMarket.marketKey)
+    // Return matches without odds by default - significantly reduces data load
+    // If includeFirstMarket is true, add the first market data for homepage display
+    if (args.includeFirstMarket) {
+      const page = await Promise.all(
+        filtered.map(async (match) => {
+          const firstMarket = await ctx.db
+            .query("sportsMarkets")
+            .withIndex("by_sourceMatchId_and_marketPriority", (q) =>
+              q.eq("sourceMatchId", match.sourceMatchId)
             )
-            .take(3)
-          : [];
+            .first();
 
-        return { ...match, mainOdds };
-      })
-    );
+          // Get odds for the first market only
+          const firstMarketOdds = firstMarket
+            ? await ctx.db
+              .query("sportsOdds")
+              .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
+                q
+                  .eq("sourceMatchId", match.sourceMatchId)
+                  .eq("marketKey", firstMarket.marketKey)
+              )
+              .take(3)
+            : [];
 
-    return page;
+          return {
+            ...match,
+            firstMarket: firstMarket
+              ? { ...firstMarket, odds: firstMarketOdds }
+              : null
+          };
+        })
+      );
+      return page;
+    }
+
+    return filtered;
+  },
+});
+
+// New query to get main odds for a specific match when needed
+export const getMatchMainOdds = query({
+  args: {
+    sourceMatchId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const mainMarket = await ctx.db
+      .query("sportsMarkets")
+      .withIndex("by_sourceMatchId_and_marketKey", (q) =>
+        q
+          .eq("sourceMatchId", args.sourceMatchId)
+          .eq(
+            "marketKey",
+            `${args.sourceMatchId}:1:1x2:main`
+          )
+      )
+      .unique();
+
+    if (!mainMarket) return [];
+
+    return await ctx.db
+      .query("sportsOdds")
+      .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
+        q
+          .eq("sourceMatchId", args.sourceMatchId)
+          .eq("marketKey", mainMarket.marketKey)
+      )
+      .take(3);
   },
 });
 
@@ -151,10 +190,9 @@ export const getMatchWithMainOdds = query({
     const mainMarket = await ctx.db
       .query("sportsMarkets")
       .withIndex("by_sourceMatchId_and_marketKey", (q) =>
-        q.eq("sourceMatchId", match.sourceMatchId).eq(
-          "marketKey",
-          `${match.sourceMatchId}:1:1x2:main`
-        )
+        q
+          .eq("sourceMatchId", args.sourceMatchId)
+          .eq("marketKey", `${args.sourceMatchId}:1:1x2:main`)
       )
       .unique();
 
@@ -162,7 +200,9 @@ export const getMatchWithMainOdds = query({
       ? await ctx.db
         .query("sportsOdds")
         .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
-          q.eq("sourceMatchId", match.sourceMatchId).eq("marketKey", mainMarket.marketKey)
+          q
+            .eq("sourceMatchId", args.sourceMatchId)
+            .eq("marketKey", mainMarket.marketKey)
         )
         .take(3)
       : [];
@@ -182,6 +222,27 @@ export const listMarkets = query({
         q.eq("sourceMatchId", args.sourceMatchId)
       )
       .take(600);
+  },
+});
+
+// Optimized query to get market summary without odds details
+export const getMarketsCount = query({
+  args: {
+    sourceMatchId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const markets = await ctx.db
+      .query("sportsMarkets")
+      .withIndex("by_sourceMatchId_and_marketPriority", (q) =>
+        q.eq("sourceMatchId", args.sourceMatchId)
+      )
+      .take(600);
+
+    return {
+      totalMarkets: markets.length,
+      hasMainMarket: markets.some(m => m.marketKey.includes(":1x2:main")),
+      marketTypes: [...new Set(markets.flatMap(m => m.marketTypes || [m.marketType]).filter(Boolean))],
+    };
   },
 });
 

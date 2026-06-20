@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { SmallLoader } from "@/components/small-loader"
-import { MarketsPanel, type SportsMatchWithOdds } from "@/components/markets-panel"
+import { MarketsPanel, type SportsMatchWithOdds, type SportsMatch } from "@/components/markets-panel"
 import { ListPlus, Search, ChevronDown } from "lucide-react"
 
 function formatStartTime(startTime: number) {
@@ -38,7 +38,7 @@ function truncateEventName(name: string, maxLength: number) {
   return name.slice(0, maxLength) + "…"
 }
 
-function eventName(match: SportsMatchWithOdds) {
+function eventName(match: SportsMatch) {
   return `${match.homeTeam} vs ${match.awayTeam}`
 }
 
@@ -53,7 +53,7 @@ export function AdminEventsPanel() {
   const [sport, setSport] = React.useState("all")
   const [competition, setCompetition] = React.useState("All Leagues")
   const [status, setStatus] = React.useState<"all" | "live" | "upcoming">("all")
-  const [selectedMatch, setSelectedMatch] = React.useState<SportsMatchWithOdds | null>(null)
+  const [selectedMatch, setSelectedMatch] = React.useState<SportsMatch | null>(null)
   const [screenWidth, setScreenWidth] = React.useState(1024)
 
   React.useEffect(() => {
@@ -75,12 +75,14 @@ export function AdminEventsPanel() {
     status: status === "all" ? undefined : status,
     search,
     limit: 100,
-  }) as SportsMatchWithOdds[] | undefined
+    includeFirstMarket: false, // Admin doesn't need market data initially
+  }) as SportsMatch[] | undefined
 
   // Get all available sports from all matches
   const allMatches = useQuery(api.sportsData.listMatches, {
     limit: 300,
-  }) as SportsMatchWithOdds[] | undefined
+    includeFirstMarket: false, // Only need match data for sports list
+  }) as SportsMatch[] | undefined
 
   // Build dynamic sports list from available data
   const availableSports = React.useMemo(() => {
@@ -342,7 +344,7 @@ export function AdminEventsPanel() {
           onOpenChange={(open) => {
             if (!open) setSelectedMatch(null)
           }}
-          match={selectedMatch}
+          match={{ ...selectedMatch, mainOdds: [] }} // Convert to expected type
           readOnly
         />
       )}
