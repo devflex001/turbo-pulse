@@ -1,162 +1,387 @@
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+import { v } from "convex/values"
+import { mutation, query } from "./_generated/server"
+import { Id } from "./_generated/dataModel"
 
-// Default odds for each market type
-const MARKET_OUTCOMES: Record<string, Array<{ outcomeId: string; outcomeName: string; oddValue: number; priority: number }>> = {
-  match_result: [
-    { outcomeId: "1", outcomeName: "Home Win", oddValue: 1.85, priority: 1 },
-    { outcomeId: "X", outcomeName: "Draw", oddValue: 3.20, priority: 2 },
-    { outcomeId: "2", outcomeName: "Away Win", oddValue: 2.10, priority: 3 },
-  ],
-  double_chance: [
-    { outcomeId: "1X", outcomeName: "Home or Draw", oddValue: 1.40, priority: 1 },
-    { outcomeId: "X2", outcomeName: "Draw or Away", oddValue: 1.50, priority: 2 },
-    { outcomeId: "12", outcomeName: "Home or Away", oddValue: 1.15, priority: 3 },
-  ],
-  draw_no_bet: [
-    { outcomeId: "1", outcomeName: "Home Win", oddValue: 2.05, priority: 1 },
-    { outcomeId: "2", outcomeName: "Away Win", oddValue: 2.35, priority: 2 },
-  ],
-  total_goals: [
-    { outcomeId: "O", outcomeName: "Over", oddValue: 1.80, priority: 1 },
-    { outcomeId: "U", outcomeName: "Under", oddValue: 2.00, priority: 2 },
-  ],
-  btts: [
-    { outcomeId: "Y", outcomeName: "Yes", oddValue: 1.80, priority: 1 },
-    { outcomeId: "N", outcomeName: "No", oddValue: 2.00, priority: 2 },
-  ],
-  handicap: [
-    { outcomeId: "1", outcomeName: "Home", oddValue: 1.90, priority: 1 },
-    { outcomeId: "2", outcomeName: "Away", oddValue: 1.90, priority: 2 },
-  ],
-  correct_score: [
-    { outcomeId: "correct", outcomeName: "Correct Score", oddValue: 12.00, priority: 1 },
-  ],
-  first_half_result: [
-    { outcomeId: "1", outcomeName: "Home Win", oddValue: 2.20, priority: 1 },
-    { outcomeId: "X", outcomeName: "Draw", oddValue: 3.50, priority: 2 },
-    { outcomeId: "2", outcomeName: "Away Win", oddValue: 2.60, priority: 3 },
-  ],
-  first_half_goals: [
-    { outcomeId: "O", outcomeName: "Over", oddValue: 1.85, priority: 1 },
-    { outcomeId: "U", outcomeName: "Under", oddValue: 1.95, priority: 2 },
-  ],
-  first_half_btts: [
-    { outcomeId: "Y", outcomeName: "Yes", oddValue: 2.30, priority: 1 },
-    { outcomeId: "N", outcomeName: "No", oddValue: 1.58, priority: 2 },
-  ],
-  team_score_first: [
-    { outcomeId: "1", outcomeName: "Home Team", oddValue: 2.10, priority: 1 },
-    { outcomeId: "2", outcomeName: "Away Team", oddValue: 2.30, priority: 2 },
-  ],
-  team_score_last: [
-    { outcomeId: "1", outcomeName: "Home Team", oddValue: 2.20, priority: 1 },
-    { outcomeId: "2", outcomeName: "Away Team", oddValue: 2.25, priority: 2 },
-  ],
-  odd_even: [
-    { outcomeId: "O", outcomeName: "Odd", oddValue: 1.95, priority: 1 },
-    { outcomeId: "E", outcomeName: "Even", oddValue: 1.85, priority: 2 },
-  ],
-  ht_ft: [
-    { outcomeId: "result", outcomeName: "HT/FT Combination", oddValue: 8.50, priority: 1 },
-  ],
-  goals_range: [
-    { outcomeId: "range", outcomeName: "Goal Range", oddValue: 5.00, priority: 1 },
-  ],
-  winning_margin: [
-    { outcomeId: "margin", outcomeName: "Winning Margin", oddValue: 6.00, priority: 1 },
-  ],
-  combined: [
-    { outcomeId: "combined", outcomeName: "Combined Bet", oddValue: 4.50, priority: 1 },
-  ],
-};
+type CustomMarketTemplate = {
+  name: string
+  marketType: string
+  marketTypes: string[]
+  priority: number
+  outcomes: Array<{
+    outcomeId: string
+    outcomeName: string
+    oddValue: number
+    priority: number
+  }>
+}
 
-// Market template with 60+ pre-configured markets
-const MARKET_TEMPLATE = [
-  // Main Markets (1x2, Draw)
-  { name: "1X2", marketType: "match_result", marketTypes: ["1X2"], priority: 1 },
-  { name: "Double Chance", marketType: "double_chance", marketTypes: ["Double Chance"], priority: 2 },
-  { name: "Draw No Bet", marketType: "draw_no_bet", marketTypes: ["Draw No Bet"], priority: 3 },
-
-  // Over/Under Goals
-  { name: "Over/Under 0.5", marketType: "total_goals", marketTypes: ["Over/Under"], priority: 4 },
-  { name: "Over/Under 1.5", marketType: "total_goals", marketTypes: ["Over/Under"], priority: 5 },
-  { name: "Over/Under 2.5", marketType: "total_goals", marketTypes: ["Over/Under"], priority: 6 },
-  { name: "Over/Under 3.5", marketType: "total_goals", marketTypes: ["Over/Under"], priority: 7 },
-  { name: "Over/Under 4.5", marketType: "total_goals", marketTypes: ["Over/Under"], priority: 8 },
-
-  // Both Teams Score
-  { name: "Both Teams To Score", marketType: "btts", marketTypes: ["Both Teams To Score"], priority: 9 },
-
-  // Handicap
-  { name: "Handicap -1", marketType: "handicap", marketTypes: ["Handicap"], priority: 10 },
-  { name: "Handicap -2", marketType: "handicap", marketTypes: ["Handicap"], priority: 11 },
-  { name: "Handicap +1", marketType: "handicap", marketTypes: ["Handicap"], priority: 12 },
-  { name: "Handicap +2", marketType: "handicap", marketTypes: ["Handicap"], priority: 13 },
-
-  // Correct Score
-  { name: "Correct Score 0-0", marketType: "correct_score", marketTypes: ["Correct Score"], priority: 14 },
-  { name: "Correct Score 1-0", marketType: "correct_score", marketTypes: ["Correct Score"], priority: 15 },
-  { name: "Correct Score 0-1", marketType: "correct_score", marketTypes: ["Correct Score"], priority: 16 },
-  { name: "Correct Score 1-1", marketType: "correct_score", marketTypes: ["Correct Score"], priority: 17 },
-  { name: "Correct Score 2-0", marketType: "correct_score", marketTypes: ["Correct Score"], priority: 18 },
-  { name: "Correct Score 0-2", marketType: "correct_score", marketTypes: ["Correct Score"], priority: 19 },
-  { name: "Correct Score 2-1", marketType: "correct_score", marketTypes: ["Correct Score"], priority: 20 },
-  { name: "Correct Score 1-2", marketType: "correct_score", marketTypes: ["Correct Score"], priority: 21 },
-  { name: "Correct Score 2-2", marketType: "correct_score", marketTypes: ["Correct Score"], priority: 22 },
-  { name: "Correct Score 3-0", marketType: "correct_score", marketTypes: ["Correct Score"], priority: 23 },
-  { name: "Correct Score 0-3", marketType: "correct_score", marketTypes: ["Correct Score"], priority: 24 },
-  { name: "Correct Score 3-1", marketType: "correct_score", marketTypes: ["Correct Score"], priority: 25 },
-  { name: "Correct Score 1-3", marketType: "correct_score", marketTypes: ["Correct Score"], priority: 26 },
-  { name: "Correct Score 3-2", marketType: "correct_score", marketTypes: ["Correct Score"], priority: 27 },
-  { name: "Correct Score 2-3", marketType: "correct_score", marketTypes: ["Correct Score"], priority: 28 },
-  { name: "Correct Score 3-3", marketType: "correct_score", marketTypes: ["Correct Score"], priority: 29 },
-  { name: "Correct Score 4-0", marketType: "correct_score", marketTypes: ["Correct Score"], priority: 30 },
-  { name: "Correct Score 0-4", marketType: "correct_score", marketTypes: ["Correct Score"], priority: 31 },
-
-  // First Half Markets
-  { name: "1X2 First Half", marketType: "first_half_result", marketTypes: ["First Half"], priority: 32 },
-  { name: "Over/Under 0.5 First Half", marketType: "first_half_goals", marketTypes: ["First Half"], priority: 33 },
-  { name: "Over/Under 1.5 First Half", marketType: "first_half_goals", marketTypes: ["First Half"], priority: 34 },
-  { name: "Both Teams Score First Half", marketType: "first_half_btts", marketTypes: ["First Half"], priority: 35 },
-
-  // Player/Team Specific
-  { name: "Team To Score First", marketType: "team_score_first", marketTypes: ["Score First"], priority: 36 },
-  { name: "Team To Score Last", marketType: "team_score_last", marketTypes: ["Score Last"], priority: 37 },
-
-  // Odd/Even
-  { name: "Odd/Even Total Goals", marketType: "odd_even", marketTypes: ["Odd/Even"], priority: 38 },
-
-  // Half Time / Full Time
-  { name: "HT/FT Combination 1/1", marketType: "ht_ft", marketTypes: ["HT/FT"], priority: 39 },
-  { name: "HT/FT Combination 1/2", marketType: "ht_ft", marketTypes: ["HT/FT"], priority: 40 },
-  { name: "HT/FT Combination 1/X", marketType: "ht_ft", marketTypes: ["HT/FT"], priority: 41 },
-  { name: "HT/FT Combination 2/1", marketType: "ht_ft", marketTypes: ["HT/FT"], priority: 42 },
-  { name: "HT/FT Combination 2/2", marketType: "ht_ft", marketTypes: ["HT/FT"], priority: 43 },
-  { name: "HT/FT Combination 2/X", marketType: "ht_ft", marketTypes: ["HT/FT"], priority: 44 },
-  { name: "HT/FT Combination X/1", marketType: "ht_ft", marketTypes: ["HT/FT"], priority: 45 },
-  { name: "HT/FT Combination X/2", marketType: "ht_ft", marketTypes: ["HT/FT"], priority: 46 },
-  { name: "HT/FT Combination X/X", marketType: "ht_ft", marketTypes: ["HT/FT"], priority: 47 },
-
-  // Goals Range
-  { name: "Exactly 1 Goal", marketType: "goals_range", marketTypes: ["Goals Range"], priority: 48 },
-  { name: "Exactly 2 Goals", marketType: "goals_range", marketTypes: ["Goals Range"], priority: 49 },
-  { name: "Exactly 3 Goals", marketType: "goals_range", marketTypes: ["Goals Range"], priority: 50 },
-  { name: "2 or 3 Goals", marketType: "goals_range", marketTypes: ["Goals Range"], priority: 51 },
-  { name: "3 or 4 Goals", marketType: "goals_range", marketTypes: ["Goals Range"], priority: 52 },
-  { name: "3+ Goals", marketType: "goals_range", marketTypes: ["Goals Range"], priority: 53 },
-  { name: "4+ Goals", marketType: "goals_range", marketTypes: ["Goals Range"], priority: 54 },
-  { name: "5+ Goals", marketType: "goals_range", marketTypes: ["Goals Range"], priority: 55 },
-
-  // Winning Margin
-  { name: "Win by 1 Goal", marketType: "winning_margin", marketTypes: ["Winning Margin"], priority: 56 },
-  { name: "Win by 2+ Goals", marketType: "winning_margin", marketTypes: ["Winning Margin"], priority: 57 },
-
-  // Both Teams Score & Goals
-  { name: "BTTS & Over 2.5", marketType: "combined", marketTypes: ["Combined"], priority: 58 },
-  { name: "BTTS & Over 3.5", marketType: "combined", marketTypes: ["Combined"], priority: 59 },
-];
+const CUSTOM_MARKET_TEMPLATE: CustomMarketTemplate[] = [
+  {
+    name: "1X2",
+    marketType: "1x2",
+    marketTypes: ["Main Markets"],
+    priority: 1,
+    outcomes: [
+      { outcomeId: "1", outcomeName: "1", oddValue: 2.45, priority: 1 },
+      { outcomeId: "X", outcomeName: "X", oddValue: 3.3, priority: 2 },
+      { outcomeId: "2", outcomeName: "2", oddValue: 2.9, priority: 3 },
+    ],
+  },
+  {
+    name: "1ST GOAL",
+    marketType: "1st_goal",
+    marketTypes: ["Goal Markets"],
+    priority: 2,
+    outcomes: [
+      { outcomeId: "1", outcomeName: "1", oddValue: 1.72, priority: 1 },
+      { outcomeId: "2", outcomeName: "2", oddValue: 1.58, priority: 2 },
+      { outcomeId: "NONE", outcomeName: "NONE", oddValue: 11.14, priority: 3 },
+    ],
+  },
+  {
+    name: "DOUBLE CHANCE",
+    marketType: "double_chance",
+    marketTypes: ["Main Markets"],
+    priority: 3,
+    outcomes: [
+      { outcomeId: "1/X", outcomeName: "1/X", oddValue: 1.26, priority: 1 },
+      { outcomeId: "1/2", outcomeName: "1/2", oddValue: 1.28, priority: 2 },
+      { outcomeId: "X/2", outcomeName: "X/2", oddValue: 1.47, priority: 3 },
+    ],
+  },
+  {
+    name: "DRAW NO BET",
+    marketType: "draw_no_bet",
+    marketTypes: ["Main Markets"],
+    priority: 4,
+    outcomes: [
+      { outcomeId: "1", outcomeName: "1", oddValue: 1.89, priority: 1 },
+      { outcomeId: "2", outcomeName: "2", oddValue: 2.12, priority: 2 },
+    ],
+  },
+  {
+    name: "TOTAL",
+    marketType: "total",
+    marketTypes: ["Totals"],
+    priority: 5,
+    outcomes: [
+      {
+        outcomeId: "OVER 3.5",
+        outcomeName: "OVER 3.5",
+        oddValue: 2.24,
+        priority: 1,
+      },
+      {
+        outcomeId: "OVER 0.5",
+        outcomeName: "OVER 0.5",
+        oddValue: 1.12,
+        priority: 2,
+      },
+      {
+        outcomeId: "UNDER 0.5",
+        outcomeName: "UNDER 0.5",
+        oddValue: 11.37,
+        priority: 3,
+      },
+      {
+        outcomeId: "OVER 1.5",
+        outcomeName: "OVER 1.5",
+        oddValue: 1.19,
+        priority: 4,
+      },
+      {
+        outcomeId: "UNDER 1.5",
+        outcomeName: "UNDER 1.5",
+        oddValue: 4.07,
+        priority: 5,
+      },
+      {
+        outcomeId: "OVER 2.5",
+        outcomeName: "OVER 2.5",
+        oddValue: 1.75,
+        priority: 6,
+      },
+      {
+        outcomeId: "UNDER 2.5",
+        outcomeName: "UNDER 2.5",
+        oddValue: 2.21,
+        priority: 7,
+      },
+      {
+        outcomeId: "UNDER 3.5",
+        outcomeName: "UNDER 3.5",
+        oddValue: 1.66,
+        priority: 8,
+      },
+      {
+        outcomeId: "OVER 4.5",
+        outcomeName: "OVER 4.5",
+        oddValue: 3.78,
+        priority: 9,
+      },
+      {
+        outcomeId: "UNDER 4.5",
+        outcomeName: "UNDER 4.5",
+        oddValue: 1.16,
+        priority: 10,
+      },
+      {
+        outcomeId: "OVER 5.5",
+        outcomeName: "OVER 5.5",
+        oddValue: 7,
+        priority: 11,
+      },
+      {
+        outcomeId: "UNDER 5.5",
+        outcomeName: "UNDER 5.5",
+        oddValue: 1.04,
+        priority: 12,
+      },
+    ],
+  },
+  {
+    name: "BOTH TEAMS TO SCORE (GG/NG)",
+    marketType: "both_teams_to_score_gg_ng",
+    marketTypes: ["Both Teams To Score"],
+    priority: 6,
+    outcomes: [
+      { outcomeId: "YES", outcomeName: "YES", oddValue: 1.81, priority: 1 },
+      { outcomeId: "NO", outcomeName: "NO", oddValue: 1.84, priority: 2 },
+    ],
+  },
+  {
+    name: "1X2 & BOTH TEAMS TO SCORE",
+    marketType: "1x2_and_both_teams_to_score",
+    marketTypes: ["Both Teams To Score"],
+    priority: 7,
+    outcomes: [
+      {
+        outcomeId: "1 & YES",
+        outcomeName: "1 & YES",
+        oddValue: 4.06,
+        priority: 1,
+      },
+      {
+        outcomeId: "1 & NO",
+        outcomeName: "1 & NO",
+        oddValue: 3.86,
+        priority: 2,
+      },
+      {
+        outcomeId: "X & YES",
+        outcomeName: "X & YES",
+        oddValue: 5.95,
+        priority: 3,
+      },
+      {
+        outcomeId: "X & NO",
+        outcomeName: "X & NO",
+        oddValue: 5.55,
+        priority: 4,
+      },
+      {
+        outcomeId: "2 & YES",
+        outcomeName: "2 & YES",
+        oddValue: 4.76,
+        priority: 5,
+      },
+      {
+        outcomeId: "2 & NO",
+        outcomeName: "2 & NO",
+        oddValue: 4.77,
+        priority: 6,
+      },
+    ],
+  },
+  {
+    name: "1X2 & TOTAL",
+    marketType: "1x2_and_total",
+    marketTypes: ["Totals"],
+    priority: 8,
+    outcomes: [
+      {
+        outcomeId: "1 & OVER 2.5",
+        outcomeName: "1 & OVER 2.5",
+        oddValue: 3.57,
+        priority: 1,
+      },
+      {
+        outcomeId: "1 & UNDER 2.5",
+        outcomeName: "1 & UNDER 2.5",
+        oddValue: 4.96,
+        priority: 2,
+      },
+      {
+        outcomeId: "X & OVER 2.5",
+        outcomeName: "X & OVER 2.5",
+        oddValue: 4.56,
+        priority: 3,
+      },
+      {
+        outcomeId: "X & UNDER 2.5",
+        outcomeName: "X & UNDER 2.5",
+        oddValue: 6.02,
+        priority: 4,
+      },
+      {
+        outcomeId: "2 & OVER 2.5",
+        outcomeName: "2 & OVER 2.5",
+        oddValue: 4.62,
+        priority: 5,
+      },
+      {
+        outcomeId: "2 & UNDER 2.5",
+        outcomeName: "2 & UNDER 2.5",
+        oddValue: 5.28,
+        priority: 6,
+      },
+    ],
+  },
+  {
+    name: "HALFTIME/FULLTIME",
+    marketType: "halftime_fulltime",
+    marketTypes: ["Halftime/Fulltime"],
+    priority: 9,
+    outcomes: [
+      { outcomeId: "1/1", outcomeName: "1/1", oddValue: 4.32, priority: 1 },
+      { outcomeId: "1/X", outcomeName: "1/X", oddValue: 22.26, priority: 2 },
+      { outcomeId: "1/2", outcomeName: "1/2", oddValue: 38.75, priority: 3 },
+      { outcomeId: "X/1", outcomeName: "X/1", oddValue: 4.99, priority: 4 },
+      { outcomeId: "X/X", outcomeName: "X/X", oddValue: 5.21, priority: 5 },
+      { outcomeId: "X/2", outcomeName: "X/2", oddValue: 7.48, priority: 6 },
+      { outcomeId: "2/1", outcomeName: "2/1", oddValue: 52.03, priority: 7 },
+      { outcomeId: "2/X", outcomeName: "2/X", oddValue: 24.55, priority: 8 },
+      { outcomeId: "2/2", outcomeName: "2/2", oddValue: 4.81, priority: 9 },
+    ],
+  },
+  {
+    name: "1ST HALF - 1X2",
+    marketType: "1st_half_1x2",
+    marketTypes: ["First Half"],
+    priority: 10,
+    outcomes: [
+      { outcomeId: "1", outcomeName: "1", oddValue: 2.93, priority: 1 },
+      { outcomeId: "X", outcomeName: "X", oddValue: 2.48, priority: 2 },
+      { outcomeId: "2", outcomeName: "2", oddValue: 3.61, priority: 3 },
+    ],
+  },
+  {
+    name: "1ST HALF - TOTAL",
+    marketType: "1st_half_total",
+    marketTypes: ["First Half"],
+    priority: 11,
+    outcomes: [
+      {
+        outcomeId: "OVER 0.5",
+        outcomeName: "OVER 0.5",
+        oddValue: 1.47,
+        priority: 1,
+      },
+      {
+        outcomeId: "UNDER 0.5",
+        outcomeName: "UNDER 0.5",
+        oddValue: 2.84,
+        priority: 2,
+      },
+      {
+        outcomeId: "OVER 1.5",
+        outcomeName: "OVER 1.5",
+        oddValue: 2.3,
+        priority: 3,
+      },
+      {
+        outcomeId: "UNDER 1.5",
+        outcomeName: "UNDER 1.5",
+        oddValue: 1.62,
+        priority: 4,
+      },
+      {
+        outcomeId: "OVER 2.5",
+        outcomeName: "OVER 2.5",
+        oddValue: 5.3,
+        priority: 5,
+      },
+      {
+        outcomeId: "UNDER 2.5",
+        outcomeName: "UNDER 2.5",
+        oddValue: 1.2,
+        priority: 6,
+      },
+    ],
+  },
+  {
+    name: "1ST HALF - BOTH TEAMS TO SCORE",
+    marketType: "1st_half_both_teams_to_score",
+    marketTypes: ["First Half"],
+    priority: 12,
+    outcomes: [
+      { outcomeId: "YES", outcomeName: "YES", oddValue: 3.22, priority: 1 },
+      { outcomeId: "NO", outcomeName: "NO", oddValue: 1.33, priority: 2 },
+    ],
+  },
+  {
+    name: "1ST HALF - CORRECT SCORE",
+    marketType: "1st_half_correct_score",
+    marketTypes: ["First Half"],
+    priority: 13,
+    outcomes: [
+      { outcomeId: "0:0", outcomeName: "0:0", oddValue: 2.42, priority: 1 },
+      { outcomeId: "0:1", outcomeName: "0:1", oddValue: 7.88, priority: 2 },
+      { outcomeId: "0:2", outcomeName: "0:2", oddValue: 42.38, priority: 3 },
+      { outcomeId: "1:0", outcomeName: "1:0", oddValue: 7.15, priority: 4 },
+      { outcomeId: "1:1", outcomeName: "1:1", oddValue: 9.07, priority: 5 },
+      { outcomeId: "1:2", outcomeName: "1:2", oddValue: 57.94, priority: 6 },
+      { outcomeId: "2:0", outcomeName: "2:0", oddValue: 40.26, priority: 7 },
+      { outcomeId: "2:1", outcomeName: "2:1", oddValue: 52.05, priority: 8 },
+      { outcomeId: "2:2", outcomeName: "2:2", oddValue: 85.55, priority: 9 },
+      {
+        outcomeId: "OTHER",
+        outcomeName: "OTHER",
+        oddValue: 16.74,
+        priority: 10,
+      },
+    ],
+  },
+  {
+    name: "CORRECT SCORE",
+    marketType: "correct_score",
+    marketTypes: ["Correct Score"],
+    priority: 14,
+    outcomes: [
+      { outcomeId: "1:3", outcomeName: "1:3", oddValue: 87.01, priority: 1 },
+      { outcomeId: "0:0", outcomeName: "0:0", oddValue: 7.09, priority: 2 },
+      { outcomeId: "0:1", outcomeName: "0:1", oddValue: 7.9, priority: 3 },
+      { outcomeId: "0:2", outcomeName: "0:2", oddValue: 33.19, priority: 4 },
+      { outcomeId: "0:3", outcomeName: "0:3", oddValue: 102.05, priority: 5 },
+      { outcomeId: "0:4", outcomeName: "0:4", oddValue: 104.25, priority: 6 },
+      { outcomeId: "1:0", outcomeName: "1:0", oddValue: 7.1, priority: 7 },
+      { outcomeId: "1:1", outcomeName: "1:1", oddValue: 6.11, priority: 8 },
+      { outcomeId: "1:2", outcomeName: "1:2", oddValue: 26, priority: 9 },
+      { outcomeId: "1:4", outcomeName: "1:4", oddValue: 105.02, priority: 10 },
+      { outcomeId: "2:0", outcomeName: "2:0", oddValue: 28.22, priority: 11 },
+      { outcomeId: "2:1", outcomeName: "2:1", oddValue: 21.3, priority: 12 },
+      { outcomeId: "2:2", outcomeName: "2:2", oddValue: 21.4, priority: 13 },
+      { outcomeId: "2:3", outcomeName: "2:3", oddValue: 76.08, priority: 14 },
+      { outcomeId: "2:4", outcomeName: "2:4", oddValue: 95.24, priority: 15 },
+      { outcomeId: "3:0", outcomeName: "3:0", oddValue: 91.11, priority: 16 },
+      { outcomeId: "3:1", outcomeName: "3:1", oddValue: 74.11, priority: 17 },
+      { outcomeId: "3:2", outcomeName: "3:2", oddValue: 65.91, priority: 18 },
+      { outcomeId: "3:3", outcomeName: "3:3", oddValue: 106.05, priority: 19 },
+      { outcomeId: "3:4", outcomeName: "3:4", oddValue: 98.82, priority: 20 },
+      { outcomeId: "4:0", outcomeName: "4:0", oddValue: 100.1, priority: 21 },
+      { outcomeId: "4:1", outcomeName: "4:1", oddValue: 90, priority: 22 },
+      { outcomeId: "4:2", outcomeName: "4:2", oddValue: 97.04, priority: 23 },
+      { outcomeId: "4:3", outcomeName: "4:3", oddValue: 95.76, priority: 24 },
+      { outcomeId: "4:4", outcomeName: "4:4", oddValue: 107.44, priority: 25 },
+      {
+        outcomeId: "OTHER",
+        outcomeName: "OTHER",
+        oddValue: 30.74,
+        priority: 26,
+      },
+    ],
+  },
+]
 
 export const createCustomEvent = mutation({
   args: {
@@ -169,8 +394,8 @@ export const createCustomEvent = mutation({
     competition: v.string(),
   },
   handler: async (ctx, args) => {
-    const now = Date.now();
-    const startTimeIso = new Date(args.startTime).toISOString();
+    const now = Date.now()
+    const startTimeIso = new Date(args.startTime).toISOString()
 
     const eventId = await ctx.db.insert("customEvents", {
       title: args.title,
@@ -186,23 +411,20 @@ export const createCustomEvent = mutation({
       createdBy: "admin", // TODO: Use auth context when available
       createdAt: now,
       updatedAt: now,
-    });
+    })
 
-    // Create default markets from template and their odds
-    for (const market of MARKET_TEMPLATE) {
+    for (const market of CUSTOM_MARKET_TEMPLATE) {
       const marketId = await ctx.db.insert("customMarkets", {
         eventId,
-        marketKey: `${eventId}:${market.marketType}`,
+        marketKey: `${eventId}:${market.priority}:${market.marketType}`,
         name: market.name,
         marketType: market.marketType,
         marketTypes: market.marketTypes,
         priority: market.priority,
         isActive: true,
-      });
+      })
 
-      // Create odds for this market from the template
-      const outcomes = MARKET_OUTCOMES[market.marketType] || MARKET_OUTCOMES["match_result"];
-      for (const outcome of outcomes) {
+      for (const outcome of market.outcomes) {
         await ctx.db.insert("customOdds", {
           marketId,
           eventId,
@@ -211,19 +433,19 @@ export const createCustomEvent = mutation({
           oddValue: outcome.oddValue,
           priority: outcome.priority,
           isActive: true,
-        });
+        })
       }
     }
 
     // Update event with total markets count
     await ctx.db.patch(eventId, {
-      totalMarkets: MARKET_TEMPLATE.length,
+      totalMarkets: CUSTOM_MARKET_TEMPLATE.length,
       updatedAt: now,
-    });
+    })
 
-    return eventId;
+    return eventId
   },
-});
+})
 
 export const updateCustomEvent = mutation({
   args: {
@@ -237,30 +459,31 @@ export const updateCustomEvent = mutation({
     competition: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const event = await ctx.db.get(args.eventId);
-    if (!event) throw new Error("Event not found");
-    if (event.status === "published") throw new Error("Cannot edit published event");
+    const event = await ctx.db.get(args.eventId)
+    if (!event) throw new Error("Event not found")
+    if (event.status === "published")
+      throw new Error("Cannot edit published event")
 
     const update: any = {
       updatedAt: Date.now(),
-    };
-
-    if (args.title !== undefined) update.title = args.title;
-    if (args.description !== undefined) update.description = args.description;
-    if (args.homeTeam !== undefined) update.homeTeam = args.homeTeam;
-    if (args.awayTeam !== undefined) update.awayTeam = args.awayTeam;
-    if (args.sport !== undefined) update.sport = args.sport;
-    if (args.competition !== undefined) update.competition = args.competition;
-
-    if (args.startTime !== undefined) {
-      update.startTime = args.startTime;
-      update.startTimeIso = new Date(args.startTime).toISOString();
     }
 
-    await ctx.db.patch(args.eventId, update);
-    return args.eventId;
+    if (args.title !== undefined) update.title = args.title
+    if (args.description !== undefined) update.description = args.description
+    if (args.homeTeam !== undefined) update.homeTeam = args.homeTeam
+    if (args.awayTeam !== undefined) update.awayTeam = args.awayTeam
+    if (args.sport !== undefined) update.sport = args.sport
+    if (args.competition !== undefined) update.competition = args.competition
+
+    if (args.startTime !== undefined) {
+      update.startTime = args.startTime
+      update.startTimeIso = new Date(args.startTime).toISOString()
+    }
+
+    await ctx.db.patch(args.eventId, update)
+    return args.eventId
   },
-});
+})
 
 export const updateCustomMarket = mutation({
   args: {
@@ -271,22 +494,23 @@ export const updateCustomMarket = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const market = await ctx.db.get(args.marketId);
-    if (!market) throw new Error("Market not found");
+    const market = await ctx.db.get(args.marketId)
+    if (!market) throw new Error("Market not found")
 
-    const event = await ctx.db.get(market.eventId);
-    if (event?.status === "published") throw new Error("Cannot edit markets in published event");
+    const event = await ctx.db.get(market.eventId)
+    if (event?.status === "published")
+      throw new Error("Cannot edit markets in published event")
 
-    const update: any = {};
-    if (args.name !== undefined) update.name = args.name;
-    if (args.description !== undefined) update.description = args.description;
-    if (args.priority !== undefined) update.priority = args.priority;
-    if (args.isActive !== undefined) update.isActive = args.isActive;
+    const update: any = {}
+    if (args.name !== undefined) update.name = args.name
+    if (args.description !== undefined) update.description = args.description
+    if (args.priority !== undefined) update.priority = args.priority
+    if (args.isActive !== undefined) update.isActive = args.isActive
 
-    await ctx.db.patch(args.marketId, update);
-    return args.marketId;
+    await ctx.db.patch(args.marketId, update)
+    return args.marketId
   },
-});
+})
 
 export const createCustomOdds = mutation({
   args: {
@@ -304,11 +528,12 @@ export const createCustomOdds = mutation({
     ),
   },
   handler: async (ctx, args) => {
-    const event = await ctx.db.get(args.eventId);
-    if (!event) throw new Error("Event not found");
-    if (event.status === "published") throw new Error("Cannot edit published event");
+    const event = await ctx.db.get(args.eventId)
+    if (!event) throw new Error("Event not found")
+    if (event.status === "published")
+      throw new Error("Cannot edit published event")
 
-    const oddIds = [];
+    const oddIds = []
     for (const outcome of args.outcomes) {
       const oddId = await ctx.db.insert("customOdds", {
         marketId: args.marketId,
@@ -320,13 +545,13 @@ export const createCustomOdds = mutation({
         oddValue: outcome.oddValue,
         priority: outcome.priority,
         isActive: true,
-      });
-      oddIds.push(oddId);
+      })
+      oddIds.push(oddId)
     }
 
-    return oddIds;
+    return oddIds
   },
-});
+})
 
 export const updateCustomOdds = mutation({
   args: {
@@ -336,77 +561,79 @@ export const updateCustomOdds = mutation({
     isActive: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const odd = await ctx.db.get(args.oddId);
-    if (!odd) throw new Error("Odd not found");
+    const odd = await ctx.db.get(args.oddId)
+    if (!odd) throw new Error("Odd not found")
 
-    const event = await ctx.db.get(odd.eventId);
-    if (event?.status === "published") throw new Error("Cannot edit odds in published event");
+    const event = await ctx.db.get(odd.eventId)
+    if (event?.status === "published")
+      throw new Error("Cannot edit odds in published event")
 
-    const update: any = {};
-    if (args.oddValue !== undefined) update.oddValue = args.oddValue;
-    if (args.priority !== undefined) update.priority = args.priority;
-    if (args.isActive !== undefined) update.isActive = args.isActive;
+    const update: any = {}
+    if (args.oddValue !== undefined) update.oddValue = args.oddValue
+    if (args.priority !== undefined) update.priority = args.priority
+    if (args.isActive !== undefined) update.isActive = args.isActive
 
-    await ctx.db.patch(args.oddId, update);
-    return args.oddId;
+    await ctx.db.patch(args.oddId, update)
+    return args.oddId
   },
-});
+})
 
 export const publishCustomEvent = mutation({
   args: {
     eventId: v.id("customEvents"),
   },
   handler: async (ctx, args) => {
-    const event = await ctx.db.get(args.eventId);
-    if (!event) throw new Error("Event not found");
-    if (event.status === "published") throw new Error("Event already published");
+    const event = await ctx.db.get(args.eventId)
+    if (!event) throw new Error("Event not found")
+    if (event.status === "published") throw new Error("Event already published")
 
-    const now = Date.now();
+    const now = Date.now()
     await ctx.db.patch(args.eventId, {
       status: "published",
       publishedAt: now,
       updatedAt: now,
-    });
+    })
 
-    return args.eventId;
+    return args.eventId
   },
-});
+})
 
 export const deleteCustomEvent = mutation({
   args: {
     eventId: v.id("customEvents"),
   },
   handler: async (ctx, args) => {
-    const event = await ctx.db.get(args.eventId);
-    if (!event) throw new Error("Event not found");
-    if (event.status === "published") throw new Error("Cannot delete published event");
+    const event = await ctx.db.get(args.eventId)
+    if (!event) throw new Error("Event not found")
+    if (event.status === "published")
+      throw new Error("Cannot delete published event")
 
     // Delete all related odds
     const odds = await ctx.db
       .query("customOdds")
       .withIndex("by_eventId", (q) => q.eq("eventId", args.eventId))
-      .take(10000);
+      .take(10000)
 
     for (const odd of odds) {
-      await ctx.db.delete(odd._id);
+      await ctx.db.delete(odd._id)
     }
 
     // Delete all related markets
     const markets = await ctx.db
       .query("customMarkets")
       .withIndex("by_eventId", (q) => q.eq("eventId", args.eventId))
-      .take(10000);
+      .take(10000)
 
     for (const market of markets) {
-      await ctx.db.delete(market._id);
+      await ctx.db.delete(market._id)
     }
 
     // Delete event
-    await ctx.db.delete(args.eventId);
+    await ctx.db.delete(args.eventId)
 
-    return true;
+    return true
   },
-});
+})
 
 // Queries
 export const getCustomEvent = query({
@@ -414,9 +641,9 @@ export const getCustomEvent = query({
     eventId: v.id("customEvents"),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.eventId);
+    return await ctx.db.get(args.eventId)
   },
-});
+})
 
 export const listCustomEvents = query({
   args: {
@@ -426,41 +653,40 @@ export const listCustomEvents = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const limit = Math.max(1, Math.min(args.limit ?? 50, 100));
-    const search = (args.search ?? "").toLowerCase().trim();
+    const limit = Math.max(1, Math.min(args.limit ?? 50, 100))
+    const search = (args.search ?? "").toLowerCase().trim()
 
-    let results;
+    let results
 
     if (args.status) {
       results = await ctx.db
         .query("customEvents")
         .withIndex("by_status", (q) => q.eq("status", args.status!))
-        .take(limit * 2);
+        .take(limit * 2)
     } else {
-      results = await ctx.db
-        .query("customEvents")
-        .take(limit * 2);
+      results = await ctx.db.query("customEvents").take(limit * 2)
     }
 
     // Filter by sport if provided
     if (args.sport) {
-      results = results.filter((e: any) => e.sport === args.sport);
+      results = results.filter((e: any) => e.sport === args.sport)
     }
 
     // Filter by search if provided
     if (search) {
       results = results.filter((e: any) => {
-        const text = `${e.homeTeam} ${e.awayTeam} ${e.competition}`.toLowerCase();
-        return text.includes(search);
-      });
+        const text =
+          `${e.homeTeam} ${e.awayTeam} ${e.competition}`.toLowerCase()
+        return text.includes(search)
+      })
     }
 
     // Sort by created date (newest first)
-    results = results.sort((a: any, b: any) => b.createdAt - a.createdAt);
+    results = results.sort((a: any, b: any) => b.createdAt - a.createdAt)
 
-    return results.slice(0, limit);
+    return results.slice(0, limit)
   },
-});
+})
 
 export const listCustomMarkets = query({
   args: {
@@ -472,9 +698,9 @@ export const listCustomMarkets = query({
       .withIndex("by_eventId_and_priority", (q) =>
         q.eq("eventId", args.eventId)
       )
-      .take(500);
+      .take(500)
   },
-});
+})
 
 export const listCustomOdds = query({
   args: {
@@ -486,9 +712,9 @@ export const listCustomOdds = query({
       .withIndex("by_marketId_and_priority", (q) =>
         q.eq("marketId", args.marketId)
       )
-      .take(1000);
+      .take(1000)
   },
-});
+})
 
 export const listCustomOddsByEvent = query({
   args: {
@@ -498,25 +724,25 @@ export const listCustomOddsByEvent = query({
     return await ctx.db
       .query("customOdds")
       .withIndex("by_eventId", (q) => q.eq("eventId", args.eventId))
-      .take(4000);
+      .take(4000)
   },
-});
+})
 
 export const getCustomEventWithMarkets = query({
   args: {
     eventId: v.id("customEvents"),
   },
   handler: async (ctx, args) => {
-    const event = await ctx.db.get(args.eventId);
-    if (!event) return null;
+    const event = await ctx.db.get(args.eventId)
+    if (!event) return null
 
     const markets = await ctx.db
       .query("customMarkets")
       .withIndex("by_eventId_and_priority", (q) =>
         q.eq("eventId", args.eventId)
       )
-      .take(500);
+      .take(500)
 
-    return { ...event, markets };
+    return { ...event, markets }
   },
-});
+})
