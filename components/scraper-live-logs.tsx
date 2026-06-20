@@ -1,8 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { useQuery } from "convex/react"
-import { api } from "@/convex/_generated/api"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useMediaQuery } from "@/hooks/use-media-query"
@@ -10,21 +8,14 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 interface ScraperLiveLogsProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  runId: string | null
+  logs: string[]
+  running: boolean
 }
 
-export function ScraperLiveLogs({ open, onOpenChange, runId }: ScraperLiveLogsProps) {
+export function ScraperLiveLogs({ open, onOpenChange, logs, running }: ScraperLiveLogsProps) {
   const isDesktop = useMediaQuery("(min-width: 1024px)")
   const [autoScroll, setAutoScroll] = React.useState(true)
   const logsContainer = React.useRef<HTMLDivElement>(null)
-
-  // Poll for logs every 500ms
-  const logsData = useQuery(
-    api.scraper.getLiveLogs,
-    runId ? { runId } : "skip"
-  )
-
-  const logs = logsData?.logs || []
 
   React.useEffect(() => {
     if (autoScroll && logsContainer.current) {
@@ -36,12 +27,14 @@ export function ScraperLiveLogs({ open, onOpenChange, runId }: ScraperLiveLogsPr
     <div className="flex flex-col h-full gap-3 p-4">
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold">Live Logs</span>
-        <div className="flex items-center gap-2">
-          <span className="flex items-center gap-1.5">
-            <span className="inline-flex h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-xs text-muted-foreground">Running</span>
-          </span>
-        </div>
+        {running && (
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-flex h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-xs text-muted-foreground">Running</span>
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Log Container */}
