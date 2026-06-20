@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Button } from "@/components/ui/button"
@@ -31,7 +32,6 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
-import { CustomEventEditor } from "@/components/custom-event-editor"
 
 interface CustomEventsListProps {
   onSelectEvent?: (eventId: string) => void
@@ -57,6 +57,7 @@ export function CustomEventsList({
   onSelectEvent,
   status,
 }: CustomEventsListProps) {
+  const router = useRouter()
   const [search, setSearch] = React.useState("")
   const [sort, setSort] = React.useState<SortOption>("newest")
   const [filterStatus, setFilterStatus] = React.useState<"draft" | "published" | "all">(
@@ -64,8 +65,6 @@ export function CustomEventsList({
   )
   const [detailOpen, setDetailOpen] = React.useState(false)
   const [selectedEvent, setSelectedEvent] = React.useState<any>(null)
-  const [editorOpen, setEditorOpen] = React.useState(false)
-  const [editingEvent, setEditingEvent] = React.useState<any>(null)
   const isMobile = useMediaQuery("(max-width: 768px)")
 
   const events = useQuery(api.customEvents.listCustomEvents, {
@@ -101,8 +100,7 @@ export function CustomEventsList({
 
   const handleEdit = (event: any, e: React.MouseEvent) => {
     e.stopPropagation()
-    setEditingEvent(event)
-    setEditorOpen(true)
+    router.push(`/admin/custom-events/${event._id}`)
   }
 
   const sortedEvents = React.useMemo(() => {
@@ -487,17 +485,6 @@ export function CustomEventsList({
           </SheetContent>
         </Sheet>
       )}
-
-      {/* Event Editor Modal */}
-      <CustomEventEditor
-        open={editorOpen}
-        onOpenChange={setEditorOpen}
-        eventToEdit={editingEvent}
-        onSuccess={() => {
-          setEditingEvent(null)
-          setEditorOpen(false)
-        }}
-      />
     </div>
   )
 }
