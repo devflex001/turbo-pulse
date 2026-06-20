@@ -43,6 +43,13 @@ export function PublishedCustomEventsSection() {
     setDetailOpen(true)
   }
 
+  const handleCardKeyDown = (event: React.KeyboardEvent<HTMLDivElement>, customEvent: any) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      handleOpenDetail(customEvent)
+    }
+  }
+
   const eventTitle = selectedEvent
     ? `${selectedEvent.homeTeam} vs ${selectedEvent.awayTeam}`
     : ""
@@ -69,9 +76,12 @@ export function PublishedCustomEventsSection() {
           {/* Golden Styled Event Cards */}
           <div className="grid grid-cols-1 gap-3">
             {sortedByStartTime.map((event) => (
-              <button
+              <div
                 key={event._id}
                 onClick={() => handleOpenDetail(event)}
+                onKeyDown={(keyboardEvent) => handleCardKeyDown(keyboardEvent, event)}
+                role="button"
+                tabIndex={0}
                 className="group relative overflow-hidden rounded-lg border-2 border-yellow-500/60 bg-yellow-50/5 hover:bg-yellow-50/10 transition-all p-4 text-left"
               >
                 {/* Golden accent line */}
@@ -112,7 +122,7 @@ export function PublishedCustomEventsSection() {
                     </Button>
                   </div>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         </div>
@@ -143,9 +153,12 @@ export function PublishedCustomEventsSection() {
         {/* Golden Styled Event Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {sortedByStartTime.map((event) => (
-            <button
+            <div
               key={event._id}
               onClick={() => handleOpenDetail(event)}
+              onKeyDown={(keyboardEvent) => handleCardKeyDown(keyboardEvent, event)}
+              role="button"
+              tabIndex={0}
               className="group relative overflow-hidden rounded-lg border-2 border-yellow-500/60 bg-yellow-50/5 hover:bg-yellow-50/10 transition-all p-4 text-left"
             >
               {/* Golden accent line */}
@@ -186,7 +199,7 @@ export function PublishedCustomEventsSection() {
                   </Button>
                 </div>
               </div>
-            </button>
+            </div>
           ))}
         </div>
       </div>

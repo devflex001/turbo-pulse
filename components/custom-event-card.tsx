@@ -50,9 +50,19 @@ export function CustomEventCard({
 
   const matchTitle = `${homeTeam} vs ${awayTeam}`
 
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      handleClick()
+    }
+  }
+
   return (
-    <button
+    <div
       onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      role="button"
+      tabIndex={0}
       className={cn(
         "flex flex-col rounded-lg border text-left transition-all shadow-sm hover:shadow-md active:scale-95",
         "bg-gradient-to-br from-amber-50/80 to-yellow-50/50 dark:from-amber-950/30 dark:to-yellow-950/20",
@@ -120,6 +130,6 @@ export function CustomEventCard({
           {status === "draft" ? "Edit Event & Markets" : "View Odds"}
         </Button>
       </div>
-    </button>
+    </div>
   )
 }
