@@ -8,7 +8,6 @@ import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { ArrowUpRight, Copy, Check } from "lucide-react"
 import { MPesaLiveStatus, MPesaFeedback } from "@/components/mpesa-feedback"
-import { getMPesaFeedback } from "@/lib/mpesa-status-codes"
 
 const QUICK_AMOUNTS = [100, 250, 500, 1000, 2500, 5000]
 const MIN_AMOUNT = 10
@@ -58,69 +57,45 @@ export function DepositSheet() {
 
   // Listen to database updates from M-Pesa callback
   React.useEffect(() => {
-    if (!checkoutRequestID) return
-    if (!latestTransaction) {
-      console.log("[Convex] Waiting for transaction...", checkoutRequestID)
-      return
-    }
+    if (!checkoutRequestID || !latestTransaction) return
 
-    if (stage === "idle" || stage === "initiating" || stage === "complete") {
-      console.log("[Convex] Skipping - stage is:", stage)
-      return
-    }
+    // Only process when actively waiting
+    if (stage !== "pending_user_action" && stage !== "processing") return
 
-    console.log("[Convex Real-time Update]", latestTransaction)
+    // Skip if no callback response yet
+    if (!latestTransaction.resultCode) return
 
-    const resultCode = latestTransaction.resultCode || "1032"
-    const feedback = getMPesaFeedback(resultCode)
+    console.log("[Real-time] M-Pesa callback received:", latestTransaction)
 
-    // Handle different status codes
+    const resultCode = latestTransaction.resultCode
+    // Use feedback message from server - single source of truth
+    const feedbackMessage = latestTransaction.feedback || `Transaction error: ${resultCode}`
+
+    // Mark complete immediately to prevent duplicate processing
+    setStage("complete")
+
+    // Set transaction result with server feedback
+    setTransactionResult({
+      resultCode: resultCode,
+      resultDesc: feedbackMessage,
+      mpesaReceiptNumber: latestTransaction.mpesaReceiptNumber,
+      amount: latestTransaction.amount,
+      timestamp: latestTransaction.updatedAt || Date.now(),
+    })
+
+    // Show appropriate toast
     if (resultCode === "0") {
-      // Success
-      console.log("[Transaction] Success detected")
-      setStage("complete")
-      setTransactionResult({
-        resultCode: "0",
-        resultDesc: latestTransaction.resultDesc || "Payment completed successfully",
-        mpesaReceiptNumber: latestTransaction.mpesaReceiptNumber,
-        amount: latestTransaction.amount,
-        timestamp: latestTransaction.updatedAt || Date.now(),
-      })
-      toast.success(feedback.message)
-
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
-    } else if (resultCode === "1" || resultCode === "1032" || resultCode === "2") {
-      // User cancelled or timeout
-      console.log("[Transaction] Cancelled/Timeout detected:", resultCode)
-      setStage("complete")
-      setTransactionResult({
-        resultCode: resultCode,
-        resultDesc: latestTransaction.resultDesc || feedback.message,
-        timestamp: latestTransaction.updatedAt || Date.now(),
-      })
-      toast.error(feedback.message)
-
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
+      toast.success(feedbackMessage)
     } else {
-      // Other error codes
-      console.log("[Transaction] Error detected:", resultCode)
-      setStage("complete")
-      setTransactionResult({
-        resultCode: resultCode,
-        resultDesc: latestTransaction.resultDesc || feedback.message,
-        timestamp: latestTransaction.updatedAt || Date.now(),
-      })
-      toast.error(feedback.message)
-
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
+      toast.error(feedbackMessage)
     }
-  }, [latestTransaction, stage, checkoutRequestID])
+
+    // Clear fallback timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+  }, [latestTransaction?.resultCode, latestTransaction?.feedback, stage, checkoutRequestID])
 
   React.useEffect(() => {
     return () => {
