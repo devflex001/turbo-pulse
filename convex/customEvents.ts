@@ -703,9 +703,12 @@ export const listCustomEvents = query({
     sport: v.optional(v.string()),
     search: v.optional(v.string()),
     limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const limit = Math.max(1, Math.min(args.limit ?? 50, 100))
+    const pageSize = Math.max(1, Math.min(args.limit ?? 10, 50))
+    const offset = Math.max(0, args.offset ?? 0)
+    const fetchLimit = (Math.ceil(offset / pageSize) + 2) * pageSize
     const search = (args.search ?? "").toLowerCase().trim()
 
     let results
@@ -714,9 +717,9 @@ export const listCustomEvents = query({
       results = await ctx.db
         .query("customEvents")
         .withIndex("by_status", (q) => q.eq("status", args.status!))
-        .take(limit * 2)
+        .take(fetchLimit)
     } else {
-      results = await ctx.db.query("customEvents").take(limit * 2)
+      results = await ctx.db.query("customEvents").take(fetchLimit)
     }
 
     // Filter by sport if provided
@@ -736,7 +739,7 @@ export const listCustomEvents = query({
     // Sort by created date (newest first)
     results = results.sort((a: any, b: any) => b.createdAt - a.createdAt)
 
-    return results.slice(0, limit)
+    return results.slice(offset, offset + pageSize)
   },
 })
 

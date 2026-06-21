@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/sheet"
 import { CustomEventDetail } from "@/components/custom-event-detail"
 import { SmallLoader } from "@/components/small-loader"
+import { Pagination } from "@/components/pagination"
+import { usePagination } from "@/hooks/use-pagination"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import {
@@ -76,10 +78,18 @@ export function CustomEventsList({
   const [selectedEvent, setSelectedEvent] = React.useState<any>(null)
   const isMobile = useMediaQuery("(max-width: 768px)")
 
+  const pagination = usePagination({ pageSize: 10 })
+
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    pagination.reset()
+  }, [search, filterStatus, pagination])
+
   const events = useQuery(api.customEvents.listCustomEvents, {
     status: filterStatus === "all" ? undefined : filterStatus,
     search: search || undefined,
-    limit: 50,
+    limit: pagination.pageSize,
+    offset: pagination.offset,
   })
 
   const deleteEvent = useMutation(api.customEvents.deleteCustomEvent)
@@ -486,6 +496,16 @@ export function CustomEventsList({
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {events && events.length > 0 && (
+        <Pagination
+          currentPage={pagination.currentPage}
+          pageSize={pagination.pageSize}
+          totalItems={events.length > 0 ? pagination.pageSize * pagination.currentPage : 0}
+          onPageChange={pagination.onPageChange}
+        />
+      )}
 
       {/* Event Detail Modal */}
       {isMobile ? (

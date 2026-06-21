@@ -15,10 +15,14 @@ export const listMatches = query({
     status: v.optional(v.union(v.literal("live"), v.literal("upcoming"))),
     search: v.optional(v.string()),
     limit: v.optional(v.number()),
-    includeFirstMarket: v.optional(v.boolean()), // Add validator for new parameter
+    offset: v.optional(v.number()),
+    includeFirstMarket: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const limit = Math.max(1, Math.min(args.limit ?? 80, 120));
+    const pageSize = Math.max(1, Math.min(args.limit ?? 10, 50));
+    const offset = Math.max(0, args.offset ?? 0);
+    const fetchLimit = (Math.ceil(offset / pageSize) + 2) * pageSize;
+
     // Look back 24 hours and forward 30 days to catch recently scraped matches
     const lowerBound = Date.now() - 24 * 60 * 60 * 1000;
     const upperBound = Date.now() + 30 * 24 * 60 * 60 * 1000;
@@ -30,13 +34,13 @@ export const listMatches = query({
           .withIndex("by_source_and_status_and_startTime", (q) =>
             q.eq("source", SOURCE).eq("status", 1).gte("startTime", lowerBound)
           )
-          .take(limit * 3)
+          .take(fetchLimit)
         : await ctx.db
           .query("sportsMatches")
           .withIndex("by_source_and_startTime", (q) =>
             q.eq("source", SOURCE).gte("startTime", lowerBound)
           )
-          .take(limit * 3);
+          .take(fetchLimit);
 
     const search = compactSearch(args.search ?? "");
     const sport = args.sport && args.sport !== "all" ? args.sport : null;
@@ -54,14 +58,15 @@ export const listMatches = query({
 
         const text = `${match.homeTeam} ${match.awayTeam} ${match.competitionName} ${match.sourceMatchId}`.toLowerCase();
         return text.includes(search);
-      })
-      .slice(0, limit);
+      });
+
+    const paged = filtered.slice(offset, offset + pageSize);
 
     // Return matches without odds by default - significantly reduces data load
     // If includeFirstMarket is true, add the first market data for homepage display
     if (args.includeFirstMarket) {
       const page = await Promise.all(
-        filtered.map(async (match) => {
+        paged.map(async (match) => {
           const firstMarket = await ctx.db
             .query("sportsMarkets")
             .withIndex("by_sourceMatchId_and_marketPriority", (q) =>
@@ -92,7 +97,7 @@ export const listMatches = query({
       return page;
     }
 
-    return filtered;
+    return paged;
   },
 });
 

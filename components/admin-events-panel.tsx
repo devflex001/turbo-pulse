@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { SmallLoader } from "@/components/small-loader"
 import { MarketsPanel, type SportsMatchWithOdds, type SportsMatch } from "@/components/markets-panel"
+import { Pagination } from "@/components/pagination"
+import { usePagination } from "@/hooks/use-pagination"
 import { ListPlus, Search, ChevronDown } from "lucide-react"
 
 function formatStartTime(startTime: number) {
@@ -56,6 +58,8 @@ export function AdminEventsPanel() {
   const [selectedMatch, setSelectedMatch] = React.useState<SportsMatch | null>(null)
   const [screenWidth, setScreenWidth] = React.useState(1024)
 
+  const pagination = usePagination({ pageSize: 10 })
+
   React.useEffect(() => {
     const handleResize = () => setScreenWidth(window.innerWidth)
     window.addEventListener("resize", handleResize)
@@ -63,25 +67,31 @@ export function AdminEventsPanel() {
     return () => window.removeEventListener("resize", handleResize)
   }, [])
 
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    pagination.reset()
+  }, [search, sport, competition, status, pagination])
+
   // Responsive event name length
   const eventMaxLength = screenWidth < 640 ? 20 : screenWidth < 1024 ? 30 : 50
 
   const competitions = useQuery(api.sportsData.listCompetitions, { sport }) as
     | string[]
     | undefined
-  const matches = useQuery(api.sportsData.listMatches, {
+  const matchesData = useQuery(api.sportsData.listMatches, {
     sport,
     competition,
     status: status === "all" ? undefined : status,
     search,
-    limit: 100,
-    includeFirstMarket: false, // Admin doesn't need market data initially
+    limit: pagination.pageSize,
+    offset: pagination.offset,
+    includeFirstMarket: false,
   }) as SportsMatch[] | undefined
 
-  // Get all available sports from all matches
+  // Get all available sports from all matches (for sport list only)
   const allMatches = useQuery(api.sportsData.listMatches, {
     limit: 300,
-    includeFirstMarket: false, // Only need match data for sports list
+    includeFirstMarket: false,
   }) as SportsMatch[] | undefined
 
   // Build dynamic sports list from available data
@@ -214,15 +224,15 @@ export function AdminEventsPanel() {
         <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-3">
           <h2 className="text-sm font-bold">Synced Events</h2>
           <Badge variant="outline" className="text-[10px] font-mono">
-            {matches?.length ?? 0}
+            {matchesData?.length ?? 0}
           </Badge>
         </div>
 
-        {!matches ? (
+        {!matchesData ? (
           <div className="p-4">
             <SmallLoader />
           </div>
-        ) : matches.length > 0 ? (
+        ) : matchesData.length > 0 ? (
           <>
             {/* Desktop Table */}
             <div className="hidden md:block overflow-x-auto">
@@ -239,7 +249,7 @@ export function AdminEventsPanel() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {matches.map((match) => (
+                  {matchesData.map((match) => (
                     <tr key={match.sourceMatchId} className="hover:bg-muted/30 transition-colors">
                       <td className="px-3 py-2 font-mono text-muted-foreground text-[10px]">
                         {formatStartTime(match.startTime)}
@@ -286,7 +296,7 @@ export function AdminEventsPanel() {
 
             {/* Mobile Cards */}
             <div className="md:hidden space-y-2 p-3">
-              {matches.map((match) => (
+              {matchesData.map((match) => (
                 <div key={match.sourceMatchId} className="border border-border rounded-lg p-3 bg-card space-y-2">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex-1 min-w-0">
@@ -337,6 +347,16 @@ export function AdminEventsPanel() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {matchesData && matchesData.length > 0 && (
+        <Pagination
+          currentPage={pagination.currentPage}
+          pageSize={pagination.pageSize}
+          totalItems={matchesData.length > 0 ? pagination.pageSize * pagination.currentPage : 0}
+          onPageChange={pagination.onPageChange}
+        />
+      )}
 
       {selectedMatch && (
         <MarketsPanel

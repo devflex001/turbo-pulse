@@ -6,6 +6,8 @@ import { api } from "@/convex/_generated/api"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { SmallLoader } from "@/components/small-loader"
+import { Pagination } from "@/components/pagination"
+import { usePagination } from "@/hooks/use-pagination"
 import { toast } from "sonner"
 import { PlayCircle } from "lucide-react"
 import { ScraperConfigDrawer, type ScraperConfig } from "@/components/scraper-config-drawer"
@@ -88,14 +90,6 @@ async function mapConcurrent<T, R>(
 }
 
 export function AdminScraperPanel() {
-  const overview = useQuery(api.scraper.getAdminOverview)
-  const startRun = useMutation(api.scraper.startRun)
-  const finishRun = useMutation(api.scraper.finishRun)
-  const noteDiscovery = useMutation(api.scraper.noteDiscovery)
-  const noteMatchFailure = useMutation(api.scraper.noteMatchFailure)
-  const upsertMatchDetail = useMutation(api.scraper.upsertMatchDetail)
-  const updateRunStats = useMutation(api.scraper.updateRunStats)
-
   const [configOpen, setConfigOpen] = React.useState(false)
   const [logsOpen, setLogsOpen] = React.useState(false)
   const [selectedSport, setSelectedSport] = React.useState<string>("1")
@@ -105,8 +99,22 @@ export function AdminScraperPanel() {
   const [logs, setLogs] = React.useState<string[]>([])
   const [currentRunId, setCurrentRunId] = React.useState<Id<"scrapeRuns"> | null>(null)
 
+  const pagination = usePagination({ pageSize: 10 })
+
+  const overview = useQuery(api.scraper.getAdminOverview, {
+    limit: pagination.pageSize,
+    offset: pagination.offset,
+  })
+  const startRun = useMutation(api.scraper.startRun)
+  const finishRun = useMutation(api.scraper.finishRun)
+  const noteDiscovery = useMutation(api.scraper.noteDiscovery)
+  const noteMatchFailure = useMutation(api.scraper.noteMatchFailure)
+  const upsertMatchDetail = useMutation(api.scraper.upsertMatchDetail)
+  const updateRunStats = useMutation(api.scraper.updateRunStats)
+
   const settings = overview?.settings as any
-  const latestRun = overview?.runs?.[0]
+  const runs = overview?.runs ?? []
+  const totalRuns = overview?.totalRuns ?? 0
 
   React.useEffect(() => {
     if (settings) {
@@ -235,9 +243,8 @@ export function AdminScraperPanel() {
     return <SmallLoader />
   }
 
-  // Calculate metrics
-  const totalRuns = overview.runs.length
-  const successfulRuns = overview.runs.filter((r: any) => r.status === "success").length
+  // Calculate metrics based on totalRuns from overview
+  const successfulRuns = runs.filter((r: any) => r.status === "success").length
   const successRate = totalRuns > 0 ? Math.round((successfulRuns / totalRuns) * 100) : 0
 
   return (
@@ -293,7 +300,7 @@ export function AdminScraperPanel() {
       )}
 
       {/* Runs Table */}
-      {overview.runs.length > 0 && (
+      {runs.length > 0 && (
         <div className="space-y-3 border border-border rounded-lg bg-card p-2 sm:px-2 shadow-sm">
           <span className="text-sm font-semibold">Run History</span>
 
@@ -313,7 +320,7 @@ export function AdminScraperPanel() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {overview.runs.slice(0, 10).map((run: any) => {
+                {runs.map((run: any) => {
                   const sportNames = (run.selectedSports || [])
                     .map((sportId: string | number) => {
                       const sport = AVAILABLE_SPORTS.find(s => String(s.id) === String(sportId))
@@ -364,7 +371,7 @@ export function AdminScraperPanel() {
 
           {/* Mobile Cards */}
           <div className="lg:hidden space-y-2">
-            {overview.runs.slice(0, 10).map((run: any) => {
+            {runs.map((run: any) => {
               const sportNames = (run.selectedSports || [])
                 .map((sportId: string | number) => {
                   const sport = AVAILABLE_SPORTS.find(s => String(s.id) === String(sportId))
@@ -417,6 +424,16 @@ export function AdminScraperPanel() {
             })}
           </div>
         </div>
+      )}
+
+      {/* Pagination */}
+      {totalRuns > pagination.pageSize && (
+        <Pagination
+          currentPage={pagination.currentPage}
+          pageSize={pagination.pageSize}
+          totalItems={totalRuns}
+          onPageChange={pagination.onPageChange}
+        />
       )}
 
       {/* Config Dialog/Drawer */}
