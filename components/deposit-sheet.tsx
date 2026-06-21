@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import { ArrowUpRight } from "lucide-react"
+import { ArrowUpRight, Copy, Check } from "lucide-react"
 import { MPesaLiveStatus, MPesaFeedback } from "@/components/mpesa-feedback"
 import { getMPesaFeedback } from "@/lib/mpesa-status-codes"
 
@@ -47,6 +47,7 @@ export function DepositSheet() {
   )
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const [checkoutRequestID, setCheckoutRequestID] = React.useState<string | null>(null)
+  const [copied, setCopied] = React.useState(false)
   const timeoutRef = React.useRef<NodeJS.Timeout | null>(null)
 
   // Query latest transaction status from database
@@ -85,11 +86,11 @@ export function DepositSheet() {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
       }
-    } else if (resultCode === "1") {
+    } else if (resultCode === "1" || resultCode === "1032") {
       // User cancelled
       setStage("complete")
       setTransactionResult({
-        resultCode: "1",
+        resultCode: resultCode,
         resultDesc: latestTransaction.resultDesc || feedback.message,
         timestamp: latestTransaction.updatedAt || Date.now(),
       })
@@ -98,7 +99,7 @@ export function DepositSheet() {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
       }
-    } else if (resultCode === "1032" || feedback.status === "pending") {
+    } else if (feedback.status === "pending") {
       // Still waiting for user - no action needed
       console.log("[Real-time DB] Still pending user confirmation...")
     } else {
@@ -142,7 +143,7 @@ export function DepositSheet() {
       return
     }
 
-  if (!isValidKenyanPhone(phone)) {
+    if (!isValidKenyanPhone(phone)) {
       setErrorMessage("Enter valid phone (e.g. 0712345678)")
       return
     }
@@ -221,15 +222,26 @@ export function DepositSheet() {
   // Render based on stage
   if (stage === "idle") {
     return (
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {errorMessage && (
-          <div className="bg-red-500/10 border border-red-500/20 rounded p-2">
-            <p className="text-xs text-red-700">{errorMessage}</p>
+          <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+            <p className="text-xs font-medium text-red-700">{errorMessage}</p>
           </div>
         )}
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground">
+        {/* Wallet Balance Card */}
+        {wallet && wallet.balance > 0 && (
+          <div className="bg-primary/5 border border-primary/10 rounded-lg p-3">
+            <p className="text-xs text-muted-foreground mb-1">Current Balance</p>
+            <p className="text-lg font-bold text-primary">
+              KES {wallet.balance.toLocaleString()}
+            </p>
+          </div>
+        )}
+
+        {/* Amount Section */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             Amount (KES)
           </label>
           <Input
@@ -239,53 +251,72 @@ export function DepositSheet() {
             placeholder="Enter amount"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="text-sm"
+            className="text-sm font-semibold h-10"
           />
-          <div className="grid grid-cols-3 gap-1.5 pt-1">
+          <div className="grid grid-cols-3 gap-2 pt-2">
             {QUICK_AMOUNTS.map((amt) => (
               <Button
                 key={amt}
                 type="button"
                 variant="outline"
                 size="sm"
-                className="text-xs h-8"
+                className="text-xs h-8 font-medium"
                 onClick={() => setAmount(amt.toString())}
               >
-                +{amt}
+                +{amt.toLocaleString()}
               </Button>
             ))}
           </div>
+          <p className="text-[10px] text-muted-foreground pt-1">
+            Min: KES {MIN_AMOUNT} • Max: KES {MAX_AMOUNT.toLocaleString()}
+          </p>
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground">
-            Phone
+        {/* Phone Section */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            M-Pesa Phone Number
           </label>
           <Input
             type="tel"
             placeholder="0712345678"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="text-sm"
+            className="text-sm font-semibold h-10"
           />
+          <p className="text-[10px] text-muted-foreground">
+            Format: 07XX XXX XXX or +254XX XXX XXX
+          </p>
         </div>
 
-        <Button type="submit" className="w-full text-sm font-bold gap-1.5 h-9">
+        {/* Submit Button */}
+        <Button
+          type="submit"
+          className="w-full text-sm font-bold gap-2 h-10"
+          size="default"
+        >
           <ArrowUpRight className="h-4 w-4" />
-          Deposit
+          Deposit Funds
         </Button>
+
+        {/* Info Message */}
+        <div className="bg-blue-500/5 border border-blue-500/10 rounded-lg p-3">
+          <p className="text-[10px] text-blue-700">
+            ℹ️ An M-Pesa prompt will appear on your phone. Enter your PIN to complete the deposit.
+          </p>
+        </div>
       </form>
     )
   }
 
   if (stage === "error") {
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
         <MPesaLiveStatus
           stage="error"
           errorMessage={errorMessage || "An error occurred"}
         />
-        <Button className="w-full text-sm font-bold h-9" onClick={handleReset}>
+        <Button className="w-full text-sm font-bold h-10" onClick={handleReset}>
           Try Again
         </Button>
       </div>
@@ -293,8 +324,17 @@ export function DepositSheet() {
   }
 
   if (stage === "complete" && transactionResult) {
+    const handleCopyReceipt = () => {
+      if (transactionResult.mpesaReceiptNumber) {
+        navigator.clipboard.writeText(transactionResult.mpesaReceiptNumber)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+        toast.success("Receipt copied to clipboard")
+      }
+    }
+
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
         <MPesaFeedback
           resultCode={transactionResult.resultCode}
           resultDesc={transactionResult.resultDesc}
@@ -302,7 +342,33 @@ export function DepositSheet() {
           transactionId={transactionResult.mpesaReceiptNumber}
           timestamp={transactionResult.timestamp}
         />
-        <Button className="w-full text-sm font-bold h-9" onClick={handleReset}>
+
+        {transactionResult.mpesaReceiptNumber && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full text-xs gap-2"
+            onClick={handleCopyReceipt}
+          >
+            {copied ? (
+              <>
+                <Check className="h-3 w-3" />
+                Copied
+              </>
+            ) : (
+              <>
+                <Copy className="h-3 w-3" />
+                Copy Receipt
+              </>
+            )}
+          </Button>
+        )}
+
+        <Button
+          className="w-full text-sm font-bold h-10"
+          onClick={handleReset}
+        >
           {transactionResult.resultCode === "0" ? "Deposit Again" : "Try Again"}
         </Button>
       </div>
