@@ -86,7 +86,7 @@ export function AdminEventsPanel() {
     limit: pagination.pageSize,
     offset: pagination.offset,
     includeFirstMarket: false,
-  }) as SportsMatch[] | undefined
+  }) as { items: SportsMatch[]; totalCount: number } | undefined
 
   // Get all available sports from all matches (for sport list only)
   const allMatches = useQuery(api.sportsData.listMatches, {
@@ -224,7 +224,7 @@ export function AdminEventsPanel() {
         <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-3">
           <h2 className="text-sm font-bold">Synced Events</h2>
           <Badge variant="outline" className="text-[10px] font-mono">
-            {matchesData?.length ?? 0}
+            {matchesData?.items?.length ?? 0}
           </Badge>
         </div>
 
@@ -232,7 +232,7 @@ export function AdminEventsPanel() {
           <div className="p-4">
             <SmallLoader />
           </div>
-        ) : matchesData.length > 0 ? (
+        ) : matchesData.items && matchesData.items.length > 0 ? (
           <>
             {/* Desktop Table */}
             <div className="hidden md:block overflow-x-auto">
@@ -249,7 +249,7 @@ export function AdminEventsPanel() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {matchesData.map((match) => (
+                  {matchesData.items.map((match) => (
                     <tr key={match.sourceMatchId} className="hover:bg-muted/30 transition-colors">
                       <td className="px-3 py-2 font-mono text-muted-foreground text-[10px]">
                         {formatStartTime(match.startTime)}
@@ -296,7 +296,7 @@ export function AdminEventsPanel() {
 
             {/* Mobile Cards */}
             <div className="md:hidden space-y-2 p-3">
-              {matchesData.map((match) => (
+              {matchesData.items.map((match) => (
                 <div key={match.sourceMatchId} className="border border-border rounded-lg p-3 bg-card space-y-2">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex-1 min-w-0">
@@ -349,11 +349,11 @@ export function AdminEventsPanel() {
       </div>
 
       {/* Pagination */}
-      {matchesData && matchesData.length > 0 && (
+      {matchesData && matchesData.items && matchesData.items.length > 0 && (
         <Pagination
           currentPage={pagination.currentPage}
           pageSize={pagination.pageSize}
-          totalItems={matchesData.length > 0 ? pagination.pageSize * pagination.currentPage : 0}
+          totalItems={matchesData.totalCount || 0}
           onPageChange={pagination.onPageChange}
         />
       )}

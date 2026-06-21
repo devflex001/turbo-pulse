@@ -138,7 +138,8 @@ export function CustomEventsList({
   const sortedEvents = React.useMemo(() => {
     if (!events) return []
 
-    const sorted = [...events]
+    const list = events.items || []
+    const sorted = [...list]
     switch (sort) {
       case "newest":
         sorted.sort((a, b) => b.startTime - a.startTime)
@@ -498,11 +499,11 @@ export function CustomEventsList({
       </div>
 
       {/* Pagination */}
-      {events && events.length > 0 && (
+      {events && events.items && events.items.length > 0 && (
         <Pagination
           currentPage={pagination.currentPage}
           pageSize={pagination.pageSize}
-          totalItems={events.length > 0 ? pagination.pageSize * pagination.currentPage : 0}
+          totalItems={events.totalCount || 0}
           onPageChange={pagination.onPageChange}
         />
       )}

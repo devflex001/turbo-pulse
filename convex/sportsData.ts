@@ -60,6 +60,7 @@ export const listMatches = query({
         return text.includes(search);
       });
 
+    const totalCount = filtered.length;
     const paged = filtered.slice(offset, offset + pageSize);
 
     // Return matches without odds by default - significantly reduces data load
@@ -94,10 +95,16 @@ export const listMatches = query({
           };
         })
       );
-      return page;
+      return {
+        items: page,
+        totalCount,
+      };
     }
 
-    return paged;
+    return {
+      items: paged,
+      totalCount,
+    };
   },
 });
 

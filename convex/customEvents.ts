@@ -739,7 +739,13 @@ export const listCustomEvents = query({
     // Sort by created date (newest first)
     results = results.sort((a: any, b: any) => b.createdAt - a.createdAt)
 
-    return results.slice(offset, offset + pageSize)
+    const totalCount = results.length
+    const paginatedResults = results.slice(offset, offset + pageSize)
+
+    return {
+      items: paginatedResults,
+      totalCount,
+    }
   },
 })
 
