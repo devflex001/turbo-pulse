@@ -72,8 +72,8 @@ export const updateTransactionStatus = mutation({
     const status =
       args.resultCode === "0"
         ? "success"
-        : args.resultCode === "1032"
-          ? "pending"
+        : args.resultCode === "1032" || args.resultCode === "1" || args.resultCode === "2"
+          ? "cancelled"
           : "failed";
 
     // Update transaction record with M-Pesa response

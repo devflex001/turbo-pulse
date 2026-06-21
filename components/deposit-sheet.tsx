@@ -50,22 +50,26 @@ export function DepositSheet() {
   const [copied, setCopied] = React.useState(false)
   const timeoutRef = React.useRef<NodeJS.Timeout | null>(null)
 
-  // Query latest transaction status from database
+  // Query latest transaction status from database - listens for real-time updates
   const latestTransaction = useQuery(
     api.mpesa.getLatestTransaction,
     checkoutRequestID ? { checkoutRequestID } : "skip"
   )
 
-  React.useEffect(() => {
-    // Set default phone if needed
-  }, [])
-
   // Listen to database updates from M-Pesa callback
   React.useEffect(() => {
-    if (!latestTransaction) return
-    if (stage === "idle" || stage === "initiating" || stage === "complete") return
+    if (!checkoutRequestID) return
+    if (!latestTransaction) {
+      console.log("[Convex] Waiting for transaction...", checkoutRequestID)
+      return
+    }
 
-    console.log("[Real-time DB] Update:", latestTransaction)
+    if (stage === "idle" || stage === "initiating" || stage === "complete") {
+      console.log("[Convex] Skipping - stage is:", stage)
+      return
+    }
+
+    console.log("[Convex Real-time Update]", latestTransaction)
 
     const resultCode = latestTransaction.resultCode || "1032"
     const feedback = getMPesaFeedback(resultCode)
@@ -73,6 +77,7 @@ export function DepositSheet() {
     // Handle different status codes
     if (resultCode === "0") {
       // Success
+      console.log("[Transaction] Success detected")
       setStage("complete")
       setTransactionResult({
         resultCode: "0",
@@ -88,6 +93,7 @@ export function DepositSheet() {
       }
     } else if (resultCode === "1" || resultCode === "1032" || resultCode === "2") {
       // User cancelled or timeout
+      console.log("[Transaction] Cancelled/Timeout detected:", resultCode)
       setStage("complete")
       setTransactionResult({
         resultCode: resultCode,
@@ -101,6 +107,7 @@ export function DepositSheet() {
       }
     } else {
       // Other error codes
+      console.log("[Transaction] Error detected:", resultCode)
       setStage("complete")
       setTransactionResult({
         resultCode: resultCode,
@@ -113,7 +120,7 @@ export function DepositSheet() {
         clearTimeout(timeoutRef.current)
       }
     }
-  }, [latestTransaction, stage])
+  }, [latestTransaction, stage, checkoutRequestID])
 
   React.useEffect(() => {
     return () => {
