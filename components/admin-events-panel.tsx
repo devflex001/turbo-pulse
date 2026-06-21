@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { SmallLoader } from "@/components/small-loader"
 import { MarketsPanel, type SportsMatchWithOdds, type SportsMatch } from "@/components/markets-panel"
+import { Pagination } from "@/components/pagination"
+import { usePagination } from "@/hooks/use-pagination"
 import { ListPlus, Search, ChevronDown } from "lucide-react"
 
 function formatStartTime(startTime: number) {
@@ -56,6 +58,8 @@ export function AdminEventsPanel() {
   const [selectedMatch, setSelectedMatch] = React.useState<SportsMatch | null>(null)
   const [screenWidth, setScreenWidth] = React.useState(1024)
 
+  const pagination = usePagination({ pageSize: 10 })
+
   React.useEffect(() => {
     const handleResize = () => setScreenWidth(window.innerWidth)
     window.addEventListener("resize", handleResize)
@@ -63,33 +67,39 @@ export function AdminEventsPanel() {
     return () => window.removeEventListener("resize", handleResize)
   }, [])
 
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    pagination.reset()
+  }, [search, sport, competition, status, pagination])
+
   // Responsive event name length
   const eventMaxLength = screenWidth < 640 ? 20 : screenWidth < 1024 ? 30 : 50
 
   const competitions = useQuery(api.sportsData.listCompetitions, { sport }) as
     | string[]
     | undefined
-  const matches = useQuery(api.sportsData.listMatches, {
+  const matchesData = useQuery(api.sportsData.listMatches, {
     sport,
     competition,
     status: status === "all" ? undefined : status,
     search,
-    limit: 100,
-    includeFirstMarket: false, // Admin doesn't need market data initially
-  }) as SportsMatch[] | undefined
+    limit: pagination.pageSize,
+    offset: pagination.offset,
+    includeFirstMarket: false,
+  }) as { items: SportsMatch[]; totalCount: number } | undefined
 
-  // Get all available sports from all matches
+  // Get all available sports from all matches (for sport list only)
   const allMatches = useQuery(api.sportsData.listMatches, {
     limit: 300,
-    includeFirstMarket: false, // Only need match data for sports list
-  }) as SportsMatch[] | undefined
+    includeFirstMarket: false,
+  }) as { items: SportsMatch[]; totalCount: number } | undefined
 
   // Build dynamic sports list from available data
   const availableSports = React.useMemo(() => {
-    if (!allMatches) return [{ value: "all", label: "All Sports" }]
+    if (!allMatches?.items) return [{ value: "all", label: "All Sports" }]
 
     const sports = new Set<string>()
-    allMatches.forEach((match) => {
+    allMatches.items.forEach((match) => {
       if (match.sportSlug) sports.add(match.sportSlug)
     })
 
@@ -214,21 +224,22 @@ export function AdminEventsPanel() {
         <div className="px-4 py-3 border-b border-border flex items-center justify-between gap-3">
           <h2 className="text-sm font-bold">Synced Events</h2>
           <Badge variant="outline" className="text-[10px] font-mono">
-            {matches?.length ?? 0}
+            {matchesData?.items?.length ?? 0}
           </Badge>
         </div>
 
-        {!matches ? (
+        {!matchesData ? (
           <div className="p-4">
             <SmallLoader />
           </div>
-        ) : matches.length > 0 ? (
+        ) : matchesData.items && matchesData.items.length > 0 ? (
           <>
             {/* Desktop Table */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="border-b border-border text-muted-foreground text-[9px] font-semibold">
                   <tr>
+                    <th className="px-3 py-2 text-center w-8">#</th>
                     <th className="px-3 py-2 text-left">Start</th>
                     <th className="px-3 py-2 text-left">Sport</th>
                     <th className="px-3 py-2 text-left">Event</th>
@@ -239,13 +250,16 @@ export function AdminEventsPanel() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {matches.map((match) => (
+                  {matchesData.items.map((match, index) => (
                     <tr key={match.sourceMatchId} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-3 py-2 text-center text-muted-foreground text-[10px]">
+                        {pagination.offset + index + 1}
+                      </td>
                       <td className="px-3 py-2 font-mono text-muted-foreground text-[10px]">
                         {formatStartTime(match.startTime)}
                       </td>
                       <td className="px-3 py-2 text-muted-foreground text-[10px]">
-                        {formatSportName(match.sportSlug)}
+                        {match.sportSlug ? formatSportName(match.sportSlug) : "—"}
                       </td>
                       <td className="px-3 py-2 font-semibold text-foreground whitespace-nowrap overflow-hidden text-ellipsis" title={eventName(match)}>
                         {truncateEventName(eventName(match), eventMaxLength)}
@@ -286,7 +300,7 @@ export function AdminEventsPanel() {
 
             {/* Mobile Cards */}
             <div className="md:hidden space-y-2 p-3">
-              {matches.map((match) => (
+              {matchesData.items.map((match) => (
                 <div key={match.sourceMatchId} className="border border-border rounded-lg p-3 bg-card space-y-2">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div className="flex-1 min-w-0">
@@ -313,7 +327,7 @@ export function AdminEventsPanel() {
 
                   <div className="flex items-center justify-between pt-2 border-t border-border">
                     <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                      <span>{formatSportName(match.sportSlug)}</span>
+                      <span>{formatSportName(match.sportSlug || "")}</span>
                       <span>•</span>
                       <span className="font-mono">{match.totalMarkets} markets</span>
                     </div>
@@ -337,6 +351,16 @@ export function AdminEventsPanel() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {matchesData && matchesData.items && matchesData.items.length > 0 && (
+        <Pagination
+          currentPage={pagination.currentPage}
+          pageSize={pagination.pageSize}
+          totalItems={matchesData.totalCount || 0}
+          onPageChange={pagination.onPageChange}
+        />
+      )}
 
       {selectedMatch && (
         <MarketsPanel

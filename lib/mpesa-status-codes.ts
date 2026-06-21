@@ -154,10 +154,82 @@ export const MPesaStatusCodes = {
 
   // Pending/Processing Codes
   "1032": {
-    status: "pending",
-    message: "Request in process. Awaiting customer confirmation.",
-    icon: "clock",
-    color: "blue",
+    status: "cancelled",
+    message: "Request cancelled by user. Please try again.",
+    icon: "x",
+    color: "amber",
+  },
+  "1033": {
+    status: "error",
+    message: "System malfunction",
+    icon: "alert",
+    color: "red",
+  },
+  "1034": {
+    status: "error",
+    message: "Request timeout",
+    icon: "alert",
+    color: "red",
+  },
+  "1035": {
+    status: "error",
+    message: "Invalid encryption",
+    icon: "alert",
+    color: "red",
+  },
+  "1036": {
+    status: "error",
+    message: "Invalid command type",
+    icon: "alert",
+    color: "red",
+  },
+  "1037": {
+    status: "error",
+    message: "Invalid transaction ID",
+    icon: "alert",
+    color: "red",
+  },
+  "1038": {
+    status: "error",
+    message: "Invalid session",
+    icon: "alert",
+    color: "red",
+  },
+  "1039": {
+    status: "error",
+    message: "Invalid account",
+    icon: "alert",
+    color: "red",
+  },
+  "1040": {
+    status: "error",
+    message: "Transaction processing failed",
+    icon: "alert",
+    color: "red",
+  },
+  "1041": {
+    status: "error",
+    message: "Network timeout",
+    icon: "alert",
+    color: "red",
+  },
+  "1042": {
+    status: "error",
+    message: "Insufficient credit",
+    icon: "alert",
+    color: "red",
+  },
+  "1043": {
+    status: "error",
+    message: "User account suspended",
+    icon: "alert",
+    color: "red",
+  },
+  "1044": {
+    status: "error",
+    message: "Duplicate transaction",
+    icon: "alert",
+    color: "red",
   },
 
   // Additional Common Codes

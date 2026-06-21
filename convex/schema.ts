@@ -172,7 +172,7 @@ const schema = defineSchema({
     type: v.string(), // "deposit" | "withdrawal"
     amount: v.number(),
     phone: v.optional(v.string()),
-    status: v.string(), // "success" | "pending" | "failed"
+    status: v.string(), // "success" | "pending" | "failed" | "cancelled"
     errorDetail: v.optional(v.string()),
     time: v.number(),
     // M-Pesa specific fields
@@ -181,6 +181,9 @@ const schema = defineSchema({
     resultCode: v.optional(v.string()),
     resultDesc: v.optional(v.string()),
     mpesaReceiptNumber: v.optional(v.string()),
+    // Feedback from server (single source of truth)
+    feedback: v.optional(v.string()),
+    feedbackType: v.optional(v.union(v.literal("success"), v.literal("error"), v.literal("warning"))),
     updatedAt: v.optional(v.number()),
   })
     .index("by_txId", ["txId"])
@@ -236,6 +239,23 @@ const schema = defineSchema({
     .index("by_marketId", ["marketId"])
     .index("by_eventId", ["eventId"])
     .index("by_marketId_and_priority", ["marketId", "priority"]),
+
+  daraja_config: defineTable({
+    consumerKey: v.string(),
+    consumerSecret: v.string(),
+    businessCode: v.string(),
+    passkey: v.string(),
+    callbackUrl: v.string(),
+    timeoutUrl: v.string(),
+    shortcode: v.string(),
+    initiatorName: v.string(),
+    initiatorPassword: v.string(),
+    isProduction: v.boolean(),
+    isEnabled: v.boolean(),
+    useEnvVariables: v.boolean(), // If true, use env vars instead of DB config
+    updatedAt: v.number(),
+    updatedBy: v.string(),
+  }).index("by_isEnabled", ["isEnabled"]),
 })
 
 export default schema

@@ -42,18 +42,27 @@ async function getOrCreateSettings(ctx: MutationCtx, now: number) {
 }
 
 export const getAdminOverview = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
     const settings = await ctx.db
       .query("scraperSettings")
       .withIndex("by_source", (q) => q.eq("source", KWIKBET_SOURCE))
       .unique();
 
-    const runs = await ctx.db
+    const pageSize = Math.max(1, Math.min(args.limit ?? 10, 50));
+    const offset = Math.max(0, args.offset ?? 0);
+    const fetchLimit = (Math.ceil(offset / pageSize) + 2) * pageSize;
+
+    const allRuns = await ctx.db
       .query("scrapeRuns")
       .withIndex("by_source_and_startedAt", (q) => q.eq("source", KWIKBET_SOURCE))
       .order("desc")
-      .take(10);
+      .take(fetchLimit);
+
+    const runs = allRuns.slice(offset, offset + pageSize);
 
     return {
       settings: settings ?? {
@@ -66,6 +75,7 @@ export const getAdminOverview = query({
         updatedAt: Date.now(),
       },
       runs,
+      totalRuns: allRuns.length,
     };
   },
 });

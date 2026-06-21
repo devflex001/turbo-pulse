@@ -73,7 +73,7 @@ export function MPesaFeedback({
 
   return (
     <div
-      className={`border ${colors.border} ${colors.bg} rounded-lg p-4 space-y-2`}
+      className={`border ${colors.border} ${colors.bg} rounded-lg p-4 space-y-3 animate-in fade-in-50`}
     >
       {/* Header with Icon and Status */}
       <div className="flex items-start gap-3">
@@ -82,41 +82,43 @@ export function MPesaFeedback({
           <h3 className={`font-semibold text-sm ${colors.text}`}>
             {feedback.message}
           </h3>
-          <p className={`text-xs ${colors.text}/70 mt-0.5`}>
+          <p className={`text-xs ${colors.text}/70 mt-1 leading-relaxed`}>
             {resultDesc}
           </p>
         </div>
       </div>
 
-      {/* Additional Info */}
-      <div className="space-y-1 text-xs pt-2 border-t border-current/10">
-        {amount !== undefined && (
-          <div className="flex justify-between">
-            <span className={`${colors.text}/70`}>Amount:</span>
-            <span className={`font-semibold ${colors.text}`}>
-              KES {amount.toLocaleString()}
-            </span>
-          </div>
-        )}
+      {/* Additional Info - Only show if we have data */}
+      {(amount !== undefined || transactionId || timestamp) && (
+        <div className="space-y-2 text-xs pt-3 border-t border-current/10">
+          {amount !== undefined && (
+            <div className="flex justify-between items-center">
+              <span className={`${colors.text}/70`}>Amount:</span>
+              <span className={`font-semibold font-mono ${colors.text}`}>
+                KES {amount.toLocaleString()}
+              </span>
+            </div>
+          )}
 
-        {transactionId && (
-          <div className="flex justify-between items-center gap-2">
-            <span className={`${colors.text}/70`}>Ref:</span>
-            <code className={`font-mono text-[10px] ${colors.text}`}>
-              {transactionId}
-            </code>
-          </div>
-        )}
+          {transactionId && (
+            <div className="flex justify-between items-center gap-2">
+              <span className={`${colors.text}/70`}>Receipt:</span>
+              <code className={`font-mono text-[10px] font-semibold ${colors.text} truncate`}>
+                {transactionId}
+              </code>
+            </div>
+          )}
 
-        {timestamp && (
-          <div className="flex justify-between">
-            <span className={`${colors.text}/70`}>Time:</span>
-            <span className={`${colors.text}/70`}>
-              {new Date(timestamp).toLocaleTimeString()}
-            </span>
-          </div>
-        )}
-      </div>
+          {timestamp && (
+            <div className="flex justify-between items-center">
+              <span className={`${colors.text}/70`}>Time:</span>
+              <span className={`text-[10px] ${colors.text}/70`}>
+                {new Date(timestamp).toLocaleTimeString('en-KE')}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -229,12 +231,12 @@ export function MPesaLiveStatus({
 
   return (
     <div
-      className={`border ${borderColor} ${bgColor} rounded-lg p-6 flex flex-col items-center justify-center gap-4`}
+      className={`border ${borderColor} ${bgColor} rounded-lg p-6 flex flex-col items-center justify-center gap-4 min-h-[280px] animate-in fade-in-50`}
     >
       <div className="flex justify-center">{icon}</div>
-      <div className="text-center space-y-2">
-        <h3 className={`font-semibold text-sm ${textColor}`}>{title}</h3>
-        <p className={`text-xs ${textColor}/70 whitespace-pre-line leading-relaxed`}>
+      <div className="text-center space-y-3">
+        <h3 className={`font-semibold text-base ${textColor}`}>{title}</h3>
+        <p className={`text-xs leading-relaxed ${textColor}/70 whitespace-pre-line`}>
           {message}
         </p>
       </div>

@@ -42,8 +42,8 @@ import {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ActiveBan = {
-  _id: Id<"userBans">
-  userId: Id<"users">
+  _id: string
+  userId: string
   reason: string
   bannedAt: number
   bannedUntil: number | null
@@ -51,7 +51,7 @@ type ActiveBan = {
 }
 
 type UserWithBan = {
-  _id: Id<"users">
+  _id: string
   _creationTime: number
   phone?: string
   id?: string
@@ -99,7 +99,7 @@ interface BanModalProps {
 }
 
 function BanModal({ user, open, onClose }: BanModalProps) {
-  const banUser = useMutation(api.adminUsers.banUser)
+  // const banUser = useMutation(api.adminUsers.banUser)
   const [reason, setReason] = React.useState("")
   const [duration, setDuration] = React.useState<string>("permanent")
   const [loading, setLoading] = React.useState(false)
@@ -383,7 +383,7 @@ function UserDetailsModal({ user, open, onClose }: UserDetailsModalProps) {
                 <AlertTriangle className="size-3.5" />
                 Suspension Details
               </h3>
-              
+
               <div className="grid grid-cols-3 gap-y-2 gap-x-2 text-[11px]">
                 <span className="font-semibold text-muted-foreground">Banned At:</span>
                 <span className="col-span-2 text-foreground">
