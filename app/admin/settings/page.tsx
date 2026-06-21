@@ -10,8 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Settings, Eye, EyeOff, Loader, Check, Wallet, Percent } from "lucide-react"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet"
 import { Label } from "@/components/ui/label"
+import { useMediaQuery } from "@/hooks/use-media-query"
 
 interface DarajaConfig {
   _id: string
@@ -36,7 +37,7 @@ export default function SettingsPage() {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
-  const [isDesktop, setIsDesktop] = useState(true)
+  const isDesktop = useMediaQuery("(min-width: 1024px)")
 
   const currentConfig = useQuery(api.daraja.getConfig)
   const saveConfig = useMutation(api.daraja.saveConfig)
@@ -58,13 +59,6 @@ export default function SettingsPage() {
     initiatorPassword: "",
     isProduction: false,
   })
-
-  useEffect(() => {
-    setIsDesktop(window.innerWidth >= 1024)
-    const handleResize = () => setIsDesktop(window.innerWidth >= 1024)
-    window.addEventListener("resize", handleResize)
-    return () => window.removeEventListener("resize", handleResize)
-  }, [])
 
   useEffect(() => {
     if (currentConfig && currentConfig.source !== "environment") {
@@ -227,7 +221,7 @@ export default function SettingsPage() {
 
         {/* Responsive Grid Layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          
+
           {/* Card 1: Daraja Config */}
           <Card className="flex flex-col border border-border hover:shadow-sm transition-shadow">
             <CardHeader className="pb-3">
@@ -273,20 +267,20 @@ export default function SettingsPage() {
             <CardContent className="flex-1 space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-xs">Minimum Deposit (KES)</Label>
-                <Input 
-                  type="number" 
-                  value={limitsForm.minDeposit} 
+                <Input
+                  type="number"
+                  value={limitsForm.minDeposit}
                   onChange={(e) => setLimitsForm(prev => ({ ...prev, minDeposit: e.target.value }))}
-                  className="h-8 text-xs" 
+                  className="h-8 text-xs"
                 />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Minimum Withdrawal (KES)</Label>
-                <Input 
-                  type="number" 
-                  value={limitsForm.minWithdrawal} 
+                <Input
+                  type="number"
+                  value={limitsForm.minWithdrawal}
                   onChange={(e) => setLimitsForm(prev => ({ ...prev, minWithdrawal: e.target.value }))}
-                  className="h-8 text-xs" 
+                  className="h-8 text-xs"
                 />
               </div>
             </CardContent>
@@ -307,21 +301,21 @@ export default function SettingsPage() {
             <CardContent className="flex-1 space-y-4">
               <div className="space-y-1.5">
                 <Label className="text-xs">Withdrawal Fee (%)</Label>
-                <Input 
-                  type="number" 
+                <Input
+                  type="number"
                   step="0.1"
-                  value={feesForm.withdrawalFeePercent} 
+                  value={feesForm.withdrawalFeePercent}
                   onChange={(e) => setFeesForm(prev => ({ ...prev, withdrawalFeePercent: e.target.value }))}
-                  className="h-8 text-xs" 
+                  className="h-8 text-xs"
                 />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-xs">Flat Additional Fee (KES)</Label>
-                <Input 
-                  type="number" 
-                  value={feesForm.flatFee} 
+                <Input
+                  type="number"
+                  value={feesForm.flatFee}
                   onChange={(e) => setFeesForm(prev => ({ ...prev, flatFee: e.target.value }))}
-                  className="h-8 text-xs" 
+                  className="h-8 text-xs"
                 />
               </div>
             </CardContent>
@@ -335,20 +329,22 @@ export default function SettingsPage() {
 
       {/* Desktop Modal or Mobile Drawer */}
       {isDesktop ? (
-        <Dialog open={showDrawer} onOpenChange={setShowDrawer}>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Configure Daraja API</DialogTitle>
-              <DialogClose />
-            </DialogHeader>
-            <ConfigForm />
-          </DialogContent>
-        </Dialog>
+        <Sheet open={showDrawer} onOpenChange={setShowDrawer}>
+          <SheetContent side="right" className="w-full sm:max-w-md max-h-screen overflow-y-auto border-l border-border bg-card">
+            <SheetHeader className="border-b border-border bg-muted/20 -mx-6 px-6 py-4 mb-4">
+              <SheetTitle className="text-lg font-bold">Configure Daraja API</SheetTitle>
+              <SheetClose />
+            </SheetHeader>
+            <div className="px-0">
+              <ConfigForm />
+            </div>
+          </SheetContent>
+        </Sheet>
       ) : (
         <Drawer open={showDrawer} onOpenChange={setShowDrawer}>
-          <DrawerContent>
-            <DrawerHeader className="flex justify-between items-center">
-              <DrawerTitle>Configure Daraja API</DrawerTitle>
+          <DrawerContent className="flex flex-col">
+            <DrawerHeader className="border-b border-border bg-muted/20">
+              <DrawerTitle className="text-lg font-bold">Configure Daraja API</DrawerTitle>
               <DrawerClose />
             </DrawerHeader>
             <div className="px-4 pb-6 overflow-y-auto max-h-[70vh]">
