@@ -92,14 +92,14 @@ export function AdminEventsPanel() {
   const allMatches = useQuery(api.sportsData.listMatches, {
     limit: 300,
     includeFirstMarket: false,
-  }) as SportsMatch[] | undefined
+  }) as { items: SportsMatch[]; totalCount: number } | undefined
 
   // Build dynamic sports list from available data
   const availableSports = React.useMemo(() => {
-    if (!allMatches) return [{ value: "all", label: "All Sports" }]
+    if (!allMatches?.items) return [{ value: "all", label: "All Sports" }]
 
     const sports = new Set<string>()
-    allMatches.forEach((match) => {
+    allMatches.items.forEach((match) => {
       if (match.sportSlug) sports.add(match.sportSlug)
     })
 
