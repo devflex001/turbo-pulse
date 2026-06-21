@@ -34,10 +34,6 @@ import {
   Trophy,
   ArrowUpRight,
   ArrowDownLeft,
-  ShieldAlert,
-  Mail,
-  BarChart3,
-  FileText,
   Database,
   PlayCircle,
   PlusCircle,
@@ -58,13 +54,6 @@ const operationsNavItems = [
   { id: "scraper", label: "Scraper", icon: Database, href: "/admin/scraper" },
   { id: "events", label: "Events", icon: PlayCircle, href: "/admin/events" },
   { id: "custom-events", label: "Custom Events", icon: PlusCircle, href: "/admin/custom-events" },
-  { id: "risk", label: "Risk", icon: ShieldAlert, href: "/admin/risk" },
-  { id: "newsletter", label: "Newsletter", icon: Mail, href: "/admin/newsletter" },
-]
-
-const insightsNavItems = [
-  { id: "analytics", label: "Analytics", icon: BarChart3, href: "/admin/analytics" },
-  { id: "reports", label: "Reports", icon: FileText, href: "/admin/reports" },
 ]
 
 const settingsNavItems = [
@@ -122,7 +111,6 @@ function SidebarContent({ currentPath, collapsed = false, onNavigate }: SidebarC
       {renderNavGroup("Core", coreNavItems)}
       {renderNavGroup("Operations", operationsNavItems)}
       <div className="mt-auto space-y-5">
-        {renderNavGroup("Insights", insightsNavItems)}
         {renderNavGroup("System", settingsNavItems)}
       </div>
     </div>
