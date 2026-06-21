@@ -110,25 +110,48 @@ export default function Page() {
     return () => clearInterval(timer)
   }, [])
 
-  const displayedMatches = matches ?? []
+  const displayedMatches = React.useMemo(() => {
+    if (Array.isArray(matches)) {
+      return matches
+    }
+
+    if (matches && typeof matches === "object" && Array.isArray((matches as { page?: unknown }).page)) {
+      return (matches as { page: (SportsMatch & { firstMarket?: any })[] }).page
+    }
+
+    return []
+  }, [matches])
+
+  const countedMatches = React.useMemo(() => {
+    if (Array.isArray(allMatches)) {
+      return allMatches
+    }
+
+    if (allMatches && typeof allMatches === "object" && Array.isArray((allMatches as { page?: unknown }).page)) {
+      return (allMatches as { page: SportsMatch[] }).page
+    }
+
+    return []
+  }, [allMatches])
+
   const featuredMatches = displayedMatches.slice(0, 4)
   const upcomingMatches = activeTab === "featured" ? featuredMatches : displayedMatches
   const sportOptions = React.useMemo(() => {
     const counts = new Map<string, number>()
 
-    for (const match of allMatches ?? []) {
+    for (const match of countedMatches) {
       const key = match.sportSlug || "all"
       counts.set(key, (counts.get(key) ?? 0) + 1)
     }
 
     return [
-      { id: "all", label: "All Sports", count: allMatches?.length ?? 0 },
+      { id: "all", label: "All Sports", count: countedMatches.length },
       ...Array.from(counts.entries())
         .filter(([key]) => key !== "all")
         .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
         .map(([id, count]) => ({ id, label: titleCase(id), count })),
     ]
-  }, [allMatches])
+  }, [countedMatches])
 
   const handleContactSubmit = (event: React.FormEvent) => {
     event.preventDefault()

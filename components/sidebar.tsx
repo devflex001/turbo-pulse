@@ -41,26 +41,38 @@ export function Sidebar({ className }: SidebarProps) {
     sport: selectedSport,
   }) as string[] | undefined
 
+  const allMatchItems = React.useMemo(() => {
+    if (Array.isArray(allMatches)) {
+      return allMatches
+    }
+
+    if (allMatches && typeof allMatches === "object" && Array.isArray((allMatches as { page?: unknown }).page)) {
+      return (allMatches as { page: MatchRecord[] }).page
+    }
+
+    return []
+  }, [allMatches])
+
   const liveCount = React.useMemo(
-    () => (allMatches ?? []).filter((match) => match.isLive).length,
-    [allMatches]
+    () => allMatchItems.filter((match) => match.isLive).length,
+    [allMatchItems]
   )
 
   const sportItems = React.useMemo(() => {
     const counts = new Map<string, number>()
-    for (const match of allMatches ?? []) {
+    for (const match of allMatchItems) {
       const key = match.sportSlug || "all"
       counts.set(key, (counts.get(key) ?? 0) + 1)
     }
 
     return [
-      { id: "all", label: "All Sports", count: allMatches?.length ?? 0 },
+      { id: "all", label: "All Sports", count: allMatchItems.length },
       ...Array.from(counts.entries())
         .filter(([key]) => key !== "all")
         .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
         .map(([id, count]) => ({ id, label: titleCase(id), count })),
     ]
-  }, [allMatches])
+  }, [allMatchItems])
 
   const mainNavItems = [
     { id: "home", label: "Homepage", icon: Home },

@@ -32,11 +32,27 @@ export function PublishedCustomEventsSection() {
     limit: 10,
   })
 
-  if (!publishedEvents || publishedEvents.length === 0) {
+  const publishedEventItems = React.useMemo(() => {
+    if (Array.isArray(publishedEvents)) {
+      return publishedEvents
+    }
+
+    if (
+      publishedEvents &&
+      typeof publishedEvents === "object" &&
+      Array.isArray((publishedEvents as { page?: unknown }).page)
+    ) {
+      return (publishedEvents as { page: any[] }).page
+    }
+
+    return []
+  }, [publishedEvents])
+
+  if (publishedEventItems.length === 0) {
     return null
   }
 
-  const sortedByStartTime = [...publishedEvents].sort((a, b) => a.startTime - b.startTime)
+  const sortedByStartTime = [...publishedEventItems].sort((a, b) => a.startTime - b.startTime)
 
   const handleOpenDetail = (event: any) => {
     setSelectedEvent(event)
