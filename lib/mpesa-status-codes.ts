@@ -154,10 +154,10 @@ export const MPesaStatusCodes = {
 
   // Pending/Processing Codes
   "1032": {
-    status: "pending",
-    message: "Request in process. Awaiting customer confirmation.",
-    icon: "clock",
-    color: "blue",
+    status: "cancelled",
+    message: "Request cancelled by user. Please try again.",
+    icon: "x",
+    color: "amber",
   },
 
   // Additional Common Codes
