@@ -124,9 +124,9 @@ export default function SettingsPage() {
       )}
 
       <div className="space-y-2">
-        <Label className="text-xs">Environment</Label>
+        <Label className="text-xs font-semibold">Environment</Label>
         <Select value={formData.isProduction ? "production" : "sandbox"} onValueChange={(value) => handleInputChange("isProduction", value === "production")}>
-          <SelectTrigger className="h-8">
+          <SelectTrigger className="h-9 text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -137,15 +137,15 @@ export default function SettingsPage() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="consumerKey" className="text-xs">Consumer Key</Label>
-        <Input id="consumerKey" value={formData.consumerKey || ""} onChange={(e) => handleInputChange("consumerKey", e.target.value)} className="h-8 font-mono text-xs" />
+        <Label htmlFor="consumerKey" className="text-xs font-semibold">Consumer Key</Label>
+        <Input id="consumerKey" value={formData.consumerKey || ""} onChange={(e) => handleInputChange("consumerKey", e.target.value)} className="h-9 font-mono text-xs" />
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs">Consumer Secret</Label>
+        <Label className="text-xs font-semibold">Consumer Secret</Label>
         <div className="flex gap-2">
-          <Input type={showSecrets.consumerSecret ? "text" : "password"} value={formData.consumerSecret || ""} onChange={(e) => handleInputChange("consumerSecret", e.target.value)} className="h-8 font-mono text-xs flex-1" />
-          <Button variant="ghost" size="sm" onClick={() => toggleShowSecret("consumerSecret")} className="h-8 w-8 p-0">
+          <Input type={showSecrets.consumerSecret ? "text" : "password"} value={formData.consumerSecret || ""} onChange={(e) => handleInputChange("consumerSecret", e.target.value)} className="h-9 font-mono text-xs flex-1" />
+          <Button variant="ghost" size="sm" onClick={() => toggleShowSecret("consumerSecret")} className="h-9 w-9 p-0">
             {showSecrets.consumerSecret ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </Button>
         </div>
@@ -153,20 +153,20 @@ export default function SettingsPage() {
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label className="text-xs">Business Code</Label>
-          <Input value={formData.businessCode || ""} onChange={(e) => handleInputChange("businessCode", e.target.value)} className="h-8 font-mono text-xs" />
+          <Label className="text-xs font-semibold">Business Code</Label>
+          <Input value={formData.businessCode || ""} onChange={(e) => handleInputChange("businessCode", e.target.value)} className="h-9 font-mono text-xs" />
         </div>
         <div className="space-y-2">
-          <Label className="text-xs">Shortcode</Label>
-          <Input value={formData.shortcode || ""} onChange={(e) => handleInputChange("shortcode", e.target.value)} className="h-8 font-mono text-xs" />
+          <Label className="text-xs font-semibold">Shortcode</Label>
+          <Input value={formData.shortcode || ""} onChange={(e) => handleInputChange("shortcode", e.target.value)} className="h-9 font-mono text-xs" />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs">Passkey</Label>
+        <Label className="text-xs font-semibold">Passkey</Label>
         <div className="flex gap-2">
-          <Input type={showSecrets.passkey ? "text" : "password"} value={formData.passkey || ""} onChange={(e) => handleInputChange("passkey", e.target.value)} className="h-8 font-mono text-xs flex-1" />
-          <Button variant="ghost" size="sm" onClick={() => toggleShowSecret("passkey")} className="h-8 w-8 p-0">
+          <Input type={showSecrets.passkey ? "text" : "password"} value={formData.passkey || ""} onChange={(e) => handleInputChange("passkey", e.target.value)} className="h-9 font-mono text-xs flex-1" />
+          <Button variant="ghost" size="sm" onClick={() => toggleShowSecret("passkey")} className="h-9 w-9 p-0">
             {showSecrets.passkey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </Button>
         </div>
@@ -174,14 +174,14 @@ export default function SettingsPage() {
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-2">
-          <Label className="text-xs">Initiator Name</Label>
-          <Input value={formData.initiatorName || ""} onChange={(e) => handleInputChange("initiatorName", e.target.value)} className="h-8 font-mono text-xs" />
+          <Label className="text-xs font-semibold">Initiator Name</Label>
+          <Input value={formData.initiatorName || ""} onChange={(e) => handleInputChange("initiatorName", e.target.value)} className="h-9 font-mono text-xs" />
         </div>
         <div className="space-y-2">
-          <Label className="text-xs">Initiator Password</Label>
+          <Label className="text-xs font-semibold">Initiator Password</Label>
           <div className="flex gap-2">
-            <Input type={showSecrets.initiatorPassword ? "text" : "password"} value={formData.initiatorPassword || ""} onChange={(e) => handleInputChange("initiatorPassword", e.target.value)} className="h-8 font-mono text-xs flex-1" />
-            <Button variant="ghost" size="sm" onClick={() => toggleShowSecret("initiatorPassword")} className="h-8 w-8 p-0">
+            <Input type={showSecrets.initiatorPassword ? "text" : "password"} value={formData.initiatorPassword || ""} onChange={(e) => handleInputChange("initiatorPassword", e.target.value)} className="h-9 font-mono text-xs flex-1" />
+            <Button variant="ghost" size="sm" onClick={() => toggleShowSecret("initiatorPassword")} className="h-9 w-9 p-0">
               {showSecrets.initiatorPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </Button>
           </div>
@@ -189,21 +189,21 @@ export default function SettingsPage() {
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs">Callback URL</Label>
-        <Input value={formData.callbackUrl || ""} onChange={(e) => handleInputChange("callbackUrl", e.target.value)} className="h-8 font-mono text-xs text-xs" />
+        <Label className="text-xs font-semibold">Callback URL</Label>
+        <Input value={formData.callbackUrl || ""} onChange={(e) => handleInputChange("callbackUrl", e.target.value)} className="h-9 font-mono text-xs" />
       </div>
 
       <div className="space-y-2">
-        <Label className="text-xs">Timeout URL</Label>
-        <Input value={formData.timeoutUrl || ""} onChange={(e) => handleInputChange("timeoutUrl", e.target.value)} className="h-8 font-mono text-xs" />
+        <Label className="text-xs font-semibold">Timeout URL</Label>
+        <Input value={formData.timeoutUrl || ""} onChange={(e) => handleInputChange("timeoutUrl", e.target.value)} className="h-9 font-mono text-xs" />
       </div>
 
-      <div className="flex gap-2 pt-2">
-        <Button onClick={handleTestConfig} variant="outline" size="sm" disabled={loading} className="flex-1">
+      <div className="flex gap-2 pt-4">
+        <Button onClick={handleTestConfig} variant="outline" size="sm" disabled={loading} className="flex-1 h-9">
           {loading ? <Loader className="size-4 animate-spin" /> : <Check className="size-4" />}
           <span className="ml-1">Test</span>
         </Button>
-        <Button onClick={handleSaveConfig} size="sm" disabled={loading} className="flex-1">
+        <Button onClick={handleSaveConfig} size="sm" disabled={loading} className="flex-1 h-9">
           {loading ? <Loader className="size-4 animate-spin" /> : <Check className="size-4" />}
           <span className="ml-1">Save</span>
         </Button>
@@ -327,27 +327,29 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Desktop Modal or Mobile Drawer */}
+      {/* Desktop Sheet or Mobile Drawer */}
       {isDesktop ? (
         <Sheet open={showDrawer} onOpenChange={setShowDrawer}>
-          <SheetContent side="right" className="w-full sm:max-w-md max-h-screen overflow-y-auto border-l border-border bg-card">
-            <SheetHeader className="border-b border-border bg-muted/20 -mx-6 px-6 py-4 mb-4">
+          <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col border-l border-border bg-card">
+            <SheetHeader className="border-b border-border bg-muted/20 px-6 py-4 flex justify-between items-center">
               <SheetTitle className="text-lg font-bold">Configure Daraja API</SheetTitle>
               <SheetClose />
             </SheetHeader>
-            <div className="px-0">
+            <div className="flex-1 overflow-y-auto px-6 py-4">
               <ConfigForm />
             </div>
           </SheetContent>
         </Sheet>
       ) : (
         <Drawer open={showDrawer} onOpenChange={setShowDrawer}>
-          <DrawerContent className="flex flex-col">
-            <DrawerHeader className="border-b border-border bg-muted/20">
-              <DrawerTitle className="text-lg font-bold">Configure Daraja API</DrawerTitle>
-              <DrawerClose />
+          <DrawerContent className="flex flex-col max-h-[85vh]">
+            <DrawerHeader className="border-b border-border bg-muted/20 px-6 py-4">
+              <div className="flex justify-between items-center">
+                <DrawerTitle className="text-lg font-bold">Configure Daraja API</DrawerTitle>
+                <DrawerClose />
+              </div>
             </DrawerHeader>
-            <div className="px-4 pb-6 overflow-y-auto max-h-[70vh]">
+            <div className="flex-1 overflow-y-auto px-6 py-4">
               <ConfigForm />
             </div>
           </DrawerContent>
