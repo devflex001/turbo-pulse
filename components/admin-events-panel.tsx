@@ -239,6 +239,7 @@ export function AdminEventsPanel() {
               <table className="w-full text-left text-xs">
                 <thead className="border-b border-border text-muted-foreground text-[9px] font-semibold">
                   <tr>
+                    <th className="px-3 py-2 text-center w-8">#</th>
                     <th className="px-3 py-2 text-left">Start</th>
                     <th className="px-3 py-2 text-left">Sport</th>
                     <th className="px-3 py-2 text-left">Event</th>
@@ -249,8 +250,11 @@ export function AdminEventsPanel() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {matchesData.items.map((match) => (
+                  {matchesData.items.map((match, index) => (
                     <tr key={match.sourceMatchId} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-3 py-2 text-center text-muted-foreground text-[10px]">
+                        {pagination.offset + index + 1}
+                      </td>
                       <td className="px-3 py-2 font-mono text-muted-foreground text-[10px]">
                         {formatStartTime(match.startTime)}
                       </td>
