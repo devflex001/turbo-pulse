@@ -64,11 +64,14 @@ export function Header() {
     <>
       <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur-md">
         <div className="flex h-16 items-center justify-between px-4 sm:px-6 md:grid md:grid-cols-3">
-          {/* Brand/Logo */}
+          
+          {/* Brand/Logo - Increased height to h-12 (mobile) and h-14 (desktop) */}
           <div className="flex items-center gap-2 cursor-pointer md:justify-self-start" onClick={handleLogoClick}>
-            <span className="text-xl font-bold tracking-tight text-foreground">
-              BetFlexx
-            </span>
+            <img 
+              src="/images/logo.png" 
+              alt="BetFlexx Logo" 
+              className="h-12 sm:h-14 w-auto object-contain transition-transform hover:scale-105" 
+            />
           </div>
 
           {/* Search bar (Desktop) */}
@@ -78,7 +81,7 @@ export function Header() {
               placeholder="Search teams, leagues or match IDs..."
               value={searchQuery}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-8 focus-visible:ring-primary h-9 w-full bg-muted/40 border-muted"
+              className="pl-9 pr-8 focus-visible:ring-[#4b9f71] h-9 w-full bg-muted/40 border-muted"
             />
             {searchQuery && (
               <Button
@@ -104,7 +107,7 @@ export function Header() {
               {showMobileSearch ? <X className="size-4" /> : <Search className="size-4" />}
             </Button>
 
-            {/* Betslip Sheet trigger for mobile/tablet (always accessible) */}
+            {/* Betslip Sheet trigger for mobile/tablet */}
             <div className="hidden lg:block xl:hidden">
               <Sheet open={betslipOpen} onOpenChange={setBetslipOpen}>
                 <SheetTrigger asChild>
@@ -116,7 +119,7 @@ export function Header() {
                     <span className="hidden sm:inline">Betslip</span>
                     <span className="sm:hidden">Slip</span>
                     {betslip.length > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground border border-background">
+                      <span className="absolute -top-1.5 -right-1.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-[#4b9f71] text-[9px] font-bold text-white border border-background">
                         {betslip.length}
                       </span>
                     )}
@@ -139,7 +142,7 @@ export function Header() {
             <div className="flex items-center gap-1.5 sm:gap-2">
                 {/* Wallet Balance Display */}
                 <div className="hidden sm:flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-md text-xs font-semibold border border-border">
-                  <Wallet className="size-3.5 text-primary" />
+                  <Wallet className="size-3.5 text-[#4b9f71]" />
                   <span>KES {walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
 
@@ -147,7 +150,7 @@ export function Header() {
                 <Button
                   onClick={() => router.push("/deposit")}
                   size="sm"
-                  className="bg-primary text-primary-foreground font-semibold px-2.5 sm:px-3 h-8 text-xs hover:opacity-90 flex items-center gap-1"
+                  className="bg-[#4b9f71] text-white font-semibold px-2.5 sm:px-3 h-8 text-xs hover:bg-[#3e865f] flex items-center gap-1"
                 >
                   <ArrowUpRight className="size-3.5" />
                   <span className="hidden sm:inline">Deposit</span>
@@ -171,11 +174,11 @@ export function Header() {
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="sm:hidden flex items-center justify-between text-xs py-2">
-                      <span className="flex items-center gap-2"><Wallet className="size-3.5" /> Balance:</span>
+                      <span className="flex items-center gap-2"><Wallet className="size-3.5 text-[#4b9f71]" /> Balance:</span>
                       <span className="font-semibold">KES {walletBalance.toLocaleString()}</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => router.push("/deposit")}>
-                      <ArrowUpRight className="mr-2 h-4 w-4 text-emerald-500" />
+                      <ArrowUpRight className="mr-2 h-4 w-4 text-[#4b9f71]" />
                       <span>Deposit (M-Pesa)</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setWithdrawOpen(true)}>
@@ -206,7 +209,7 @@ export function Header() {
                 placeholder="Search teams, leagues or match IDs..."
                 value={searchQuery}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-8 focus-visible:ring-primary h-9 w-full bg-muted/40 border-muted text-xs"
+                className="pl-9 pr-8 focus-visible:ring-[#4b9f71] h-9 w-full bg-muted/40 border-muted text-xs"
                 autoFocus
               />
               {searchQuery && (
