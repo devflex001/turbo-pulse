@@ -14,11 +14,19 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { SmallLoader } from "@/components/small-loader"
+import { cn } from "@/lib/utils" 
 import { toast } from "sonner"
 import {
   Flame,
   HelpCircle,
   PlayCircle,
+  Home,
+  Activity,
+  CircleDashed,
+  Circle,
+  CircleDot,
+  Swords,
+  LayoutGrid
 } from "lucide-react"
 import type { SportsMatch } from "@/components/markets-panel"
 import { CustomEventCard } from "@/components/custom-event-card"
@@ -26,28 +34,36 @@ import { PublishedCustomEventsSection } from "@/components/published-custom-even
 
 const SLIDES = [
   {
-    id: "live",
-    title: "BetFlexx Markets",
-    subtitle: "Live KwikBet fixtures with full market depth.",
-    cta: "Browse Fixtures",
-    image: "/images/football-hero-live.svg",
-    imageAlt: "Live football match with ball on pitch",
+    id: "promo1",
+    title: "Matchday Specials",
+    subtitle: "Bet on today's top fixtures and win big!",
+    cta: "Win Today",
+    image: "/images/p1.jfif",
+    imageAlt: "Sports betting action",
   },
   {
-    id: "markets",
-    title: "Full Markets",
-    subtitle: "Open any fixture to view all available outcomes.",
-    cta: "Open Highlights",
-    image: "/images/football-hero-markets.svg",
-    imageAlt: "Football on stadium pitch with full market access",
+    id: "promo2",
+    title: "Live Action",
+    subtitle: "Catch the best live odds and boost your payouts.",
+    cta: "Bet Live Now",
+    image: "/images/p2.jfif",
+    imageAlt: "Live sports betting",
   },
   {
-    id: "admin",
-    title: "Automated Sync",
-    subtitle: "Scraper refresh is controlled from the admin console.",
-    cta: "Featured",
-    image: "/images/football-hero-sync.svg",
-    imageAlt: "Automated football odds sync dashboard",
+    id: "promo3",
+    title: "Premium Markets",
+    subtitle: "Unlock exclusive odds and maximize your returns.",
+    cta: "Explore Markets",
+    image: "/images/p3.jfif",
+    imageAlt: "Premium sports markets",
+  },
+  {
+    id: "promo4",
+    title: "Weekend Accumulators",
+    subtitle: "Build your ultimate betslip for massive rewards.",
+    cta: "Build a Slip",
+    image: "/images/p4.jfif",
+    imageAlt: "Accumulator betting",
   },
 ]
 
@@ -59,6 +75,18 @@ function titleCase(value: string) {
     .join(" ")
 }
 
+// Helper for dynamic sport icons
+function getSportIcon(slug: string) {
+  switch (slug.toLowerCase()) {
+    case "football": return Circle;
+    case "basketball": return CircleDashed;
+    case "tennis": return CircleDot;
+    case "mma":
+    case "boxing": return Swords;
+    case "all": return LayoutGrid;
+    default: return Activity;
+  }
+}
 
 export default function Page() {
   const {
@@ -136,6 +164,7 @@ export default function Page() {
 
   const featuredMatches = displayedMatches.slice(0, 4)
   const upcomingMatches = activeTab === "featured" ? featuredMatches : displayedMatches
+  
   const sportOptions = React.useMemo(() => {
     const counts = new Map<string, number>()
 
@@ -181,54 +210,129 @@ export default function Page() {
 
         <main className="flex-1 min-w-0 p-4 sm:p-6 overflow-y-auto h-full flex flex-col gap-6 scrollbar-thin">
           {(activeTab === "home" || activeTab === "live" || activeTab === "featured") && (
-            <div className="flex flex-col gap-3 pb-2 border-b border-border">
-              <div className="flex items-center gap-1 overflow-x-auto pb-1.5 scrollbar-none min-h-12">
+            
+            // --- INLINE FILTER BAR ---
+            <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-2 border-b border-border scrollbar-none shrink-0">
+              
+              {/* Primary Navigation Tabs */}
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "h-9 px-4 rounded-md text-sm font-semibold shrink-0 gap-2 border transition-all",
+                    activeTab === "home"
+                      ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
+                      : "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
+                  )}
+                  onClick={() => { setActiveTab("home"); setSelectedSport("all"); setSelectedLeague("All Leagues"); }}
+                >
+                  <Home className="size-4" />
+                  Home
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "h-9 px-4 rounded-md text-sm font-semibold shrink-0 gap-2 border transition-all",
+                    activeTab === "live"
+                      ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
+                      : "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
+                  )}
+                  onClick={() => { setActiveTab("live"); setSelectedLeague("All Leagues"); }}
+                >
+                  <PlayCircle className="size-4" />
+                  Live
+                  <span className="size-1.5 rounded-full bg-red-500 animate-pulse ml-0.5" />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "h-9 px-4 rounded-md text-sm font-semibold shrink-0 gap-2 border transition-all",
+                    activeTab === "featured"
+                      ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
+                      : "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
+                  )}
+                  onClick={() => { setActiveTab("featured"); setSelectedSport("all"); setSelectedLeague("All Leagues"); }}
+                >
+                  <Flame className="size-4" />
+                  Featured
+                </Button>
+              </div>
+
+              {/* Vertical Separator */}
+              <div className="w-px h-6 bg-border mx-1 shrink-0" />
+
+              {/* Sports Filter */}
+              <div className="flex items-center gap-2 shrink-0">
                 {!allMatches ? (
                   <>
-                    <div className="h-8 w-24 rounded-full bg-muted animate-pulse shrink-0" />
-                    <div className="h-8 w-24 rounded-full bg-muted animate-pulse shrink-0" />
-                    <div className="h-8 w-24 rounded-full bg-muted animate-pulse shrink-0" />
+                    <div className="h-9 w-24 rounded-md bg-muted animate-pulse shrink-0" />
+                    <div className="h-9 w-24 rounded-md bg-muted animate-pulse shrink-0" />
                   </>
                 ) : (
-                  sportOptions.map((sport) => (
-                    <Button
-                      key={sport.id}
-                      variant={selectedSport === sport.id ? "default" : "outline"}
-                      size="sm"
-                      className="rounded-full h-8 text-xs font-semibold shrink-0 gap-2"
-                      onClick={() => {
-                        setSelectedSport(sport.id)
-                        setSelectedLeague("All Leagues")
-                      }}
-                    >
-                      <span>{sport.label}</span>
-                      <span className="rounded-full bg-background/20 px-1.5 py-0.5 text-[10px] font-bold">
-                        {sport.count}
-                      </span>
-                    </Button>
-                  ))
+                  sportOptions.map((sport) => {
+                    const SportIcon = getSportIcon(sport.id)
+                    const isActive = selectedSport === sport.id && activeTab !== "live" && activeTab !== "featured"
+                    return (
+                      <Button
+                        key={sport.id}
+                        variant="ghost"
+                        className={cn(
+                          "h-9 px-4 rounded-md text-sm font-semibold shrink-0 gap-2 border transition-all",
+                          isActive
+                            ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
+                            : "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
+                        )}
+                        onClick={() => {
+                          setSelectedSport(sport.id)
+                          setSelectedLeague("All Leagues")
+                          setActiveTab("home")
+                        }}
+                      >
+                        <SportIcon className="size-4" />
+                        <span>{sport.label}</span>
+                        <span className={cn(
+                          "rounded-full px-1.5 py-0.5 text-[10px] font-bold ml-1 transition-colors",
+                          isActive ? "bg-[#4b9f71]/20 text-[#4b9f71]" : "bg-muted text-muted-foreground"
+                        )}>
+                          {sport.count}
+                        </span>
+                      </Button>
+                    )
+                  })
                 )}
               </div>
 
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs min-h-9">
+              {/* Vertical Separator */}
+              <div className="w-px h-6 bg-border mx-1 shrink-0" />
+
+              {/* Leagues Filter */}
+              <div className="flex items-center gap-2 shrink-0">
                 {!leagues ? (
                   <>
-                    <div className="h-7 w-20 rounded bg-muted animate-pulse shrink-0" />
-                    <div className="h-7 w-20 rounded bg-muted animate-pulse shrink-0" />
-                    <div className="h-7 w-20 rounded bg-muted animate-pulse shrink-0" />
+                    <div className="h-9 w-24 rounded-md bg-muted animate-pulse shrink-0" />
+                    <div className="h-9 w-24 rounded-md bg-muted animate-pulse shrink-0" />
                   </>
                 ) : (
-                  (leagues ?? ["All Leagues"]).map((league) => (
-                    <Button
-                      key={league}
-                      variant={selectedLeague === league ? "secondary" : "ghost"}
-                      size="sm"
-                      className="h-7 px-2.5 rounded text-[11px] shrink-0 font-medium"
-                      onClick={() => setSelectedLeague(league)}
-                    >
-                      {league}
-                    </Button>
-                  ))
+                  (leagues ?? ["All Leagues"]).map((league) => {
+                    const isActive = selectedLeague === league
+                    return (
+                      <Button
+                        key={league}
+                        variant="ghost"
+                        className={cn(
+                          "h-9 px-4 rounded-md text-sm font-medium shrink-0 transition-all border",
+                          isActive
+                            ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
+                            : "bg-transparent text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
+                        )}
+                        onClick={() => setSelectedLeague(league)}
+                      >
+                        {league}
+                      </Button>
+                    )
+                  })
                 )}
               </div>
             </div>
@@ -241,29 +345,29 @@ export default function Page() {
 
               {matches !== undefined && (
                 <div className="relative overflow-hidden rounded-lg border border-border bg-card h-44 sm:h-52">
-                  <Image
+                  <img
                     key={SLIDES[slideIndex].id}
                     src={SLIDES[slideIndex].image}
                     alt={SLIDES[slideIndex].imageAlt}
-                    fill
-                    priority
-                    className="object-cover object-center transition-opacity duration-500"
-                    sizes="(max-width: 768px) 100vw, 900px"
+                    className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500"
                   />
-                  <div className="absolute inset-0 bg-background/72" aria-hidden="true" />
+                  {/* Dark overlay to make the white text readable */}
+                  <div className="absolute inset-0 bg-background/70" aria-hidden="true" />
 
                   <div className="relative z-10 flex h-full flex-col justify-center p-6 sm:p-8">
                     <div className="max-w-[80%] space-y-2 select-none">
-                      <Badge className="bg-primary/10 border-primary/30 text-primary font-bold hover:bg-primary/10 tracking-wide text-[9px] uppercase px-1.5 py-0.5">
+                      {/* Signature Green Badge */}
+                      <Badge className="bg-[#4b9f71]/15 border-[#4b9f71]/40 text-[#4b9f71] font-bold hover:bg-[#4b9f71]/20 tracking-wide text-[9px] uppercase px-1.5 py-0.5">
                         {SLIDES[slideIndex].title}
                       </Badge>
-                      <h2 className="text-xl sm:text-2xl font-extrabold text-card-foreground leading-tight tracking-tight">
+                      <h2 className="text-xl sm:text-2xl font-extrabold text-white leading-tight tracking-tight">
                         {SLIDES[slideIndex].subtitle}
                       </h2>
                       <div className="pt-2">
+                        {/* Signature Green Button */}
                         <Button
                           size="sm"
-                          className="h-8 text-xs font-semibold"
+                          className="h-8 text-xs font-semibold bg-[#4b9f71] text-white hover:bg-[#3e865f] border-none"
                           onClick={() => setActiveTab(slideIndex === 2 ? "featured" : "home")}
                         >
                           {SLIDES[slideIndex].cta}
@@ -272,13 +376,15 @@ export default function Page() {
                     </div>
                   </div>
 
-                  <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1">
+                  {/* Slider Navigation Dots */}
+                  <div className="absolute bottom-4 right-4 z-10 flex items-center gap-1.5">
                     {SLIDES.map((slide, index) => (
                       <span
                         key={slide.id}
                         onClick={() => setSlideIndex(index)}
-                        className={`h-1.5 rounded-full cursor-pointer transition-all ${index === slideIndex ? "w-4 bg-primary" : "w-1.5 bg-muted-foreground/30"
-                          }`}
+                        className={`h-1.5 rounded-full cursor-pointer transition-all ${
+                          index === slideIndex ? "w-5 bg-[#4b9f71]" : "w-1.5 bg-white/40 hover:bg-white/60"
+                        }`}
                       />
                     ))}
                   </div>
@@ -359,7 +465,7 @@ export default function Page() {
 
           {activeTab === "custom" && (
             <div className="text-center py-12 border border-dashed border-border rounded-lg text-muted-foreground text-xs">
-              Custom mock events are disabled while live scraped markets are active.
+              Custom mock events aire disabled while live scraped markets are active.
             </div>
           )}
 
