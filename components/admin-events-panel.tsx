@@ -245,7 +245,7 @@ export function AdminEventsPanel() {
                         {formatStartTime(match.startTime)}
                       </td>
                       <td className="px-3 py-2 text-muted-foreground text-[10px]">
-                        {formatSportName(match.sportSlug)}
+                        {match.sportSlug ? formatSportName(match.sportSlug) : "—"}
                       </td>
                       <td className="px-3 py-2 font-semibold text-foreground whitespace-nowrap overflow-hidden text-ellipsis" title={eventName(match)}>
                         {truncateEventName(eventName(match), eventMaxLength)}

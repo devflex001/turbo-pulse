@@ -6,9 +6,8 @@ import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import { ArrowUpRight } from "lucide-react"
+import { ArrowUpRight, Copy, Check } from "lucide-react"
 import { MPesaLiveStatus, MPesaFeedback } from "@/components/mpesa-feedback"
-import { getMPesaFeedback } from "@/lib/mpesa-status-codes"
 
 const QUICK_AMOUNTS = [100, 250, 500, 1000, 2500, 5000]
 const MIN_AMOUNT = 10
@@ -47,75 +46,56 @@ export function DepositSheet() {
   )
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const [checkoutRequestID, setCheckoutRequestID] = React.useState<string | null>(null)
+  const [copied, setCopied] = React.useState(false)
   const timeoutRef = React.useRef<NodeJS.Timeout | null>(null)
 
-  // Query latest transaction status from database
+  // Query latest transaction status from database - listens for real-time updates
   const latestTransaction = useQuery(
     api.mpesa.getLatestTransaction,
     checkoutRequestID ? { checkoutRequestID } : "skip"
   )
 
-  React.useEffect(() => {
-    // Set default phone if needed
-  }, [])
-
   // Listen to database updates from M-Pesa callback
   React.useEffect(() => {
-    if (!latestTransaction) return
-    if (stage === "idle" || stage === "initiating" || stage === "complete") return
+    if (!checkoutRequestID || !latestTransaction) return
 
-    console.log("[Real-time DB] Update:", latestTransaction)
+    // Only process when actively waiting
+    if (stage !== "pending_user_action" && stage !== "processing") return
 
-    const resultCode = latestTransaction.resultCode || "1032"
-    const feedback = getMPesaFeedback(resultCode)
+    // Skip if no callback response yet
+    if (!latestTransaction.resultCode) return
 
-    // Handle different status codes
+    console.log("[Real-time] M-Pesa callback received:", latestTransaction)
+
+    const resultCode = latestTransaction.resultCode
+    // Use feedback message from server - single source of truth
+    const feedbackMessage = latestTransaction.feedback || `Transaction error: ${resultCode}`
+
+    // Mark complete immediately to prevent duplicate processing
+    setStage("complete")
+
+    // Set transaction result with server feedback
+    setTransactionResult({
+      resultCode: resultCode,
+      resultDesc: feedbackMessage,
+      mpesaReceiptNumber: latestTransaction.mpesaReceiptNumber,
+      amount: latestTransaction.amount,
+      timestamp: latestTransaction.updatedAt || Date.now(),
+    })
+
+    // Show appropriate toast
     if (resultCode === "0") {
-      // Success
-      setStage("complete")
-      setTransactionResult({
-        resultCode: "0",
-        resultDesc: latestTransaction.resultDesc || "Payment completed successfully",
-        mpesaReceiptNumber: latestTransaction.mpesaReceiptNumber,
-        amount: latestTransaction.amount,
-        timestamp: latestTransaction.updatedAt || Date.now(),
-      })
-      toast.success(feedback.message)
-
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
-    } else if (resultCode === "1") {
-      // User cancelled
-      setStage("complete")
-      setTransactionResult({
-        resultCode: "1",
-        resultDesc: latestTransaction.resultDesc || feedback.message,
-        timestamp: latestTransaction.updatedAt || Date.now(),
-      })
-      toast.error(feedback.message)
-
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
-    } else if (resultCode === "1032" || feedback.status === "pending") {
-      // Still waiting for user - no action needed
-      console.log("[Real-time DB] Still pending user confirmation...")
+      toast.success(feedbackMessage)
     } else {
-      // Other error codes
-      setStage("complete")
-      setTransactionResult({
-        resultCode: resultCode,
-        resultDesc: latestTransaction.resultDesc || feedback.message,
-        timestamp: latestTransaction.updatedAt || Date.now(),
-      })
-      toast.error(feedback.message)
-
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
+      toast.error(feedbackMessage)
     }
-  }, [latestTransaction, stage])
+
+    // Clear fallback timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+  }, [latestTransaction?.resultCode, latestTransaction?.feedback, stage, checkoutRequestID])
 
   React.useEffect(() => {
     return () => {
@@ -142,7 +122,7 @@ export function DepositSheet() {
       return
     }
 
-  if (!isValidKenyanPhone(phone)) {
+    if (!isValidKenyanPhone(phone)) {
       setErrorMessage("Enter valid phone (e.g. 0712345678)")
       return
     }
@@ -221,15 +201,16 @@ export function DepositSheet() {
   // Render based on stage
   if (stage === "idle") {
     return (
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {errorMessage && (
-          <div className="bg-red-500/10 border border-red-500/20 rounded p-2">
-            <p className="text-xs text-red-700">{errorMessage}</p>
+          <div className="animate-in fade-in-50 slide-in-from-top-2 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+            <p className="text-xs font-medium text-red-700">{errorMessage}</p>
           </div>
         )}
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground">
+        {/* Amount Section */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             Amount (KES)
           </label>
           <Input
@@ -239,16 +220,18 @@ export function DepositSheet() {
             placeholder="Enter amount"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
-            className="text-sm"
+            className="text-sm font-semibold h-10"
+            autoFocus
           />
-          <div className="grid grid-cols-3 gap-1.5 pt-1">
-            {QUICK_AMOUNTS.map((amt) => (
+          <div className="grid grid-cols-3 gap-2 pt-2">
+            {QUICK_AMOUNTS.map((amt, idx) => (
               <Button
                 key={amt}
                 type="button"
                 variant="outline"
                 size="sm"
-                className="text-xs h-8"
+                className="text-xs h-8 font-medium animate-in fade-in-50"
+                style={{ animationDelay: `${idx * 25}ms` }}
                 onClick={() => setAmount(amt.toString())}
               >
                 +{amt}
@@ -257,20 +240,26 @@ export function DepositSheet() {
           </div>
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground">
-            Phone
+        {/* Phone Section */}
+        <div className="space-y-2">
+          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Phone Number
           </label>
           <Input
             type="tel"
             placeholder="0712345678"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="text-sm"
+            className="text-sm font-semibold h-10"
           />
         </div>
 
-        <Button type="submit" className="w-full text-sm font-bold gap-1.5 h-9">
+        {/* Submit Button */}
+        <Button
+          type="submit"
+          className="w-full text-sm font-bold gap-2 h-10 animate-in fade-in-50"
+          size="default"
+        >
           <ArrowUpRight className="h-4 w-4" />
           Deposit
         </Button>
@@ -280,12 +269,16 @@ export function DepositSheet() {
 
   if (stage === "error") {
     return (
-      <div className="space-y-3">
+      <div className="space-y-4 animate-in fade-in-50 slide-in-from-bottom-4">
         <MPesaLiveStatus
           stage="error"
           errorMessage={errorMessage || "An error occurred"}
         />
-        <Button className="w-full text-sm font-bold h-9" onClick={handleReset}>
+        <Button
+          className="w-full text-sm font-bold h-10"
+          onClick={handleReset}
+          variant="outline"
+        >
           Try Again
         </Button>
       </div>
@@ -293,8 +286,16 @@ export function DepositSheet() {
   }
 
   if (stage === "complete" && transactionResult) {
+    const handleCopyReceipt = () => {
+      if (transactionResult.mpesaReceiptNumber) {
+        navigator.clipboard.writeText(transactionResult.mpesaReceiptNumber)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      }
+    }
+
     return (
-      <div className="space-y-3">
+      <div className="space-y-3 animate-in fade-in-50 slide-in-from-bottom-4">
         <MPesaFeedback
           resultCode={transactionResult.resultCode}
           resultDesc={transactionResult.resultDesc}
@@ -302,7 +303,34 @@ export function DepositSheet() {
           transactionId={transactionResult.mpesaReceiptNumber}
           timestamp={transactionResult.timestamp}
         />
-        <Button className="w-full text-sm font-bold h-9" onClick={handleReset}>
+
+        {transactionResult.mpesaReceiptNumber && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="w-full text-xs gap-2"
+            onClick={handleCopyReceipt}
+          >
+            {copied ? (
+              <>
+                <Check className="h-3 w-3" />
+                Copied
+              </>
+            ) : (
+              <>
+                <Copy className="h-3 w-3" />
+                Copy Receipt
+              </>
+            )}
+          </Button>
+        )}
+
+        <Button
+          className="w-full text-sm font-bold h-10"
+          onClick={handleReset}
+          variant={transactionResult.resultCode === "0" ? "default" : "outline"}
+        >
           {transactionResult.resultCode === "0" ? "Deposit Again" : "Try Again"}
         </Button>
       </div>

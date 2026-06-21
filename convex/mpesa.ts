@@ -72,9 +72,56 @@ export const updateTransactionStatus = mutation({
     const status =
       args.resultCode === "0"
         ? "success"
-        : args.resultCode === "1032"
-          ? "pending"
+        : args.resultCode === "1032" || args.resultCode === "1" || args.resultCode === "2"
+          ? "cancelled"
           : "failed";
+
+    // Determine the feedback message and status based on result code
+    // This is the single source of truth for feedback
+    const getFeedback = (code: string) => {
+      const feedbackMap: Record<string, { message: string; type: "success" | "error" | "warning" }> = {
+        "0": { message: "Transaction completed successfully", type: "success" },
+        "1": { message: "Transaction cancelled by user", type: "warning" },
+        "2": { message: "Request timeout. No response from customer.", type: "warning" },
+        "1001": { message: "Unable to lock subscriber record", type: "error" },
+        "1002": { message: "Invalid Account Number", type: "error" },
+        "1003": { message: "Funds insufficient for transaction", type: "error" },
+        "1004": { message: "Transaction exceeds daily limit", type: "error" },
+        "1005": { message: "One or more parameters invalid", type: "error" },
+        "1006": { message: "Transaction ID already exists", type: "error" },
+        "1007": { message: "Connect timeout with payment gateway", type: "error" },
+        "1008": { message: "Message delivery failed", type: "error" },
+        "1009": { message: "Invalid shortcode", type: "error" },
+        "1010": { message: "Invalid initiator", type: "error" },
+        "1011": { message: "Invalid credentials", type: "error" },
+        "1012": { message: "Invalid amount", type: "error" },
+        "1013": { message: "Subscriber not found", type: "error" },
+        "1014": { message: "Transaction query timeout", type: "error" },
+        "1015": { message: "Queue timeout", type: "error" },
+        "1016": { message: "Reversal timeout", type: "error" },
+        "1017": { message: "Message undeliverable", type: "error" },
+        "1018": { message: "Account restricted", type: "error" },
+        "1019": { message: "Transaction failed", type: "error" },
+        "1020": { message: "OTP validate not successful", type: "error" },
+        "1021": { message: "Invalid format", type: "error" },
+        "1032": { message: "Request cancelled by user", type: "warning" },
+        "1033": { message: "System malfunction", type: "error" },
+        "1034": { message: "Request timeout", type: "error" },
+        "1035": { message: "Invalid encryption", type: "error" },
+        "1036": { message: "Invalid command type", type: "error" },
+        "1037": { message: "Invalid transaction ID", type: "error" },
+        "1038": { message: "Invalid session", type: "error" },
+        "1039": { message: "Invalid account", type: "error" },
+        "1040": { message: "Transaction processing failed", type: "error" },
+        "1041": { message: "Network timeout", type: "error" },
+        "1042": { message: "Insufficient credit", type: "error" },
+        "1043": { message: "User account suspended", type: "error" },
+        "1044": { message: "Duplicate transaction", type: "error" },
+      };
+      return feedbackMap[code] || { message: `Transaction error: ${code}`, type: "error" };
+    };
+
+    const feedback = getFeedback(args.resultCode);
 
     // Update transaction record with M-Pesa response
     await ctx.db.patch(transaction._id, {
@@ -82,10 +129,12 @@ export const updateTransactionStatus = mutation({
       resultCode: args.resultCode,
       resultDesc: args.resultDesc,
       mpesaReceiptNumber: args.mpesaReceiptNumber || undefined,
+      feedback: feedback.message,
+      feedbackType: feedback.type,
       updatedAt: Date.now(),
     });
 
-    console.log(`[Transaction] Updated ${transaction._id}: status=${status}, code=${args.resultCode}`);
+    console.log(`[Transaction] Updated ${transaction._id}: status=${status}, code=${args.resultCode}, feedback="${feedback.message}"`);
 
     // If successful, update wallet balance
     if (status === "success" && args.amount) {
@@ -97,6 +146,8 @@ export const updateTransactionStatus = mutation({
       transactionId: transaction._id,
       status,
       amount: transaction.amount,
+      feedback: feedback.message,
+      feedbackType: feedback.type,
     };
   },
 });
@@ -152,6 +203,8 @@ export const getLatestTransaction = query({
       type: transaction.type,
       time: transaction.time,
       updatedAt: transaction.updatedAt,
+      feedback: transaction.feedback,
+      feedbackType: transaction.feedbackType,
     };
   },
 });
