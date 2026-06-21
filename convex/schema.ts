@@ -239,6 +239,23 @@ const schema = defineSchema({
     .index("by_marketId", ["marketId"])
     .index("by_eventId", ["eventId"])
     .index("by_marketId_and_priority", ["marketId", "priority"]),
+
+  daraja_config: defineTable({
+    consumerKey: v.string(),
+    consumerSecret: v.string(),
+    businessCode: v.string(),
+    passkey: v.string(),
+    callbackUrl: v.string(),
+    timeoutUrl: v.string(),
+    shortcode: v.string(),
+    initiatorName: v.string(),
+    initiatorPassword: v.string(),
+    isProduction: v.boolean(),
+    isEnabled: v.boolean(),
+    useEnvVariables: v.boolean(), // If true, use env vars instead of DB config
+    updatedAt: v.number(),
+    updatedBy: v.string(),
+  }).index("by_isEnabled", ["isEnabled"]),
 })
 
 export default schema

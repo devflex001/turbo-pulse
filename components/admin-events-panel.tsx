@@ -313,7 +313,7 @@ export function AdminEventsPanel() {
 
                   <div className="flex items-center justify-between pt-2 border-t border-border">
                     <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                      <span>{formatSportName(match.sportSlug)}</span>
+                      <span>{formatSportName(match.sportSlug || "")}</span>
                       <span>•</span>
                       <span className="font-mono">{match.totalMarkets} markets</span>
                     </div>

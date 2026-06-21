@@ -11,6 +11,7 @@
 import type * as bets from "../bets.js";
 import type * as crons from "../crons.js";
 import type * as customEvents from "../customEvents.js";
+import type * as daraja from "../daraja.js";
 import type * as mpesa from "../mpesa.js";
 import type * as scraper from "../scraper.js";
 import type * as scraperValidators from "../scraperValidators.js";
@@ -28,6 +29,7 @@ declare const fullApi: ApiFromModules<{
   bets: typeof bets;
   crons: typeof crons;
   customEvents: typeof customEvents;
+  daraja: typeof daraja;
   mpesa: typeof mpesa;
   scraper: typeof scraper;
   scraperValidators: typeof scraperValidators;
