@@ -41,6 +41,7 @@ import {
   Database,
   PlayCircle,
   PlusCircle,
+  Settings,
 } from "lucide-react"
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
@@ -64,6 +65,10 @@ const operationsNavItems = [
 const insightsNavItems = [
   { id: "analytics", label: "Analytics", icon: BarChart3, href: "/admin/analytics" },
   { id: "reports", label: "Reports", icon: FileText, href: "/admin/reports" },
+]
+
+const settingsNavItems = [
+  { id: "settings", label: "Settings", icon: Settings, href: "/admin/settings" },
 ]
 
 // ─── Sidebar Content ──────────────────────────────────────────────────────────
@@ -92,11 +97,10 @@ function SidebarContent({ currentPath, collapsed = false, onNavigate }: SidebarC
             <Button
               key={item.id}
               variant="ghost"
-              className={`w-full justify-start h-9 px-2.5 gap-2.5 font-normal text-xs ${
-                isActive
-                  ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary font-semibold"
-                  : "hover:bg-accent/50 text-muted-foreground hover:text-foreground"
-              }`}
+              className={`w-full justify-start h-9 px-2.5 gap-2.5 font-normal text-xs ${isActive
+                ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary font-semibold"
+                : "hover:bg-accent/50 text-muted-foreground hover:text-foreground"
+                }`}
               onClick={() => {
                 router.push(item.href)
                 onNavigate?.()
@@ -117,8 +121,9 @@ function SidebarContent({ currentPath, collapsed = false, onNavigate }: SidebarC
     <div className="flex-1 flex flex-col gap-5 overflow-y-auto px-3 py-2">
       {renderNavGroup("Core", coreNavItems)}
       {renderNavGroup("Operations", operationsNavItems)}
-      <div className="mt-auto">
+      <div className="mt-auto space-y-5">
         {renderNavGroup("Insights", insightsNavItems)}
+        {renderNavGroup("System", settingsNavItems)}
       </div>
     </div>
   )
@@ -163,9 +168,8 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
 
       {/* ── Desktop Sidebar ── */}
       <aside
-        className={`hidden lg:flex flex-col gap-0 border-r border-border h-full bg-card text-card-foreground shrink-0 transition-all duration-300 ${
-          sidebarCollapsed ? "w-16" : "w-60"
-        }`}
+        className={`hidden lg:flex flex-col gap-0 border-r border-border h-full bg-card text-card-foreground shrink-0 transition-all duration-300 ${sidebarCollapsed ? "w-16" : "w-60"
+          }`}
       >
         {/* Brand + collapse toggle */}
         <div className="flex items-center justify-between px-3 h-14 border-b border-border shrink-0">

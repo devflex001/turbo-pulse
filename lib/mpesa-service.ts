@@ -121,7 +121,7 @@ export class MPesaService {
       }
 
       const data = (await response.json()) as AccessTokenResponse;
-      
+
       if (!data.access_token) {
         throw new Error("No access token in response");
       }
@@ -425,34 +425,44 @@ export function formatPhoneForMPesa(phone: string): string {
 }
 
 /**
- * Initialize M-Pesa service with environment variables
+ * Initialize M-Pesa service with environment variables or database configuration
+ * 
+ * NOTE: This function uses environment variables as a fallback.
+ * For database configuration support, use convex/daraja.ts query functions instead.
+ * The server-side implementation in Convex will check database first, then fall back to env vars.
  */
 export function initializeMPesaService(
-  production: boolean = false
+  production: boolean = false,
+  configOverride?: Partial<MPesaConfig>
 ): MPesaService {
-  const consumerKey = process.env.MPESA_CONSUMER_KEY;
-  const consumerSecret = process.env.MPESA_CONSUMER_SECRET;
+  const consumerKey = configOverride?.consumerKey || process.env.MPESA_CONSUMER_KEY;
+  const consumerSecret = configOverride?.consumerSecret || process.env.MPESA_CONSUMER_SECRET;
 
   if (!consumerKey || !consumerSecret) {
     throw new Error(
-      "M-Pesa credentials not configured. Please set MPESA_CONSUMER_KEY and MPESA_CONSUMER_SECRET in environment variables."
+      "M-Pesa credentials not configured. Please set MPESA_CONSUMER_KEY and MPESA_CONSUMER_SECRET in environment variables or add configuration in admin settings."
     );
   }
 
   const config: MPesaConfig = {
     consumerKey,
     consumerSecret,
-    businessCode: process.env.MPESA_BUSINESS_CODE || "174379",
+    businessCode: configOverride?.businessCode || process.env.MPESA_BUSINESS_CODE || "174379",
     passkey:
+      configOverride?.passkey ||
       process.env.MPESA_PASSKEY ||
       "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919",
     callbackUrl:
-      process.env.MPESA_CALLBACK_URL || "https://localhost:3000/api/mpesa/callback",
+      configOverride?.callbackUrl ||
+      process.env.MPESA_CALLBACK_URL ||
+      "https://localhost:3000/api/mpesa/callback",
     timeoutUrl:
-      process.env.MPESA_TIMEOUT_URL || "https://localhost:3000/api/mpesa/timeout",
-    shortcode: process.env.MPESA_SHORTCODE || "174379",
-    initiatorName: process.env.MPESA_INITIATOR_NAME || "testapi",
-    initiatorPassword: process.env.MPESA_INITIATOR_PASSWORD || "Safaricom1234!",
+      configOverride?.timeoutUrl ||
+      process.env.MPESA_TIMEOUT_URL ||
+      "https://localhost:3000/api/mpesa/timeout",
+    shortcode: configOverride?.shortcode || process.env.MPESA_SHORTCODE || "174379",
+    initiatorName: configOverride?.initiatorName || process.env.MPESA_INITIATOR_NAME || "testapi",
+    initiatorPassword: configOverride?.initiatorPassword || process.env.MPESA_INITIATOR_PASSWORD || "Safaricom1234!",
   };
 
   return new MPesaService(config, production);
