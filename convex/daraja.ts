@@ -47,23 +47,21 @@ export const getAllConfigs = query(async (ctx) => {
 /**
  * Save new Daraja configuration
  */
-export const saveConfig = mutation(
-  {
-    args: {
-      consumerKey: v.string(),
-      consumerSecret: v.string(),
-      businessCode: v.string(),
-      passkey: v.string(),
-      callbackUrl: v.string(),
-      timeoutUrl: v.string(),
-      shortcode: v.string(),
-      initiatorName: v.string(),
-      initiatorPassword: v.string(),
-      isProduction: v.boolean(),
-      configName: v.optional(v.string()),
-    },
+export const saveConfig = mutation({
+  args: {
+    consumerKey: v.string(),
+    consumerSecret: v.string(),
+    businessCode: v.string(),
+    passkey: v.string(),
+    callbackUrl: v.string(),
+    timeoutUrl: v.string(),
+    shortcode: v.string(),
+    initiatorName: v.string(),
+    initiatorPassword: v.string(),
+    isProduction: v.boolean(),
+    configName: v.optional(v.string()),
   },
-  async (ctx, args) => {
+  handler: async (ctx, args) => {
     // Disable all other configs
     const existingConfigs = await ctx.db.query("daraja_config").collect()
     for (const config of existingConfigs) {
@@ -89,19 +87,21 @@ export const saveConfig = mutation(
     })
 
     return { success: true, configId: newConfigId }
-  }
-)
+  },
+})
 
 /**
  * Update configuration to use environment variables
  */
-export const switchToEnvVariables = mutation(async (ctx) => {
-  const existingConfigs = await ctx.db.query("daraja_config").collect()
-  for (const config of existingConfigs) {
-    await ctx.db.patch(config._id, { isEnabled: false })
-  }
+export const switchToEnvVariables = mutation({
+  handler: async (ctx) => {
+    const existingConfigs = await ctx.db.query("daraja_config").collect()
+    for (const config of existingConfigs) {
+      await ctx.db.patch(config._id, { isEnabled: false })
+    }
 
-  return { success: true, message: "Switched to environment variables" }
+    return { success: true, message: "Switched to environment variables" }
+  },
 })
 
 /**
@@ -113,7 +113,7 @@ export const activateConfig = mutation(
       configId: v.id("daraja_config"),
     },
   },
-  async (ctx, args) => {
+  async (ctx, { configId }) => {
     // Disable all other configs
     const existingConfigs = await ctx.db.query("daraja_config").collect()
     for (const config of existingConfigs) {
@@ -121,7 +121,7 @@ export const activateConfig = mutation(
     }
 
     // Enable the selected config
-    await ctx.db.patch(args.configId, { isEnabled: true, useEnvVariables: false })
+    await ctx.db.patch(configId, { isEnabled: true, useEnvVariables: false })
 
     return { success: true }
   }
@@ -136,8 +136,8 @@ export const deleteConfig = mutation(
       configId: v.id("daraja_config"),
     },
   },
-  async (ctx, args) => {
-    await ctx.db.delete(args.configId)
+  async (ctx, { configId }) => {
+    await ctx.db.delete(configId)
     return { success: true }
   }
 )
@@ -152,11 +152,11 @@ export const testConfig = mutation(
       consumerSecret: v.string(),
     },
   },
-  async (ctx, args) => {
+  async (ctx, { consumerKey, consumerSecret }) => {
     try {
       const baseUrl = "https://sandbox.safaricom.co.ke"
       const auth = Buffer.from(
-        `${args.consumerKey}:${args.consumerSecret}`
+        `${consumerKey}:${consumerSecret}`
       ).toString("base64")
 
       const response = await fetch(
