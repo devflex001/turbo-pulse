@@ -116,17 +116,17 @@ export default function SettingsPage() {
   }
 
   const ConfigForm = () => (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {message && (
-        <div className={`p-3 rounded text-xs font-medium ${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+        <div className={`p-4 rounded text-xs font-medium ${message.type === "success" ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
           {message.text}
         </div>
       )}
 
-      <div className="space-y-2">
-        <Label className="text-xs font-semibold">Environment</Label>
+      <div className="space-y-3">
+        <Label className="text-sm font-semibold">Environment</Label>
         <Select value={formData.isProduction ? "production" : "sandbox"} onValueChange={(value) => handleInputChange("isProduction", value === "production")}>
-          <SelectTrigger className="h-9 text-sm">
+          <SelectTrigger className="h-10 text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -136,76 +136,103 @@ export default function SettingsPage() {
         </Select>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="consumerKey" className="text-xs font-semibold">Consumer Key</Label>
-        <Input id="consumerKey" value={formData.consumerKey || ""} onChange={(e) => handleInputChange("consumerKey", e.target.value)} className="h-9 font-mono text-xs" />
+      <div className="space-y-3">
+        <Label htmlFor="consumerKey" className="text-sm font-semibold">Consumer Key</Label>
+        <Input id="consumerKey" value={formData.consumerKey || ""} onChange={(e) => handleInputChange("consumerKey", e.target.value)} className="h-10 font-mono text-sm" />
       </div>
 
-      <div className="space-y-2">
-        <Label className="text-xs font-semibold">Consumer Secret</Label>
-        <div className="flex gap-2">
-          <Input type={showSecrets.consumerSecret ? "text" : "password"} value={formData.consumerSecret || ""} onChange={(e) => handleInputChange("consumerSecret", e.target.value)} className="h-9 font-mono text-xs flex-1" />
-          <Button variant="ghost" size="sm" onClick={() => toggleShowSecret("consumerSecret")} className="h-9 w-9 p-0">
+      <div className="space-y-3">
+        <Label className="text-sm font-semibold">Consumer Secret</Label>
+        <div className="relative">
+          <Input
+            type={showSecrets.consumerSecret ? "text" : "password"}
+            value={formData.consumerSecret || ""}
+            onChange={(e) => handleInputChange("consumerSecret", e.target.value)}
+            className="h-10 font-mono text-sm pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => toggleShowSecret("consumerSecret")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+          >
             {showSecrets.consumerSecret ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-          </Button>
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Label className="text-xs font-semibold">Business Code</Label>
-          <Input value={formData.businessCode || ""} onChange={(e) => handleInputChange("businessCode", e.target.value)} className="h-9 font-mono text-xs" />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-3">
+          <Label className="text-sm font-semibold">Business Code</Label>
+          <Input value={formData.businessCode || ""} onChange={(e) => handleInputChange("businessCode", e.target.value)} className="h-10 font-mono text-sm" />
         </div>
-        <div className="space-y-2">
-          <Label className="text-xs font-semibold">Shortcode</Label>
-          <Input value={formData.shortcode || ""} onChange={(e) => handleInputChange("shortcode", e.target.value)} className="h-9 font-mono text-xs" />
+        <div className="space-y-3">
+          <Label className="text-sm font-semibold">Shortcode</Label>
+          <Input value={formData.shortcode || ""} onChange={(e) => handleInputChange("shortcode", e.target.value)} className="h-10 font-mono text-sm" />
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label className="text-xs font-semibold">Passkey</Label>
-        <div className="flex gap-2">
-          <Input type={showSecrets.passkey ? "text" : "password"} value={formData.passkey || ""} onChange={(e) => handleInputChange("passkey", e.target.value)} className="h-9 font-mono text-xs flex-1" />
-          <Button variant="ghost" size="sm" onClick={() => toggleShowSecret("passkey")} className="h-9 w-9 p-0">
+      <div className="space-y-3">
+        <Label className="text-sm font-semibold">Passkey</Label>
+        <div className="relative">
+          <Input
+            type={showSecrets.passkey ? "text" : "password"}
+            value={formData.passkey || ""}
+            onChange={(e) => handleInputChange("passkey", e.target.value)}
+            className="h-10 font-mono text-sm pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => toggleShowSecret("passkey")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+          >
             {showSecrets.passkey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-          </Button>
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Label className="text-xs font-semibold">Initiator Name</Label>
-          <Input value={formData.initiatorName || ""} onChange={(e) => handleInputChange("initiatorName", e.target.value)} className="h-9 font-mono text-xs" />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-3">
+          <Label className="text-sm font-semibold">Initiator Name</Label>
+          <Input value={formData.initiatorName || ""} onChange={(e) => handleInputChange("initiatorName", e.target.value)} className="h-10 font-mono text-sm" />
         </div>
-        <div className="space-y-2">
-          <Label className="text-xs font-semibold">Initiator Password</Label>
-          <div className="flex gap-2">
-            <Input type={showSecrets.initiatorPassword ? "text" : "password"} value={formData.initiatorPassword || ""} onChange={(e) => handleInputChange("initiatorPassword", e.target.value)} className="h-9 font-mono text-xs flex-1" />
-            <Button variant="ghost" size="sm" onClick={() => toggleShowSecret("initiatorPassword")} className="h-9 w-9 p-0">
+        <div className="space-y-3">
+          <Label className="text-sm font-semibold">Initiator Password</Label>
+          <div className="relative">
+            <Input
+              type={showSecrets.initiatorPassword ? "text" : "password"}
+              value={formData.initiatorPassword || ""}
+              onChange={(e) => handleInputChange("initiatorPassword", e.target.value)}
+              className="h-10 font-mono text-sm pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => toggleShowSecret("initiatorPassword")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            >
               {showSecrets.initiatorPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-            </Button>
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label className="text-xs font-semibold">Callback URL</Label>
-        <Input value={formData.callbackUrl || ""} onChange={(e) => handleInputChange("callbackUrl", e.target.value)} className="h-9 font-mono text-xs" />
+      <div className="space-y-3">
+        <Label className="text-sm font-semibold">Callback URL</Label>
+        <Input value={formData.callbackUrl || ""} onChange={(e) => handleInputChange("callbackUrl", e.target.value)} className="h-10 font-mono text-sm" />
       </div>
 
-      <div className="space-y-2">
-        <Label className="text-xs font-semibold">Timeout URL</Label>
-        <Input value={formData.timeoutUrl || ""} onChange={(e) => handleInputChange("timeoutUrl", e.target.value)} className="h-9 font-mono text-xs" />
+      <div className="space-y-3">
+        <Label className="text-sm font-semibold">Timeout URL</Label>
+        <Input value={formData.timeoutUrl || ""} onChange={(e) => handleInputChange("timeoutUrl", e.target.value)} className="h-10 font-mono text-sm" />
       </div>
 
-      <div className="flex gap-2 pt-4">
-        <Button onClick={handleTestConfig} variant="outline" size="sm" disabled={loading} className="flex-1 h-9">
+      <div className="flex gap-3 pt-4">
+        <Button onClick={handleTestConfig} variant="outline" size="lg" disabled={loading} className="flex-1 h-10">
           {loading ? <Loader className="size-4 animate-spin" /> : <Check className="size-4" />}
-          <span className="ml-1">Test</span>
+          <span className="ml-2">Test</span>
         </Button>
-        <Button onClick={handleSaveConfig} size="sm" disabled={loading} className="flex-1 h-9">
+        <Button onClick={handleSaveConfig} size="lg" disabled={loading} className="flex-1 h-10">
           {loading ? <Loader className="size-4 animate-spin" /> : <Check className="size-4" />}
-          <span className="ml-1">Save</span>
+          <span className="ml-2">Save</span>
         </Button>
       </div>
     </div>
