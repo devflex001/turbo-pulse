@@ -43,6 +43,13 @@ export function PublishedCustomEventsSection() {
     setDetailOpen(true)
   }
 
+  const handleCardKeyDown = (event: React.KeyboardEvent<HTMLDivElement>, customEvent: any) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      handleOpenDetail(customEvent)
+    }
+  }
+
   const eventTitle = selectedEvent
     ? `${selectedEvent.homeTeam} vs ${selectedEvent.awayTeam}`
     : ""
