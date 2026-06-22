@@ -9,6 +9,7 @@ import { PaystackDepositSheet } from "./paystack-deposit-sheet"
 /**
  * Unified Deposit Sheet Component
  * Automatically switches between M-Pesa and Paystack based on admin configuration
+ * Uses react-paystack library for embedded modal payments (no redirects)
  */
 export function UnifiedDepositSheet() {
   const paymentMode = useQuery(api.paymentMode.getActiveMode)
