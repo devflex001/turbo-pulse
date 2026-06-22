@@ -18,7 +18,7 @@ export default function MyBetsPage() {
 
   const allMatches = useQuery(api.sportsData.listMatches, { limit: 300 })
   const liveCount = React.useMemo(
-    () => (allMatches ?? []).filter((match: any) => match.isLive).length,
+    () => (allMatches?.items ?? []).filter((match: any) => match.isLive).length,
     [allMatches]
   )
 
