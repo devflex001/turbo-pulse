@@ -256,6 +256,23 @@ const schema = defineSchema({
     updatedAt: v.number(),
     updatedBy: v.string(),
   }).index("by_isEnabled", ["isEnabled"]),
+
+  paystack_config: defineTable({
+    publicKey: v.string(),
+    secretKey: v.string(),
+    isProduction: v.boolean(),
+    isEnabled: v.boolean(),
+    useEnvVariables: v.boolean(), // If true, use env vars instead of DB config
+    updatedAt: v.number(),
+    updatedBy: v.string(),
+  }).index("by_isEnabled", ["isEnabled"]),
+
+  payment_mode: defineTable({
+    mode: v.union(v.literal("mpesa"), v.literal("paystack")), // Active payment method
+    isEnabled: v.boolean(),
+    updatedAt: v.number(),
+    updatedBy: v.string(),
+  }),
 })
 
 export default schema
