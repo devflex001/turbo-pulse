@@ -18,6 +18,7 @@ import { Settings, Eye, EyeOff, Loader, Check, Wallet, Percent, CreditCard } fro
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { toast } from "sonner"
 
@@ -278,51 +279,26 @@ export default function SettingsPage() {
           <p className="text-xs text-muted-foreground">Manage platform integrations and financial limits</p>
         </div>
 
-        {/* Payment Mode Selector */}
-        <Card className="border border-border">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <CreditCard className="size-4 text-primary" />
-              <CardTitle className="text-sm">Active Payment Mode</CardTitle>
-            </div>
-            <CardDescription className="text-xs">Select which payment method users will use for deposits</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2">
-              <Button
-                variant={paymentMode?.mode === "mpesa" ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleSwitchPaymentMode("mpesa")}
-                disabled={loading}
-                className="flex-1 text-xs h-9"
-              >
-                {loading && paymentMode?.mode === "mpesa" && <Loader className="size-3 mr-1 animate-spin" />}
-                M-Pesa
-              </Button>
-              <Button
-                variant={paymentMode?.mode === "paystack" ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleSwitchPaymentMode("paystack")}
-                disabled={loading}
-                className="flex-1 text-xs h-9"
-              >
-                {loading && paymentMode?.mode === "paystack" && <Loader className="size-3 mr-1 animate-spin" />}
-                Paystack
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Settings Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* M-Pesa Config Card */}
           <Card className="flex flex-col border border-border hover:shadow-sm transition-shadow">
             <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <Settings className="size-4 text-primary" />
-                <CardTitle className="text-sm">Daraja API (M-Pesa)</CardTitle>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Settings className="size-4 text-primary" />
+                  <div>
+                    <CardTitle className="text-sm">Daraja API (M-Pesa)</CardTitle>
+                    <CardDescription className="text-xs">M-Pesa payment gateway</CardDescription>
+                  </div>
+                </div>
+                <Switch
+                  checked={paymentMode?.mode === "mpesa"}
+                  onCheckedChange={() => handleSwitchPaymentMode("mpesa")}
+                  disabled={loading || paymentMode?.mode === "mpesa"}
+                  aria-label="Enable M-Pesa"
+                />
               </div>
-              <CardDescription className="text-xs">M-Pesa payment gateway credentials.</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 text-xs text-muted-foreground space-y-2">
               {currentDarajaConfig ? (
@@ -366,11 +342,21 @@ export default function SettingsPage() {
           {/* Paystack Config Card */}
           <Card className="flex flex-col border border-border hover:shadow-sm transition-shadow">
             <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <CreditCard className="size-4 text-primary" />
-                <CardTitle className="text-sm">Paystack API</CardTitle>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="size-4 text-primary" />
+                  <div>
+                    <CardTitle className="text-sm">Paystack API</CardTitle>
+                    <CardDescription className="text-xs">Paystack payment processor</CardDescription>
+                  </div>
+                </div>
+                <Switch
+                  checked={paymentMode?.mode === "paystack"}
+                  onCheckedChange={() => handleSwitchPaymentMode("paystack")}
+                  disabled={loading || paymentMode?.mode === "paystack"}
+                  aria-label="Enable Paystack"
+                />
               </div>
-              <CardDescription className="text-xs">Paystack payment processor credentials.</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 text-xs text-muted-foreground space-y-2">
               {currentPaystackConfig ? (
