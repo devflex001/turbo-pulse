@@ -19,7 +19,7 @@
     "dev:all": "concurrently \"pnpm dev\" \"pnpm convex:dev\""
   },
   "dependencies": {
-    "@node-rs/argon2": "^2.0.2",
+    "@noble/hashes": "^2.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.41.0",

@@ -34,3 +34,5 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+docs/AUTH_COMPLETED.md
+*md

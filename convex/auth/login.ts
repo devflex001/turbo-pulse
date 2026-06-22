@@ -1,5 +1,3 @@
-"use node";
-
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
 import { normalizePhoneNumber, verifyPassword } from "./utils";
@@ -26,7 +24,7 @@ export const loginUser = mutation({
     }
 
     // Verify password
-    const isValidPassword = await verifyPassword(user.passwordHash, password);
+    const isValidPassword = verifyPassword(user.passwordHash, password);
 
     if (!isValidPassword) {
       throw new Error("Invalid phone number or password");

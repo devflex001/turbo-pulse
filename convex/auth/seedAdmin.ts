@@ -1,5 +1,3 @@
-"use node";
-
 import { v } from "convex/values";
 import { internalMutation } from "../_generated/server";
 import {
@@ -77,7 +75,7 @@ export const seedAdminUser = internalMutation({
     }
 
     // Hash the password
-    const passwordHash = await hashPassword(password);
+    const passwordHash = hashPassword(password);
 
     // Create the admin user
     const adminId = await ctx.db.insert("users", {

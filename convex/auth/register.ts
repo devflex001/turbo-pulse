@@ -1,5 +1,3 @@
-"use node";
-
 import { v } from "convex/values";
 import { mutation } from "../_generated/server";
 import {
@@ -44,7 +42,7 @@ export const registerUser = mutation({
     }
 
     // Hash the password
-    const passwordHash = await hashPassword(password);
+    const passwordHash = hashPassword(password);
 
     // Create the user
     const userId = await ctx.db.insert("users", {

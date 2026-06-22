@@ -1,37 +1,86 @@
-"use node";
-
-import { hash, verify } from "@node-rs/argon2";
+import { scrypt } from "@noble/hashes/scrypt.js";
 
 /**
- * Hash a password using Argon2id algorithm
+ * Hash a password using scrypt algorithm (pure JS, Convex-compatible)
+ * This function can be called from mutations or actions
  * @param password - Plain text password
- * @returns Hashed password string
+ * @returns Hashed password string (format: salt$hash)
  */
-export async function hashPassword(password: string): Promise<string> {
-  return await hash(password, {
-    memoryCost: 19456,
-    timeCost: 2,
-    outputLen: 32,
-    parallelism: 1,
+export function hashPassword(password: string): string {
+  // Generate a random salt (16 bytes)
+  const salt = crypto.randomUUID().replace(/-/g, "").substring(0, 32);
+
+  // Hash the password with scrypt
+  // N=32768, r=8, p=1 are secure defaults similar to Argon2
+  const hash = scrypt(password, salt, {
+    N: 32768, // CPU/memory cost factor
+    r: 8,     // Block size
+    p: 1,     // Parallelization factor
+    dkLen: 32 // Output length
   });
+
+  // Convert hash to hex string
+  const hashHex = Array.from(hash)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  // Return salt$hash format for verification
+  return `${salt}$${hashHex}`;
 }
 
 /**
  * Verify a password against a hash
- * @param hash - The stored password hash
+ * This function can be called from mutations or actions
+ * @param storedHash - The stored password hash (format: salt$hash)
  * @param password - Plain text password to verify
  * @returns True if password matches, false otherwise
  */
-export async function verifyPassword(
-  hash: string,
+export function verifyPassword(
+  storedHash: string,
   password: string
-): Promise<boolean> {
+): boolean {
   try {
-    return await verify(hash, password);
+    // Split the stored hash into salt and hash
+    const [salt, hash] = storedHash.split("$");
+
+    if (!salt || !hash) {
+      return false;
+    }
+
+    // Hash the provided password with the same salt
+    const testHash = scrypt(password, salt, {
+      N: 32768,
+      r: 8,
+      p: 1,
+      dkLen: 32
+    });
+
+    const testHashHex = Array.from(testHash)
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    // Compare the hashes (constant-time comparison)
+    return timingSafeEqual(hash, testHashHex);
   } catch (error) {
     // If hash is invalid format, return false instead of throwing
     return false;
   }
+}
+
+/**
+ * Timing-safe string comparison to prevent timing attacks
+ */
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+
+  return result === 0;
 }
 
 /**
@@ -69,14 +118,14 @@ export function normalizePhoneNumber(phone: string): string {
  */
 export function isValidPhoneNumber(phone: string): boolean {
   const normalized = normalizePhoneNumber(phone);
-  
+
   // Check if it's a valid Kenyan number (12 digits starting with 254)
   if (/^254[17]\d{8}$/.test(normalized)) {
     return true;
   }
 
   // Add more validation rules for other countries if needed
-  
+
   return false;
 }
 
@@ -101,7 +150,7 @@ export function validatePassword(password: string): string | null {
 
   // if (!/[a-z]/.test(password)) {
   //   return "Password must contain at least one lowercase letter";
-  // }
+  //}
 
   // if (!/[0-9]/.test(password)) {
   //   return "Password must contain at least one number";
