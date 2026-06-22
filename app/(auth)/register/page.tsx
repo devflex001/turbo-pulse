@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -11,9 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 
 export default function RegisterPage() {
-  const router = useRouter();
   const { register, isLoading } = useAuth();
-  
+
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -21,7 +19,7 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!phone || !password || !confirmPassword) {
       toast.error("Please fill in all fields");
       return;
@@ -40,7 +38,7 @@ export default function RegisterPage() {
     try {
       setIsSubmitting(true);
       await register(phone, password);
-      
+
       toast.success("Registration successful! Logging you in...");
       // Login function in register will handle redirect
     } catch (error) {
