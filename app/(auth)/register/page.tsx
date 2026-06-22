@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const { register, isLoading } = useAuth();
 
   const [phone, setPhone] = useState("");
@@ -37,10 +39,16 @@ export default function RegisterPage() {
 
     try {
       setIsSubmitting(true);
-      await register(phone, password);
+      const role = await register(phone, password);
 
       toast.success("Registration successful! Logging you in...");
-      // Login function in register will handle redirect
+
+      // Redirect based on role
+      if (role === "admin") {
+        router.push("/admin/settings");
+      } else {
+        router.push("/");
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Registration failed";
       toast.error(message);

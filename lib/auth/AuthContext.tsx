@@ -25,8 +25,8 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  login: (phone: string, password: string) => Promise<void>;
-  register: (phone: string, password: string) => Promise<void>;
+  login: (phone: string, password: string) => Promise<"user" | "admin" | undefined>;
+  register: (phone: string, password: string) => Promise<"user" | "admin" | undefined>;
   logout: () => void;
 }
 
@@ -79,12 +79,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: result.role,
         });
 
-        // Redirect to dashboard based on role
-        if (result.role === "admin") {
-          window.location.href = "/admin/settings";
-        } else {
-          window.location.href = "/dashboard";
-        }
+        // Set user immediately to prevent flicker
+        setUser({
+          _id: result.userId,
+          phone: result.phone,
+          role: result.role,
+          createdAt: Date.now(),
+        });
+
+        setIsLoading(false);
+
+        // Return the role so the calling component can handle redirect
+        return result.role;
       }
     } catch (error) {
       setIsLoading(false);
@@ -101,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (result.success) {
         // Auto-login after registration
-        await login(phone, password);
+        return await login(phone, password);
       }
     } catch (error) {
       setIsLoading(false);

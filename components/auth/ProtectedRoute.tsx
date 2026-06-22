@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { getUserData } from "@/lib/auth/jwt";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,6 +15,15 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
   const { user, isLoading, isAuthenticated, isAdmin } = useAuth();
 
   useEffect(() => {
+    // Don't redirect while loading if we have stored credentials
+    // This prevents the flicker when user just logged in
+    const storedUser = getUserData();
+
+    if (isLoading && storedUser) {
+      // We're loading but have credentials, wait for Convex to verify
+      return;
+    }
+
     if (!isLoading) {
       if (!isAuthenticated) {
         // Not authenticated, redirect to login
@@ -26,7 +36,9 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
   }, [isLoading, isAuthenticated, isAdmin, requireAdmin, router]);
 
   // Show loading state while checking authentication
-  if (isLoading) {
+  // But only if we don't have stored credentials (to prevent flicker)
+  const storedUser = getUserData();
+  if (isLoading && !storedUser) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -38,7 +50,7 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
   }
 
   // Don't render children if not authenticated or not admin when required
-  if (!isAuthenticated || (requireAdmin && !isAdmin)) {
+  if (!isLoading && (!isAuthenticated || (requireAdmin && !isAdmin))) {
     return null;
   }
 
