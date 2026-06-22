@@ -260,9 +260,23 @@ export const updateTransactionStatus = mutation({
  */
 export const getLatestTransaction = query({
   args: {
-    reference: v.string(),
+    reference: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    if (!args.reference) {
+      // Get the most recent transaction
+      const transactions = await ctx.db
+        .query("transactions")
+        .order("desc")
+        .take(1)
+
+      if (transactions.length === 0) {
+        return null
+      }
+
+      return formatTransaction(transactions[0])
+    }
+
     const transaction = await ctx.db
       .query("transactions")
       .withIndex("by_checkoutRequestID", (q) => q.eq("checkoutRequestID", args.reference))
@@ -272,20 +286,25 @@ export const getLatestTransaction = query({
       return null
     }
 
-    return {
-      _id: transaction._id,
-      status: transaction.status,
-      resultCode: transaction.resultCode,
-      resultDesc: transaction.resultDesc,
-      amount: transaction.amount,
-      type: transaction.type,
-      time: transaction.time,
-      updatedAt: transaction.updatedAt,
-      feedback: transaction.feedback,
-      feedbackType: transaction.feedbackType,
-    }
+    return formatTransaction(transaction)
   },
 })
+
+function formatTransaction(transaction: any) {
+  return {
+    _id: transaction._id,
+    status: transaction.status,
+    resultCode: transaction.resultCode,
+    resultDesc: transaction.resultDesc,
+    amount: transaction.amount,
+    type: transaction.type,
+    time: transaction.time,
+    updatedAt: transaction.updatedAt,
+    feedback: transaction.feedback,
+    feedbackType: transaction.feedbackType,
+    checkoutRequestID: transaction.checkoutRequestID,
+  }
+}
 
 /**
  * Internal function to update wallet balance

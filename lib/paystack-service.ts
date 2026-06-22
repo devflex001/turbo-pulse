@@ -1,12 +1,40 @@
 /**
  * Paystack Payment Service
  * Handles Paystack API integration for payments
+ * Uses embedded modal/iframe instead of redirects
  */
 
 interface PaystackConfig {
   publicKey: string
   secretKey: string
   production: boolean
+}
+
+// Paystack reference for embedded payment modal
+declare global {
+  interface Window {
+    PaystackPop?: {
+      setup: (options: PaystackSetupOptions) => PaystackPopInstance
+    }
+  }
+}
+
+interface PaystackSetupOptions {
+  key: string
+  email: string
+  amount: number
+  ref: string
+  onClose?: () => void
+  onSuccess?: (response: PaystackSuccessResponse) => void
+}
+
+interface PaystackPopInstance {
+  openIframe: () => void
+}
+
+interface PaystackSuccessResponse {
+  reference: string
+  status: string
 }
 
 interface InitializeTransactionResponse {
