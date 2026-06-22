@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 
 export const getWalletBalance = query({
@@ -7,7 +8,7 @@ export const getWalletBalance = query({
     const wallet = await ctx.db
       .query("wallets")
       .first();
-    return wallet ? wallet.balance : 1000;
+    return wallet ? wallet.balance : 0;
   },
 });
 
@@ -92,13 +93,13 @@ export const placeBet = mutation({
       .query("wallets")
       .first();
 
-    const balance = wallet ? wallet.balance : 1000;
+    const balance = wallet ? wallet.balance : 0;
     if (args.stake > balance) throw new Error("Insufficient balance");
 
     if (wallet) {
       await ctx.db.patch(wallet._id, { balance: balance - args.stake });
     } else {
-      await ctx.db.insert("wallets", { balance: 1000 - args.stake });
+      await ctx.db.insert("wallets", { balance: 0 - args.stake });
     }
 
     const betId = await ctx.db.insert("bets", {
@@ -144,13 +145,13 @@ export const createTransaction = mutation({
       let wallet = await ctx.db
         .query("wallets")
         .first();
-      const currentBalance = wallet ? wallet.balance : 1000;
+      const currentBalance = wallet ? wallet.balance : 0;
       const change = args.type === "deposit" ? args.amount : -args.amount;
 
       if (wallet) {
         await ctx.db.patch(wallet._id, { balance: currentBalance + change });
       } else {
-        await ctx.db.insert("wallets", { balance: 1000 + change });
+        await ctx.db.insert("wallets", { balance: 0 + change });
       }
     }
 
@@ -187,7 +188,7 @@ export const updateTransactionStatus = mutation({
       let wallet = await ctx.db
         .query("wallets")
         .first();
-      const currentBalance = wallet ? wallet.balance : 1000;
+      const currentBalance = wallet ? wallet.balance : 0;
       const change =
         transaction.type === "deposit"
           ? transaction.amount
@@ -197,7 +198,7 @@ export const updateTransactionStatus = mutation({
         await ctx.db.patch(wallet._id, { balance: currentBalance + change });
       } else {
         await ctx.db.insert("wallets", {
-          balance: 1000 + change,
+          balance: 0 + change,
         });
       }
     } else if (args.status !== "success" && oldStatus === "success") {
@@ -233,14 +234,14 @@ export const settleSingleBet = mutation({
       let wallet = await ctx.db
         .query("wallets")
         .first();
-      const currentBalance = wallet ? wallet.balance : 1000;
+      const currentBalance = wallet ? wallet.balance : 0;
       if (wallet) {
         await ctx.db.patch(wallet._id, {
           balance: currentBalance + bet.potentialReturn,
         });
       } else {
         await ctx.db.insert("wallets", {
-          balance: 1000 + bet.potentialReturn,
+          balance: 0 + bet.potentialReturn,
         });
       }
     }
@@ -277,12 +278,12 @@ export const cancelBet = mutation({
     let wallet = await ctx.db
       .query("wallets")
       .first();
-    const currentBalance = wallet ? wallet.balance : 1000;
+    const currentBalance = wallet ? wallet.balance : 0;
 
     if (wallet) {
       await ctx.db.patch(wallet._id, { balance: currentBalance + bet.stake });
     } else {
-      await ctx.db.insert("wallets", { balance: 1000 + bet.stake });
+      await ctx.db.insert("wallets", { balance: 0 + bet.stake });
     }
 
     return { success: true };
@@ -307,19 +308,161 @@ export const settleAllBets = mutation({
         let wallet = await ctx.db
           .query("wallets")
           .first();
-        const currentBalance = wallet ? wallet.balance : 1000;
+        const currentBalance = wallet ? wallet.balance : 0;
         if (wallet) {
           await ctx.db.patch(wallet._id, {
             balance: currentBalance + bet.potentialReturn,
           });
         } else {
           await ctx.db.insert("wallets", {
-            balance: 1000 + bet.potentialReturn,
+            balance: 0 + bet.potentialReturn,
           });
         }
       }
     }
 
     return { success: true };
+  },
+});
+
+// ─── Admin Analytics Queries ───────────────────────────────────────────────
+
+export const getAdminStats = query({
+  args: {},
+  handler: async (ctx) => {
+    // Total users
+    const allUsers = await ctx.db
+      .query("users")
+      .collect();
+    const totalUsers = allUsers.length;
+
+    // Total successful deposits
+    const allTransactions = await ctx.db
+      .query("transactions")
+      .collect();
+    const totalDeposits = allTransactions
+      .filter((t) => t.type === "deposit" && t.status === "success")
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    // Active bets
+    const allBets = await ctx.db
+      .query("bets")
+      .collect();
+    const activeBets = allBets.filter((b) => b.status === "active").length;
+
+    return {
+      totalUsers,
+      totalDeposits,
+      activeBets,
+    };
+  },
+});
+
+export const getDepositTrend = query({
+  args: {
+    daysBack: v.optional(v.number()), // defaults to 7 days
+  },
+  handler: async (ctx, args) => {
+    const daysBack = args.daysBack ?? 7;
+    const now = Date.now();
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const millisPerDay = 24 * 60 * 60 * 1000;
+
+    // Get all deposits in the range
+    const allTransactions = await ctx.db
+      .query("transactions")
+      .collect();
+
+    const depositsByDay: Record<string, number> = {};
+
+    // Initialize days
+    for (let i = daysBack - 1; i >= 0; i--) {
+      const date = new Date(startOfToday.getTime() - i * millisPerDay);
+      const dayKey = date.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        weekday: "short",
+      });
+      depositsByDay[dayKey] = 0;
+    }
+
+    // Accumulate deposits
+    allTransactions.forEach((tx) => {
+      if (tx.type === "deposit" && tx.status === "success") {
+        const txDate = new Date(tx.time);
+        const txStartOfDay = new Date(txDate);
+        txStartOfDay.setHours(0, 0, 0, 0);
+        const daysAgo = Math.floor(
+          (startOfToday.getTime() - txStartOfDay.getTime()) / millisPerDay
+        );
+
+        if (daysAgo >= 0 && daysAgo < daysBack) {
+          const dayKey = txDate.toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "short",
+            weekday: "short",
+          });
+          depositsByDay[dayKey] += tx.amount;
+        }
+      }
+    });
+
+    return Object.entries(depositsByDay).map(([day, amount]) => ({
+      day,
+      amount,
+    }));
+  },
+});
+
+export const getUserRegistrationTrend = query({
+  args: {
+    daysBack: v.optional(v.number()), // defaults to 7 days
+  },
+  handler: async (ctx, args) => {
+    const daysBack = args.daysBack ?? 7;
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const millisPerDay = 24 * 60 * 60 * 1000;
+
+    // Get all users
+    const allUsers = await ctx.db
+      .query("users")
+      .collect();
+
+    const usersByDay: Record<string, number> = {};
+
+    // Initialize days
+    for (let i = daysBack - 1; i >= 0; i--) {
+      const date = new Date(startOfToday.getTime() - i * millisPerDay);
+      const dayKey = date.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+      });
+      usersByDay[dayKey] = 0;
+    }
+
+    // Count users by registration date
+    allUsers.forEach((user) => {
+      const userDate = new Date(user.createdAt);
+      const userStartOfDay = new Date(userDate);
+      userStartOfDay.setHours(0, 0, 0, 0);
+      const daysAgo = Math.floor(
+        (startOfToday.getTime() - userStartOfDay.getTime()) / millisPerDay
+      );
+
+      if (daysAgo >= 0 && daysAgo < daysBack) {
+        const dayKey = userDate.toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+        });
+        usersByDay[dayKey] += 1;
+      }
+    });
+
+    return Object.entries(usersByDay).map(([day, count]) => ({
+      day,
+      count,
+    }));
   },
 });
