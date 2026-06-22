@@ -7,7 +7,6 @@ import { toast } from "sonner"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { ArrowUpRight, Copy, Check, Loader } from "lucide-react"
-import { usePaystackPayment } from "react-paystack"
 
 const QUICK_AMOUNTS = [100, 250, 500, 1000, 2500, 5000]
 const MIN_AMOUNT = 10
@@ -28,6 +27,13 @@ interface TransactionResult {
   timestamp?: number
 }
 
+// Declare Paystack global
+declare global {
+  interface Window {
+    PaystackPop?: any
+  }
+}
+
 export function PaystackDepositSheet() {
   const wallet = useQuery(api.mpesa.getWallet)
   const createPaystackTransaction = useMutation(api.paystack.createTransaction)
@@ -42,8 +48,15 @@ export function PaystackDepositSheet() {
   const [paystackPublicKey, setPaystackPublicKey] = React.useState("")
   const timeoutRef = React.useRef<NodeJS.Timeout | null>(null)
 
-  // Get Paystack config on mount
+  // Load Paystack script and get config on mount
   React.useEffect(() => {
+    // Load Paystack inline.js
+    const script = document.createElement("script")
+    script.src = "https://js.paystack.co/v1/inline.js"
+    script.async = true
+    document.body.appendChild(script)
+
+    // Get public key
     fetch("/api/paystack/config")
       .then((res) => res.json())
       .then((data) => setPaystackPublicKey(data.publicKey))
@@ -94,21 +107,8 @@ export function PaystackDepositSheet() {
     }
   }, [])
 
-  // Setup Paystack payment config
-  const config = React.useMemo(() => {
-    return {
-      reference: reference || "",
-      email: email.trim(),
-      amount: Math.floor(parseFloat(amount) * 100), // Paystack uses cents
-      publicKey: paystackPublicKey,
-    }
-  }, [reference, email, amount, paystackPublicKey])
-
-  // Initialize Paystack payment
-  const initializePayment = usePaystackPayment(config)
-
   const handlePaystackSuccess = async (response: any) => {
-    console.log("[Paystack] Modal success:", response)
+    console.log("[Paystack] Payment successful:", response)
     setStage("processing")
 
     // Verify transaction
@@ -143,6 +143,25 @@ export function PaystackDepositSheet() {
     if (stage === "initiating") {
       setStage("idle")
     }
+  }
+
+  const openPaystackModal = (ref: string, depositEmail: string, depositAmount: number) => {
+    if (!window.PaystackPop) {
+      setErrorMessage("Paystack payment system not loaded. Please refresh and try again.")
+      setStage("error")
+      return
+    }
+
+    const handler = window.PaystackPop.setup({
+      key: paystackPublicKey,
+      email: depositEmail,
+      amount: Math.floor(depositAmount * 100), // Convert to cents
+      ref: ref,
+      onClose: handlePaystackClose,
+      onSuccess: handlePaystackSuccess,
+    })
+
+    handler.openIframe()
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -189,10 +208,8 @@ export function PaystackDepositSheet() {
 
       console.log("[Paystack] Transaction record created:", ref)
 
-      // Wait a moment then open modal
-      setTimeout(() => {
-        initializePayment(handlePaystackSuccess, handlePaystackClose)
-      }, 500)
+      // Open Paystack modal
+      openPaystackModal(ref, email.trim(), parsedAmount)
     } catch (error) {
       console.error("Paystack deposit error:", error)
       setErrorMessage("Failed to initiate deposit")
