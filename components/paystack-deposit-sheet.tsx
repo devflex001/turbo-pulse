@@ -8,6 +8,8 @@ import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { ArrowUpRight, Copy, Check, Loader } from "lucide-react"
 
+// Note: Using Paystack inline.js directly (no npm dependency needed)
+
 const QUICK_AMOUNTS = [100, 250, 500, 1000, 2500, 5000]
 const MIN_AMOUNT = 10
 const MAX_AMOUNT = 1000000

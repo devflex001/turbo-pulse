@@ -18,9 +18,9 @@ import { Settings, Eye, EyeOff, Loader, Check, Wallet, Percent, CreditCard } fro
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerClose } from "@/components/ui/drawer"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet"
 import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { toast } from "sonner"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface DarajaConfig {
   _id: string
@@ -292,12 +292,16 @@ export default function SettingsPage() {
                     <CardDescription className="text-xs">M-Pesa payment gateway</CardDescription>
                   </div>
                 </div>
-                <Switch
-                  checked={paymentMode?.mode === "mpesa"}
-                  onCheckedChange={() => handleSwitchPaymentMode("mpesa")}
+                <Button
+                  size="sm"
+                  variant={paymentMode?.mode === "mpesa" ? "default" : "outline"}
+                  onClick={() => handleSwitchPaymentMode("mpesa")}
                   disabled={loading || paymentMode?.mode === "mpesa"}
-                  aria-label="Enable M-Pesa"
-                />
+                  className="h-8 px-3 text-xs font-semibold"
+                >
+                  {loading && paymentMode?.mode === "mpesa" && <Loader className="size-3 mr-1 animate-spin" />}
+                  {paymentMode?.mode === "mpesa" ? "✓ Active" : "Enable"}
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="flex-1 text-xs text-muted-foreground space-y-2">
@@ -350,12 +354,16 @@ export default function SettingsPage() {
                     <CardDescription className="text-xs">Paystack payment processor</CardDescription>
                   </div>
                 </div>
-                <Switch
-                  checked={paymentMode?.mode === "paystack"}
-                  onCheckedChange={() => handleSwitchPaymentMode("paystack")}
+                <Button
+                  size="sm"
+                  variant={paymentMode?.mode === "paystack" ? "default" : "outline"}
+                  onClick={() => handleSwitchPaymentMode("paystack")}
                   disabled={loading || paymentMode?.mode === "paystack"}
-                  aria-label="Enable Paystack"
-                />
+                  className="h-8 px-3 text-xs font-semibold"
+                >
+                  {loading && paymentMode?.mode === "paystack" && <Loader className="size-3 mr-1 animate-spin" />}
+                  {paymentMode?.mode === "paystack" ? "✓ Active" : "Enable"}
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="flex-1 text-xs text-muted-foreground space-y-2">
