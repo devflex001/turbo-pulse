@@ -8,6 +8,13 @@
  * @module
  */
 
+import type * as auth_authorization from "../auth/authorization.js";
+import type * as auth_examples from "../auth/examples.js";
+import type * as auth_login from "../auth/login.js";
+import type * as auth_register from "../auth/register.js";
+import type * as auth_seedAdmin from "../auth/seedAdmin.js";
+import type * as auth_user from "../auth/user.js";
+import type * as auth_utils from "../auth/utils.js";
 import type * as bets from "../bets.js";
 import type * as crons from "../crons.js";
 import type * as customEvents from "../customEvents.js";
@@ -28,6 +35,13 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "auth/authorization": typeof auth_authorization;
+  "auth/examples": typeof auth_examples;
+  "auth/login": typeof auth_login;
+  "auth/register": typeof auth_register;
+  "auth/seedAdmin": typeof auth_seedAdmin;
+  "auth/user": typeof auth_user;
+  "auth/utils": typeof auth_utils;
   bets: typeof bets;
   crons: typeof crons;
   customEvents: typeof customEvents;

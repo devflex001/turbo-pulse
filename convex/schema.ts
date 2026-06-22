@@ -273,6 +273,16 @@ const schema = defineSchema({
     updatedAt: v.number(),
     updatedBy: v.string(),
   }),
+
+  users: defineTable({
+    phone: v.string(),
+    passwordHash: v.string(),
+    role: v.union(v.literal("user"), v.literal("admin")),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_phone", ["phone"])
+    .index("by_role", ["role"]),
 })
 
 export default schema
