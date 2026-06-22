@@ -172,14 +172,14 @@ export class MPesaService {
         PartyB: this.config.shortcode,
         PhoneNumber: formattedPhone,
         CallBackURL: this.config.callbackUrl,
-        AccountReference: "STAR-HELLA", // This shows on phone
-        TransactionDesc: "STAR-HELLA Betting", // This is the description
+        AccountReference: "BET-FLEXX", // This shows on phone
+        TransactionDesc: "BET-FLEXX Betting", // This is the description
       };
 
       console.log("[M-Pesa] Initiating STK Push:", {
         phone: formattedPhone,
         amount: Math.floor(amount),
-        accountReference: "STAR-HELLA",
+        accountReference: "BET-FLEXX",
       });
 
       const response = await fetch(
