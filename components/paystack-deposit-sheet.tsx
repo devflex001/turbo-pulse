@@ -8,8 +8,7 @@ import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { ArrowUpRight, Copy, Check, Loader } from "lucide-react"
 
-// Note: Using Paystack inline.js directly (no npm dependency needed)
-
+// Official Paystack Popup v2 - modal-based (no redirect)
 const QUICK_AMOUNTS = [100, 250, 500, 1000, 2500, 5000]
 const MIN_AMOUNT = 10
 const MAX_AMOUNT = 1000000
@@ -29,7 +28,7 @@ interface TransactionResult {
   timestamp?: number
 }
 
-// Declare Paystack global
+// Declare official Paystack Popup v2 global
 declare global {
   interface Window {
     PaystackPop?: any
@@ -46,23 +45,62 @@ export function PaystackDepositSheet() {
   const [transactionResult, setTransactionResult] = React.useState<TransactionResult | null>(null)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const [reference, setReference] = React.useState<string | null>(null)
-  const [copied, setCopied] = React.useState(false)
   const [paystackPublicKey, setPaystackPublicKey] = React.useState("")
+  const [paystackLoaded, setPaystackLoaded] = React.useState(false)
   const timeoutRef = React.useRef<NodeJS.Timeout | null>(null)
 
-  // Load Paystack script and get config on mount
+  // Load official Paystack Popup v2 script and get config on mount
   React.useEffect(() => {
-    // Load Paystack inline.js
-    const script = document.createElement("script")
-    script.src = "https://js.paystack.co/v1/inline.js"
-    script.async = true
-    document.body.appendChild(script)
+    // Check if PaystackPop is already available
+    if (window.PaystackPop) {
+      console.log("[Paystack] Popup v2 already loaded")
+      setPaystackLoaded(true)
+    } else {
+      // Load official Paystack Popup v2 from CDN
+      const script = document.createElement("script")
+      script.src = "https://js.paystack.co/v2/inline.js"
+      script.async = true
 
-    // Get public key
+      script.onload = () => {
+        console.log("[Paystack] Popup v2 script loaded successfully from CDN")
+        // Small delay to ensure PaystackPop is fully available
+        setTimeout(() => {
+          if (window.PaystackPop) {
+            setPaystackLoaded(true)
+          }
+        }, 100)
+      }
+
+      script.onerror = () => {
+        console.error("[Paystack] Failed to load Popup v2 script from CDN")
+        toast.error("Failed to load Paystack payment system")
+      }
+
+      document.body.appendChild(script)
+    }
+
+    // Fetch public key
     fetch("/api/paystack/config")
       .then((res) => res.json())
-      .then((data) => setPaystackPublicKey(data.publicKey))
-      .catch((err) => console.error("Failed to load Paystack config:", err))
+      .then((data) => {
+        if (data.publicKey) {
+          setPaystackPublicKey(data.publicKey)
+          console.log("[Paystack] Public key loaded successfully")
+        } else {
+          console.error("[Paystack] No public key in config response")
+          toast.error("Payment configuration missing")
+        }
+      })
+      .catch((err) => {
+        console.error("[Paystack] Failed to load config:", err)
+        toast.error("Failed to load payment configuration")
+      })
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
   }, [])
 
   // Query latest transaction for real-time updates
@@ -113,8 +151,8 @@ export function PaystackDepositSheet() {
     console.log("[Paystack] Payment successful:", response)
     setStage("processing")
 
-    // Verify transaction
     try {
+      // Verify transaction with backend
       const verifyResponse = await fetch("/api/paystack/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -123,47 +161,80 @@ export function PaystackDepositSheet() {
 
       if (!verifyResponse.ok) {
         const error = await verifyResponse.json()
+        console.error("[Paystack] Verification failed:", error)
         setErrorMessage(error.message || "Failed to verify payment")
         setStage("error")
+        toast.error("Payment verification failed")
         return
       }
 
       const verifyData = await verifyResponse.json()
       console.log("[Paystack] Verification result:", verifyData)
 
-      // Wait for transaction to be updated by webhook or immediate DB update
-      // The query will trigger real-time update
+      // Wait for transaction to be updated
+      // The query will trigger real-time update via Convex
     } catch (error) {
       console.error("[Paystack] Verification error:", error)
       setErrorMessage("Failed to verify payment")
       setStage("error")
+      toast.error("Payment verification failed")
     }
   }
 
-  const handlePaystackClose = () => {
-    console.log("[Paystack] Modal closed")
+  const handlePaystackCancel = () => {
+    console.log("[Paystack] Payment cancelled by user")
     if (stage === "initiating") {
       setStage("idle")
+      setErrorMessage(null)
     }
   }
 
   const openPaystackModal = (ref: string, depositEmail: string, depositAmount: number) => {
+    // Verify Paystack is loaded
     if (!window.PaystackPop) {
-      setErrorMessage("Paystack payment system not loaded. Please refresh and try again.")
+      console.error("[Paystack] Popup v2 not available")
+      setErrorMessage("Paystack payment system not initialized. Please refresh and try again.")
       setStage("error")
+      toast.error("Payment system error")
       return
     }
 
-    const handler = window.PaystackPop.setup({
-      key: paystackPublicKey,
-      email: depositEmail,
-      amount: Math.floor(depositAmount * 100), // Convert to cents
-      ref: ref,
-      onClose: handlePaystackClose,
-      onSuccess: handlePaystackSuccess,
-    })
+    if (!paystackPublicKey) {
+      console.error("[Paystack] No public key available")
+      setErrorMessage("Payment configuration missing")
+      setStage("error")
+      toast.error("Payment configuration error")
+      return
+    }
 
-    handler.openIframe()
+    console.log("[Paystack] Opening official Popup v2 modal for reference:", ref)
+
+    try {
+      // Create new PaystackPop instance (official v2 API)
+      const paystack = new window.PaystackPop()
+
+      // Configure and open the modal
+      paystack.checkout({
+        key: paystackPublicKey,
+        email: depositEmail,
+        amount: Math.floor(depositAmount * 100), // Amount in cents
+        reference: ref,
+        currency: "KES",
+        onSuccess: (transaction: any) => {
+          console.log("[Paystack] Transaction successful:", transaction)
+          handlePaystackSuccess(transaction)
+        },
+        onCancel: () => {
+          console.log("[Paystack] Payment cancelled")
+          handlePaystackCancel()
+        },
+      })
+    } catch (error) {
+      console.error("[Paystack] Failed to open modal:", error)
+      setErrorMessage("Failed to open payment modal")
+      setStage("error")
+      toast.error("Failed to open payment modal")
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -171,6 +242,7 @@ export function PaystackDepositSheet() {
     setErrorMessage(null)
     setTransactionResult(null)
 
+    // Validate inputs
     const parsedAmount = parseFloat(amount)
 
     if (!amount.trim() || isNaN(parsedAmount)) {
@@ -188,17 +260,25 @@ export function PaystackDepositSheet() {
       return
     }
 
+    // Check if payment system is ready
     if (!paystackPublicKey) {
-      setErrorMessage("Payment configuration not loaded. Please refresh and try again.")
+      setErrorMessage("Payment system not configured. Please refresh and try again.")
+      return
+    }
+
+    if (!paystackLoaded) {
+      setErrorMessage("Payment system is loading. Please wait a moment and try again.")
       return
     }
 
     setStage("initiating")
 
     try {
-      // Generate unique reference
-      const ref = `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+      // Generate unique transaction reference
+      const ref = `PAYSTACK-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`
       setReference(ref)
+
+      console.log("[Paystack] Creating transaction record with reference:", ref)
 
       // Create transaction record in database
       await createPaystackTransaction({
@@ -208,14 +288,15 @@ export function PaystackDepositSheet() {
         reference: ref,
       })
 
-      console.log("[Paystack] Transaction record created:", ref)
+      console.log("[Paystack] Transaction record created successfully")
 
-      // Open Paystack modal
+      // Open official Paystack Popup v2 modal
       openPaystackModal(ref, email.trim(), parsedAmount)
     } catch (error) {
-      console.error("Paystack deposit error:", error)
-      setErrorMessage("Failed to initiate deposit")
+      console.error("[Paystack] Error during deposit initiation:", error)
+      setErrorMessage("Failed to initiate payment. Please try again.")
       setStage("error")
+      toast.error("Failed to initiate payment")
     }
   }
 
@@ -295,11 +376,19 @@ export function PaystackDepositSheet() {
           type="submit"
           className="w-full text-sm font-bold gap-2 h-10 animate-in fade-in-50"
           size="default"
-          disabled={stage === "initiating" || !paystackPublicKey}
+          disabled={stage === "initiating" || !paystackPublicKey || !paystackLoaded}
         >
-          {stage === "initiating" && <Loader className="h-4 w-4 animate-spin" />}
-          Deposit via Paystack
-          <ArrowUpRight className="h-4 w-4" />
+          {stage === "initiating" ? (
+            <>
+              <Loader className="h-4 w-4 animate-spin" />
+              Opening Payment Modal...
+            </>
+          ) : (
+            <>
+              Pay with Paystack
+              <ArrowUpRight className="h-4 w-4" />
+            </>
+          )}
         </Button>
       </form>
     )
