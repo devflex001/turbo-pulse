@@ -28,12 +28,8 @@ interface TransactionResult {
   timestamp?: number
 }
 
-// Declare official Paystack Popup v2 global
-declare global {
-  interface Window {
-    PaystackPop?: any
-  }
-}
+// Paystack reference for embedded payment modal
+// (properly declared in lib/paystack-service.ts)
 
 export function PaystackDepositSheet() {
   const wallet = useQuery(api.mpesa.getWallet)
@@ -210,25 +206,29 @@ export function PaystackDepositSheet() {
     console.log("[Paystack] Opening official Popup v2 modal for reference:", ref)
 
     try {
-      // Create new PaystackPop instance (official v2 API)
-      const paystack = new window.PaystackPop()
+      // Use official Paystack Popup v2 API
+      if (!window.PaystackPop) {
+        throw new Error("Paystack not loaded")
+      }
 
-      // Configure and open the modal
-      paystack.checkout({
+      // Setup the paystack instance using the setup method
+      const paystack = window.PaystackPop.setup({
         key: paystackPublicKey,
         email: depositEmail,
         amount: Math.floor(depositAmount * 100), // Amount in cents
-        reference: ref,
-        currency: "KES",
+        ref: ref,
         onSuccess: (transaction: any) => {
           console.log("[Paystack] Transaction successful:", transaction)
           handlePaystackSuccess(transaction)
         },
-        onCancel: () => {
+        onClose: () => {
           console.log("[Paystack] Payment cancelled")
           handlePaystackCancel()
         },
       })
+
+      // Open the iframe
+      paystack.openIframe()
     } catch (error) {
       console.error("[Paystack] Failed to open modal:", error)
       setErrorMessage("Failed to open payment modal")

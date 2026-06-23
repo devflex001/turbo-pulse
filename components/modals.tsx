@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useBetStore } from "@/hooks/use-bet-store"
+import { useAuth } from "@/lib/auth/AuthContext"
 import { ResponsiveModal } from "@/components/ui/responsive-modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -33,6 +34,7 @@ function normalizeKenyanPhone(phone: string): string {
 
 export function LoginModal({ open, onOpenChange }: ModalProps) {
   const router = useRouter()
+  const { login } = useAuth()
   const [phone, setPhone] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [showPassword, setShowPassword] = React.useState(false)
@@ -55,26 +57,16 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
 
     try {
       setIsSubmitting(true)
-      const result = await signIn(phone, password)
-
-      if (result.error) {
-        toast.error(result.error)
-        setIsSubmitting(false)
-        return
-      }
+      const role = await login(phone, password)
 
       // Success! Close modal
       toast.success("Welcome back!")
       onOpenChange(false)
       setPhone("")
       setPassword("")
-      
-      // Check if admin - if so, redirect to admin
-      const authState = typeof window !== "undefined" ? sessionStorage.getItem("auth_state") : null
-      const isAdmin = authState ? JSON.parse(authState).user?.role === "admin" : false
 
       // Redirect based on role
-      if (isAdmin) {
+      if (role === "admin") {
         router.push("/admin")
       } else {
         router.push("/")
@@ -186,6 +178,7 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
 }
 
 export function RegisterModal({ open, onOpenChange }: ModalProps) {
+  const { register } = useAuth()
   const [phone, setPhone] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [showPassword, setShowPassword] = React.useState(false)
@@ -214,20 +207,14 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
 
     try {
       setIsSubmitting(true)
-      const result = await signUp(phone, password)
-
-      if (result.error) {
-        toast.error(result.error)
-        setIsSubmitting(false)
-        return
-      }
+      const role = await register(phone, password)
 
       toast.success("Account created successfully! Welcome to BetFlexx.")
       onOpenChange(false)
       setPhone("")
       setPassword("")
       setConfirmPassword("")
-      
+
       // Reload to pick up new auth state
       setTimeout(() => {
         window.location.reload()

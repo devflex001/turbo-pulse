@@ -135,7 +135,7 @@ function BanModal({ user, open, onClose }: BanModalProps) {
     try {
       setLoading(true)
       await banUser({
-        targetUserId: user._id,
+        targetUserId: user._id as Id<"users">,
         reason: reason.trim(),
         durationHours,
       })
@@ -262,7 +262,7 @@ function EditModal({ user, open, onClose }: EditModalProps) {
     try {
       setLoading(true)
       await editUser({
-        targetUserId: user._id,
+        targetUserId: user._id as Id<"users">,
         email: phone.trim(),
       })
       toast.success("Phone number updated")
@@ -443,7 +443,7 @@ export function AdminUsersPanel() {
 
   async function handleUnban(user: UserWithBan) {
     try {
-      await unbanUser({ targetUserId: user._id })
+      await unbanUser({ targetUserId: user._id as Id<"users"> })
       toast.success(`${user.phone ?? user._id.slice(-8)} has been unbanned`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to unban user")

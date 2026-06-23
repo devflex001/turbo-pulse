@@ -40,9 +40,10 @@ export function PublishedCustomEventsSection() {
     if (
       publishedEvents &&
       typeof publishedEvents === "object" &&
-      Array.isArray((publishedEvents as { page?: unknown }).page)
+      "items" in publishedEvents &&
+      Array.isArray(publishedEvents.items)
     ) {
-      return (publishedEvents as { page: any[] }).page
+      return publishedEvents.items
     }
 
     return []
