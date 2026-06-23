@@ -1,12 +1,13 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/AuthContext"
+import * as React from "react"
 import { Header } from "@/components/header"
 import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { LoginModal } from "@/components/modals"
 import {
   ArrowLeft,
   User,
@@ -17,8 +18,8 @@ import {
 } from "lucide-react"
 
 export default function AccountPage() {
-  const router = useRouter()
   const { user, logout, isLoading } = useAuth()
+  const [loginOpen, setLoginOpen] = React.useState(!user && !isLoading)
 
   if (isLoading) {
     return (
@@ -34,18 +35,18 @@ export default function AccountPage() {
 
   if (!user) {
     return (
-      <div className="flex flex-col h-screen overflow-hidden bg-background">
-        <Header />
-        <main className="flex-1 flex flex-col items-center justify-center p-4 gap-6">
-          <div className="text-center space-y-3">
-            <p className="text-muted-foreground">Please log in to view your account</p>
-            <Button onClick={() => router.push("/login")}>
-              Go to Login
-            </Button>
-          </div>
-        </main>
-        <BottomNav liveCount={0} />
-      </div>
+      <>
+        <div className="flex flex-col h-screen overflow-hidden bg-background">
+          <Header />
+          <main className="flex-1 flex flex-col items-center justify-center p-4 gap-6">
+            <div className="text-center space-y-3">
+              <p className="text-muted-foreground">Please log in to view your account</p>
+            </div>
+          </main>
+          <BottomNav liveCount={0} />
+        </div>
+        <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
+      </>
     )
   }
 
