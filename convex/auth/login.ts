@@ -1,13 +1,14 @@
 import { v } from "convex/values";
-import { mutation } from "../_generated/server";
+import { mutation, MutationCtx } from "../_generated/server";
 import { normalizePhoneNumber, verifyPassword } from "./utils";
+import { api } from "../_generated/api";
 
 export const loginUser = mutation({
   args: {
     phone: v.string(),
     password: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: { phone: string; password: string }) => {
     const { phone, password } = args;
 
     // Normalize phone number
@@ -30,13 +31,22 @@ export const loginUser = mutation({
       throw new Error("Invalid phone number or password");
     }
 
-    // Return user data (excluding password hash) for JWT creation
+    // Create session
+    const session: { sessionToken: string; expiresAt: number } = await ctx.runMutation(
+      api.auth.sessions.createSession,
+      {
+        userId: user._id,
+      }
+    );
+
+    // Return user data with session token
     return {
       success: true,
       userId: user._id,
       phone: user.phone,
       role: user.role,
-      tokenIdentifier: `convex|${user._id}`, // Standard Convex token identifier format
+      sessionToken: session.sessionToken,
+      expiresAt: session.expiresAt,
       message: "Login successful",
     };
   },

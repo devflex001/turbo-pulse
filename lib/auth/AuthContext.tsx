@@ -4,13 +4,11 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import {
-  createAuthToken,
-  storeAuthToken,
-  removeAuthToken,
+  storeSessionToken,
+  removeSessionToken,
   storeUserData,
-  getUserData,
-  getAuthToken,
-} from "./jwt";
+  getSessionToken,
+} from "./session";
 import { Id } from "@/convex/_generated/dataModel";
 
 interface User {
@@ -36,31 +34,38 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
 
   // Convex mutations
   const loginMutation = useMutation(api.auth.login.loginUser);
   const registerMutation = useMutation(api.auth.register.registerUser);
+  const logoutMutation = useMutation(api.auth.sessions.deleteSession);
 
-  // Get current user from Convex (using session)
-  const currentUser = useQuery(api.auth.user.getCurrentUser);
-
-  // Initialize user state from Convex session
+  // Get session token on mount
   useEffect(() => {
-    // Wait for Convex query to resolve
+    const token = getSessionToken();
+    setSessionToken(token);
+  }, []);
+
+  // Get current user from Convex using session token
+  const currentUser = useQuery(
+    api.auth.user.getCurrentUser,
+    sessionToken && sessionToken.length > 0 ? { sessionToken } : "skip"
+  );
+
+  // Update user state when Convex query resolves
+  useEffect(() => {
     if (currentUser !== undefined) {
       setUser(currentUser);
       setIsLoading(false);
 
-      // If Convex session is valid but user is null, clear local storage
-      if (currentUser === null) {
-        const storedToken = getAuthToken();
-        if (storedToken) {
-          // Token exists but session is invalid - clear it
-          removeAuthToken();
-        }
+      // If session is invalid, clear local storage
+      if (currentUser === null && sessionToken) {
+        removeSessionToken();
+        setSessionToken(null);
       }
     }
-  }, [currentUser]);
+  }, [currentUser, sessionToken]);
 
   const login = async (phone: string, password: string) => {
     try {
@@ -70,18 +75,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await loginMutation({ phone, password });
 
       if (result.success) {
-        // Create JWT token for Convex Auth session
-        const token = await createAuthToken(result.userId, result.role);
-
-        // Store token and user data
-        storeAuthToken(token);
+        // Store session token
+        storeSessionToken(result.sessionToken);
         storeUserData({
           userId: result.userId,
           phone: result.phone,
           role: result.role,
         });
 
-        // Set user immediately to prevent flicker
+        // Update local state
+        setSessionToken(result.sessionToken);
         setUser({
           _id: result.userId,
           phone: result.phone,
@@ -90,14 +93,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         setIsLoading(false);
-
-        // Trigger storage event to sync with ConvexProvider
-        window.dispatchEvent(
-          new StorageEvent("storage", {
-            key: "convex_auth_token",
-            newValue: token,
-          })
-        );
 
         // Return the role so the calling component can handle redirect
         return result.role;
@@ -125,25 +120,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = () => {
-    // Remove auth token and user data
-    removeAuthToken();
-    setUser(null);
+  const logout = async () => {
+    try {
+      // Delete session from database
+      if (sessionToken) {
+        await logoutMutation({ sessionToken });
+      }
+    } catch (error) {
+      console.error("Error logging out:", error);
+    } finally {
+      // Remove session token and user data
+      removeSessionToken();
+      setSessionToken(null);
+      setUser(null);
 
-    // Dispatch storage event to clear auth in ConvexProvider
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new StorageEvent("storage", {
-          key: "convex_auth_token",
-          newValue: null,
-        })
-      );
-    }
-
-    // Force a page reload to clear Convex connection state
-    // This ensures the client reconnects without the auth token
-    if (typeof window !== "undefined") {
-      window.location.href = "/";
+      // Redirect to home page
+      if (typeof window !== "undefined") {
+        window.location.href = "/";
+      }
     }
   };
 

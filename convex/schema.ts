@@ -284,6 +284,16 @@ const schema = defineSchema({
     .index("by_phone", ["phone"])
     .index("by_role", ["role"]),
 
+  sessions: defineTable({
+    userId: v.id("users"),
+    sessionToken: v.string(),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_sessionToken", ["sessionToken"])
+    .index("by_userId", ["userId"])
+    .index("by_expiresAt", ["expiresAt"]),
+
   users_bans: defineTable({
     userId: v.id("users"),
     reason: v.string(),
