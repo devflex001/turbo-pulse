@@ -4,28 +4,32 @@ import { Id } from "../_generated/dataModel";
 
 /**
  * Get the current authenticated user's profile
- * Uses Convex Auth's session to identify the user
+ * Uses session token passed from client
  */
 export const getCurrentUser = query({
-  args: {},
-  handler: async (ctx) => {
-    // Get the authenticated user identity from Convex Auth
-    const identity = await ctx.auth.getUserIdentity();
+  args: {
+    sessionToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Find session
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("by_sessionToken", (q) =>
+        q.eq("sessionToken", args.sessionToken)
+      )
+      .unique();
 
-    if (!identity) {
+    if (!session) {
       return null;
     }
 
-    // Extract userId from tokenIdentifier (format: "convex|<userId>")
-    const tokenIdentifier = identity.tokenIdentifier;
-    const userId = tokenIdentifier.split("|")[1] as Id<"users">;
-
-    if (!userId) {
+    // Check if session is expired
+    if (session.expiresAt < Date.now()) {
       return null;
     }
 
-    // Fetch user from database
-    const user = await ctx.db.get(userId);
+    // Get user
+    const user = await ctx.db.get(session.userId);
 
     if (!user) {
       return null;

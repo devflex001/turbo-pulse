@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth/AuthContext"
 import { useBetStore } from "@/hooks/use-bet-store"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +37,7 @@ import { Betslip } from "./betslip"
 
 export function Header() {
   const router = useRouter()
-  const { user, logout } = useAuth()
+  const { user, logout, isLoading } = useAuth()
   const {
     walletBalance,
     searchQuery,
@@ -123,7 +124,13 @@ export function Header() {
               )}
 
               {/* User menu dropdown - Show login/signup for non-logged-in users */}
-              {user ? (
+              {isLoading ? (
+                // Show skeleton loaders while auth is loading
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <Skeleton className="h-8 w-16 rounded" />
+                  <Skeleton className="h-8 w-20 rounded" />
+                </div>
+              ) : user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="size-8 rounded-full border border-border hover:bg-muted/50 shrink-0">
