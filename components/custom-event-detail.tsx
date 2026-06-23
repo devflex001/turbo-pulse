@@ -376,10 +376,12 @@ export function CustomEventDetail({
       {odds && odds.length > 0 && (
         <div
           className={cn(
-            "grid gap-2",
-            odds.length === 2 || odds.length === 4
+            "grid gap-1.5",
+            odds.length <= 2
               ? "grid-cols-2"
-              : "grid-cols-3"
+              : odds.length <= 4
+                ? "grid-cols-2"
+                : "grid-cols-3"
           )}
         >
           {[...odds].sort((a, b) => sortOdds(a, b)).map(renderOddButton)}
@@ -536,24 +538,26 @@ export function CustomEventDetail({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search markets"
-          className="h-9 text-xs focus-visible:ring-primary"
+          className="h-8 text-xs focus-visible:ring-primary"
         />
 
-        <ScrollArea className="w-full">
-          <Tabs value={activeCategory} onValueChange={setActiveCategory}>
-            <TabsList className="h-auto w-max gap-1 bg-transparent p-0">
-              {categories.map((category) => (
-                <TabsTrigger
-                  key={category}
-                  value={category}
-                  className="rounded-none border-b-2 border-b-transparent px-2.5 py-1 text-xs data-[state=active]:border-b-primary"
-                >
-                  {category}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        </ScrollArea>
+        {categories.length > 1 && (
+          <ScrollArea className="w-full">
+            <Tabs value={activeCategory} onValueChange={setActiveCategory}>
+              <TabsList className="h-auto w-max gap-1 bg-transparent p-0">
+                {categories.map((category) => (
+                  <TabsTrigger
+                    key={category}
+                    value={category}
+                    className="rounded-none border-b-2 border-b-transparent px-2 py-1 text-xs data-[state=active]:border-b-primary"
+                  >
+                    {category}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </ScrollArea>
+        )}
       </div>
 
       {/* Markets and Odds */}
