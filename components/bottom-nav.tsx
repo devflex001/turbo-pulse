@@ -18,7 +18,6 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
   const [isAuthenticated, setIsAuthenticated] = React.useState(false)
 
   const [betslipOpen, setBetslipOpen] = React.useState(false)
-  const [profileOpen, setProfileOpen] = React.useState(false)
   const [loginOpen, setLoginOpen] = React.useState(false)
   const [registerOpen, setRegisterOpen] = React.useState(false)
   const [depositOpen, setDepositOpen] = React.useState(false)
@@ -43,7 +42,7 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
 
   const handleProfileClick = () => {
     if (isAuthenticated) {
-      setProfileOpen(true)
+      router.push("/account")
     } else {
       setLoginOpen(true)
     }
@@ -59,7 +58,6 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
 
   const handleLogout = async () => {
     await logout()
-    setProfileOpen(false)
     router.replace("/")
   }
 
@@ -135,12 +133,12 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
             onClick={handleProfileClick}
             className={cn(
               "flex flex-col items-center justify-center gap-1 h-full text-[10px] font-medium transition-colors",
-              profileOpen
+              pathname === "/account"
                 ? "text-primary font-semibold"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <User className={cn("size-5", profileOpen ? "text-primary" : "text-muted-foreground")} />
+            <User className={cn("size-5", pathname === "/account" ? "text-primary" : "text-muted-foreground")} />
             <span>Profile</span>
           </button>
         </div>
@@ -161,82 +159,7 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
         </SheetContent>
       </Sheet>
 
-      {/* Profile Sheet/Drawer */}
-      <Sheet open={profileOpen} onOpenChange={setProfileOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl p-6 flex flex-col gap-4 border-t border-border bg-card">
-          <SheetHeader className="text-left border-b border-border pb-4">
-            <SheetTitle className="text-lg font-bold">My Account</SheetTitle>
-            {isAuthenticated && (
-              <SheetDescription className="text-xs text-muted-foreground mt-1">
-                You are logged in
-              </SheetDescription>
-            )}
-          </SheetHeader>
 
-          {isAuthenticated && (
-            <div className="space-y-6">
-              {/* Balance Card */}
-              <div className="flex items-center justify-between bg-muted/50 p-4 rounded-lg border border-border">
-                <div className="flex items-center gap-2.5">
-                  <Wallet className="size-5 text-primary" />
-                  <div className="flex flex-col">
-                    <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Wallet Balance</span>
-                    <span className="text-lg font-bold font-mono">
-                      KES {walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Transactions grid */}
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  onClick={() => {
-                    setProfileOpen(false)
-                    router.push("/deposit")
-                  }}
-                  className="bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 h-10 text-xs"
-                >
-                  <ArrowUpRight className="size-4" /> Deposit
-                </Button>
-                <Button
-                  onClick={() => {
-                    setProfileOpen(false)
-                    setWithdrawOpen(true)
-                  }}
-                  variant="outline"
-                  className="font-semibold flex items-center justify-center gap-2 h-10 text-xs border-border"
-                >
-                  <ArrowDownLeft className="size-4" /> Withdraw
-                </Button>
-              </div>
-
-              {/* Navigation list */}
-              <div className="space-y-1">
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setProfileOpen(false)
-                    router.push("/account")
-                  }}
-                  className="w-full justify-start gap-3 h-11 text-sm text-muted-foreground hover:text-foreground font-normal"
-                >
-                  <User className="size-4" /> View Full Profile
-                </Button>
-              </div>
-
-              {/* Log Out button */}
-              <Button
-                variant="destructive"
-                onClick={handleLogout}
-                className="w-full h-10 text-xs font-semibold mt-4"
-              >
-                <LogOut className="size-4 mr-2" /> Log Out
-              </Button>
-            </div>
-          )}
-        </SheetContent>
-      </Sheet>
 
       {/* Auth and transaction modals */}
       <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
