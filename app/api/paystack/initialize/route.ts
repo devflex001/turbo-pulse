@@ -4,11 +4,11 @@ import { initializePaystackService } from "@/lib/paystack-service"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, amount, metadata } = body
+    const { phone, amount, metadata } = body
 
-    if (!email || !amount) {
+    if (!phone || !amount) {
       return NextResponse.json(
-        { message: "Email and amount are required" },
+        { message: "Phone number and amount are required" },
         { status: 400 }
       )
     }
@@ -26,9 +26,13 @@ export async function POST(request: NextRequest) {
     // Initialize Paystack service
     const paystack = initializePaystackService()
 
+    // Generate a placeholder email based on phone number
+    // Paystack requires an email, so we'll generate one using phone as unique identifier
+    const placeholderEmail = `phone-${phone}@bet-flow.local`
+
     // Initialize transaction
     const response = await paystack.initializeTransaction(
-      email,
+      placeholderEmail,
       amount,
       reference,
       metadata || {}

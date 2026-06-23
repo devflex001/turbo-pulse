@@ -154,7 +154,8 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
   const { logout } = useAuth()
 
   const handleLogout = async () => {
-    await logout();
+    await logout()
+    router.push("/")
   }
 
   // Get current page label for mobile header

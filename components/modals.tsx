@@ -62,7 +62,13 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
       onOpenChange(false)
       setPhone("")
       setPassword("")
-      // Don't redirect - auth context is already updated
+
+      // Redirect admins to admin panel
+      if (role === "admin" && typeof window !== "undefined") {
+        setTimeout(() => {
+          window.location.href = "/admin"
+        }, 500)
+      }
     } catch (error) {
       const errMsg =
         error instanceof Error

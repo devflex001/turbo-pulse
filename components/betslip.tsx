@@ -4,6 +4,7 @@ import * as React from "react"
 import { useBetStore } from "@/hooks/use-bet-store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { LoginModal } from "@/components/modals"
 import { Trash2, X, Wallet, AlertCircle, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -24,6 +25,7 @@ export function Betslip({ onClose }: BetslipProps) {
 
   const [stake, setStake] = React.useState("100")
   const [isPlacing, setIsPlacing] = React.useState(false)
+  const [loginOpen, setLoginOpen] = React.useState(false)
 
   const presets = [50, 100, 200, 500, 1000]
 
@@ -40,7 +42,7 @@ export function Betslip({ onClose }: BetslipProps) {
 
   const handlePlaceBet = async () => {
     if (!user) {
-      toast.error("Please login to place bets")
+      setLoginOpen(true)
       return
     }
 
@@ -111,33 +113,33 @@ export function Betslip({ onClose }: BetslipProps) {
         </Button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-2 sm:px-4">
-        <div className="space-y-2 pb-2">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-1.5 sm:px-4">
+        <div className="space-y-1.5 pb-2">
           {betslip.map((item) => (
             <div
               key={item.id}
-              className="relative flex flex-col gap-1 rounded-md border border-border bg-muted/30 p-3 text-xs"
+              className="relative flex flex-col gap-0.5 rounded-md border border-border bg-muted/30 p-2 text-xs"
             >
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute top-1.5 right-1.5 size-6 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground"
+                className="absolute top-1 right-1 size-5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground"
                 onClick={() => removeFromBetslip(item.id)}
                 aria-label="Remove selection"
               >
-                <X className="size-3" />
+                <X className="size-2.5" />
               </Button>
 
-              <span className="font-semibold text-foreground pr-6 break-words leading-snug">
+              <span className="font-semibold text-foreground pr-6 break-words leading-tight text-[11px]">
                 {item.matchName}
               </span>
-              <span className="text-[10px] text-muted-foreground">{item.market}</span>
+              <span className="text-[9px] text-muted-foreground">{item.market}</span>
 
-              <div className="flex flex-wrap items-center justify-between gap-2 mt-1">
-                <span className="font-bold text-foreground break-words">
+              <div className="flex flex-wrap items-center justify-between gap-1 mt-0.5">
+                <span className="font-bold text-foreground break-words text-[10px]">
                   {item.selectionName}
                 </span>
-                <span className="font-bold text-primary font-mono text-xs bg-primary/10 px-1.5 py-0.5 rounded shrink-0">
+                <span className="font-bold text-primary font-mono text-[9px] bg-primary/10 px-1 py-0.25 rounded shrink-0">
                   {item.odds.toFixed(2)}
                 </span>
               </div>
@@ -178,7 +180,7 @@ export function Betslip({ onClose }: BetslipProps) {
                 className={cn(
                   "h-7 px-0 text-[11px] font-mono border-border hover:bg-accent/40",
                   stake === val.toString() &&
-                    "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
+                  "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
                 )}
                 onClick={() => selectPreset(val)}
               >
@@ -240,6 +242,8 @@ export function Betslip({ onClose }: BetslipProps) {
           )}
         </Button>
       </div>
+
+      <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
     </div>
   )
 }

@@ -6,17 +6,13 @@ import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import { ArrowUpRight, Copy, Check, Loader } from "lucide-react"
+import { useAuth } from "@/lib/auth/AuthContext"
+import { ArrowUpRight, Copy, Check, Loader, AlertCircle } from "lucide-react"
 
 // Official Paystack Popup v2 - modal-based (no redirect)
 const QUICK_AMOUNTS = [100, 250, 500, 1000, 2500, 5000]
 const MIN_AMOUNT = 10
 const MAX_AMOUNT = 1000000
-
-function isValidEmail(email: string): boolean {
-  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return regex.test(email.trim())
-}
 
 type DepositStage = "idle" | "initiating" | "processing" | "complete" | "error"
 
@@ -32,11 +28,11 @@ interface TransactionResult {
 // (properly declared in lib/paystack-service.ts)
 
 export function PaystackDepositSheet() {
+  const { user } = useAuth()
   const wallet = useQuery(api.mpesa.getWallet)
   const createPaystackTransaction = useMutation(api.paystack.createTransaction)
 
   const [amount, setAmount] = React.useState("")
-  const [email, setEmail] = React.useState("")
   const [stage, setStage] = React.useState<DepositStage>("idle")
   const [transactionResult, setTransactionResult] = React.useState<TransactionResult | null>(null)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
@@ -167,8 +163,8 @@ export function PaystackDepositSheet() {
       const verifyData = await verifyResponse.json()
       console.log("[Paystack] Verification result:", verifyData)
 
-      // Wait for transaction to be updated
-      // The query will trigger real-time update via Convex
+      // The real-time query will update the transaction status
+      // Show a success state automatically when database updates
     } catch (error) {
       console.error("[Paystack] Verification error:", error)
       setErrorMessage("Failed to verify payment")
@@ -185,7 +181,7 @@ export function PaystackDepositSheet() {
     }
   }
 
-  const openPaystackModal = (ref: string, depositEmail: string, depositAmount: number) => {
+  const openPaystackModal = (ref: string, userPhone: string, depositAmount: number) => {
     // Verify Paystack is loaded
     if (!window.PaystackPop) {
       console.error("[Paystack] Popup v2 not available")
@@ -211,10 +207,14 @@ export function PaystackDepositSheet() {
         throw new Error("Paystack not loaded")
       }
 
+      // Generate a placeholder email based on phone number
+      // Paystack requires an email, so we'll generate one using phone as unique identifier
+      const placeholderEmail = `phone-${userPhone}@bet-flow.local`
+
       // Setup the paystack instance using the setup method
       const paystack = window.PaystackPop.setup({
         key: paystackPublicKey,
-        email: depositEmail,
+        email: placeholderEmail,
         amount: Math.floor(depositAmount * 100), // Amount in cents
         ref: ref,
         onSuccess: (transaction: any) => {
@@ -242,6 +242,12 @@ export function PaystackDepositSheet() {
     setErrorMessage(null)
     setTransactionResult(null)
 
+    // Check if user is authenticated
+    if (!user?.phone) {
+      setErrorMessage("You must be logged in to deposit funds")
+      return
+    }
+
     // Validate inputs
     const parsedAmount = parseFloat(amount)
 
@@ -252,11 +258,6 @@ export function PaystackDepositSheet() {
 
     if (parsedAmount < MIN_AMOUNT || parsedAmount > MAX_AMOUNT) {
       setErrorMessage(`Amount must be KES ${MIN_AMOUNT} - ${MAX_AMOUNT}`)
-      return
-    }
-
-    if (!isValidEmail(email)) {
-      setErrorMessage("Enter a valid email address")
       return
     }
 
@@ -284,14 +285,14 @@ export function PaystackDepositSheet() {
       await createPaystackTransaction({
         type: "deposit",
         amount: parsedAmount,
-        email: email.trim(),
+        phone: user.phone,
         reference: ref,
       })
 
       console.log("[Paystack] Transaction record created successfully")
 
-      // Open official Paystack Popup v2 modal
-      openPaystackModal(ref, email.trim(), parsedAmount)
+      // Open official Paystack Popup v2 modal with user's phone
+      openPaystackModal(ref, user.phone, parsedAmount)
     } catch (error) {
       console.error("[Paystack] Error during deposit initiation:", error)
       setErrorMessage("Failed to initiate payment. Please try again.")
@@ -302,7 +303,6 @@ export function PaystackDepositSheet() {
 
   const handleReset = () => {
     setAmount("")
-    setEmail("")
     setStage("idle")
     setTransactionResult(null)
     setErrorMessage(null)
@@ -319,6 +319,14 @@ export function PaystackDepositSheet() {
         {errorMessage && (
           <div className="animate-in fade-in-50 slide-in-from-top-2 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
             <p className="text-xs font-medium text-red-700">{errorMessage}</p>
+          </div>
+        )}
+
+        {/* User Info Display */}
+        {user && (
+          <div className="bg-slate-500/5 border border-slate-500/10 rounded-lg p-3">
+            <p className="text-xs text-muted-foreground">Depositing with:</p>
+            <p className="text-sm font-semibold text-foreground">{user.phone}</p>
           </div>
         )}
 
@@ -356,27 +364,12 @@ export function PaystackDepositSheet() {
           </div>
         </div>
 
-        {/* Email Section */}
-        <div className="space-y-2">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-            Email Address
-          </label>
-          <Input
-            type="email"
-            placeholder="user@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="text-sm font-semibold h-10"
-            disabled={stage === "initiating"}
-          />
-        </div>
-
         {/* Submit Button */}
         <Button
           type="submit"
           className="w-full text-sm font-bold gap-2 h-10 animate-in fade-in-50"
           size="default"
-          disabled={stage === "initiating" || !paystackPublicKey || !paystackLoaded}
+          disabled={stage === "initiating" || !paystackPublicKey || !paystackLoaded || !user}
         >
           {stage === "initiating" ? (
             <>
@@ -385,8 +378,8 @@ export function PaystackDepositSheet() {
             </>
           ) : (
             <>
-              Pay with Paystack
               <ArrowUpRight className="h-4 w-4" />
+              Pay with Paystack
             </>
           )}
         </Button>
@@ -397,11 +390,18 @@ export function PaystackDepositSheet() {
   if (stage === "error") {
     return (
       <div className="space-y-4 animate-in fade-in-50 slide-in-from-bottom-4">
-        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-          <p className="text-sm font-semibold text-red-700 mb-1">Payment Failed</p>
-          <p className="text-xs text-red-600">{errorMessage}</p>
+        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 flex gap-3">
+          <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-red-700 mb-1">Payment Failed</p>
+            <p className="text-xs text-red-600 leading-relaxed">{errorMessage}</p>
+          </div>
         </div>
-        <Button className="w-full text-sm font-bold h-10" onClick={handleReset} variant="outline">
+        <Button
+          className="w-full text-sm font-bold h-10"
+          onClick={handleReset}
+          variant="outline"
+        >
           Try Again
         </Button>
       </div>
@@ -433,15 +433,16 @@ export function PaystackDepositSheet() {
   if (stage === "processing") {
     return (
       <div className="space-y-4 animate-in fade-in-50 slide-in-from-bottom-4">
-        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-          <div className="flex items-center gap-3">
-            <Loader className="h-5 w-5 animate-spin text-blue-600" />
-            <div>
-              <p className="text-sm font-semibold text-blue-700">Processing Payment</p>
-              <p className="text-xs text-blue-600 mt-1">Verifying your payment with Paystack...</p>
-            </div>
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 flex gap-3">
+          <Loader className="h-5 w-5 animate-spin text-blue-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-blue-700">Verifying Payment</p>
+            <p className="text-xs text-blue-600 mt-1">Processing your transaction...</p>
           </div>
         </div>
+        <p className="text-xs text-muted-foreground text-center">
+          This may take a few seconds. Please don't refresh the page.
+        </p>
       </div>
     )
   }
@@ -488,6 +489,13 @@ export function PaystackFeedback({
         ? "text-red-700"
         : "text-yellow-700"
 
+  const subtextClass =
+    status === "success"
+      ? "text-green-600"
+      : status === "failed"
+        ? "text-red-600"
+        : "text-yellow-600"
+
   const iconClass =
     status === "success"
       ? "text-green-600"
@@ -498,12 +506,12 @@ export function PaystackFeedback({
   return (
     <div className={`border rounded-lg p-4 space-y-3 ${bgClass}`}>
       <div className="flex items-start gap-3">
-        <div className={`mt-0.5 ${iconClass}`}>
+        <div className={`mt-0.5 flex-shrink-0 ${iconClass}`}>
           {status === "success" && <Check className="size-5" />}
-          {status === "failed" && <span className="text-sm font-bold">✕</span>}
+          {status === "failed" && <AlertCircle className="size-5" />}
           {status === "pending" && <Loader className="size-5 animate-spin" />}
         </div>
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           <p className={`text-sm font-semibold ${textClass}`}>
             {status === "success"
               ? "Payment Successful"
@@ -511,19 +519,19 @@ export function PaystackFeedback({
                 ? "Payment Failed"
                 : "Payment Pending"}
           </p>
-          <p className={`text-xs mt-1 ${textClass}`}>{message}</p>
+          <p className={`text-xs mt-1 ${subtextClass} leading-relaxed`}>{message}</p>
         </div>
       </div>
 
       {amount && (
-        <div className="text-xs font-medium text-muted-foreground bg-background/50 rounded px-2 py-1">
+        <div className="text-xs font-medium text-muted-foreground bg-background/40 rounded px-3 py-2">
           Amount: <span className="font-semibold text-foreground">KES {amount.toLocaleString()}</span>
         </div>
       )}
 
       {reference && (
-        <div className="flex items-center gap-2">
-          <div className="text-xs font-mono text-muted-foreground flex-1 bg-background/50 rounded px-2 py-1 truncate">
+        <div className="flex items-center gap-2 pt-2 border-t border-black/5">
+          <div className="text-xs font-mono text-muted-foreground flex-1 bg-background/40 rounded px-2 py-1.5 truncate">
             {reference}
           </div>
           <Button
@@ -531,15 +539,20 @@ export function PaystackFeedback({
             variant="ghost"
             size="sm"
             onClick={handleCopyReference}
-            className="h-7 px-2"
+            className="h-7 px-2 flex-shrink-0"
+            title="Copy reference"
           >
-            {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+            {copied ? (
+              <Check className="size-3.5 text-green-600" />
+            ) : (
+              <Copy className="size-3.5" />
+            )}
           </Button>
         </div>
       )}
 
       {timestamp && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground pt-1 text-right">
           {new Date(timestamp).toLocaleString()}
         </p>
       )}

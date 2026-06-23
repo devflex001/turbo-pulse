@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Update user state when Convex query resolves or when session token changes
   useEffect(() => {
-    // Wait until we've checked for session token
+    // Wait until we've checked for session tokenmo
     if (!sessionTokenChecked) {
       return;
     }

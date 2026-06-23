@@ -409,6 +409,7 @@ export const createCustomEvent = mutation({
       sport: args.sport,
       competition: args.competition,
       status: "draft",
+      eventStatus: "not_started",
       totalMarkets: 0,
       createdBy: "admin", // TODO: Use auth context when available
       createdAt: now,
