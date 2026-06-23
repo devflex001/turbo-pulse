@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { SmallLoader } from "@/components/small-loader"
-import { cn } from "@/lib/utils" 
+import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import {
   Flame,
@@ -211,7 +211,7 @@ export default function Page() {
 
   const featuredMatches = displayedMatches.slice(0, 4)
   const upcomingMatches = activeTab === "featured" ? featuredMatches : displayedMatches
-  
+
   const sportOptions = React.useMemo(() => {
     const counts = new Map<string, number>()
 
@@ -257,9 +257,9 @@ export default function Page() {
 
         <main className="flex-1 min-w-0 p-4 sm:p-6 overflow-y-auto h-full flex flex-col gap-6 scrollbar-thin">
           {(activeTab === "home" || activeTab === "live" || activeTab === "featured") && (
-            
+
             <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-2 border-b border-border scrollbar-none shrink-0">
-              
+
               <div className="flex items-center gap-2 shrink-0">
                 <Button
                   variant="ghost"
@@ -391,13 +391,13 @@ export default function Page() {
                     alt={SLIDES[slideIndex].imageAlt}
                     className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500"
                   />
-                  
+
                   {/* Dynamic gradient that darkens appropriately on mobile to protect the stacked text */}
                   <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 sm:via-background/60 to-transparent" aria-hidden="true" />
 
                   {/* Fully responsive flex container */}
                   <div className="relative z-10 flex w-full flex-col sm:flex-row justify-center sm:justify-between items-start sm:items-center p-5 sm:p-10 gap-3 sm:gap-6">
-                    
+
                     {/* Left Side: Text */}
                     <div className="w-full sm:max-w-[60%] lg:max-w-[50%] space-y-2 select-none">
                       <Badge className="bg-[#4b9f71]/15 border-[#4b9f71]/40 text-[#4b9f71] font-bold tracking-wider text-[10px] uppercase px-2 py-0.5">
@@ -426,9 +426,8 @@ export default function Page() {
                       <span
                         key={slide.id}
                         onClick={() => setSlideIndex(index)}
-                        className={`h-1 sm:h-1.5 rounded-full cursor-pointer transition-all ${
-                          index === slideIndex ? "w-4 sm:w-5 bg-[#4b9f71]" : "w-1.5 sm:w-1.5 bg-white/50 hover:bg-white/80"
-                        }`}
+                        className={`h-1 sm:h-1.5 rounded-full cursor-pointer transition-all ${index === slideIndex ? "w-4 sm:w-5 bg-[#4b9f71]" : "w-1.5 sm:w-1.5 bg-white/50 hover:bg-white/80"
+                          }`}
                       />
                     ))}
                   </div>
@@ -602,7 +601,7 @@ export default function Page() {
           </footer>
         </main>
 
-        <aside className="hidden xl:flex w-80 shrink-0 border-l border-border bg-card flex-col h-full min-h-0">
+        <aside className="hidden lg:flex w-80 shrink-0 border-l border-border bg-card flex-col h-full min-h-0">
           <Betslip />
         </aside>
       </div>
