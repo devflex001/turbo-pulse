@@ -64,7 +64,7 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur-md">
+      <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur-md flex-shrink-0">
         <div className="flex h-16 items-center justify-between px-4 sm:px-6 md:grid md:grid-cols-3">
 
           {/* Brand/Logo - Increased height to h-12 (mobile) and h-14 (desktop) */}
@@ -110,99 +110,99 @@ export function Header() {
             </Button>
 
             <div className="flex items-center gap-1.5 sm:gap-2">
-              {/* Wallet Balance Display */}
-              <div className="hidden sm:flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-md text-xs font-semibold border border-border">
-                <Wallet className="size-3.5 text-[#4b9f71]" />
-                <span>KES {walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
+              {/* Wallet Balance Display - Only show if logged in */}
+              {user && (
+                <div className="hidden sm:flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-md text-xs font-semibold border border-border">
+                  <Wallet className="size-3.5 text-[#4b9f71]" />
+                  <span>KES {walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              )}
 
-              {/* Deposit action */}
-              <Button
-                onClick={() => router.push("/deposit")}
-                size="sm"
-                className="bg-[#4b9f71] text-white font-semibold px-2.5 sm:px-3 h-8 text-xs hover:bg-[#3e865f] flex items-center gap-1"
-              >
-                <ArrowUpRight className="size-3.5" />
-                <span className="hidden sm:inline">Deposit</span>
-              </Button>
+              {/* Deposit action - Only show if logged in */}
+              {user && (
+                <Button
+                  onClick={() => router.push("/deposit")}
+                  size="sm"
+                  className="bg-[#4b9f71] text-white font-semibold px-2.5 sm:px-3 h-8 text-xs hover:bg-[#3e865f] flex items-center gap-1"
+                >
+                  <ArrowUpRight className="size-3.5" />
+                  <span className="hidden sm:inline">Deposit</span>
+                </Button>
+              )}
 
-              {/* User menu dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="size-8 rounded-full border border-border hover:bg-muted/50 shrink-0">
-                    <User className="size-4" />
+              {/* User menu dropdown - Show login/signup for non-logged-in users */}
+              {user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="size-8 rounded-full border border-border hover:bg-muted/50 shrink-0">
+                      <User className="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 mt-1">
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-semibold leading-none">{user.phone}</p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                          {user.role === "admin" ? "Admin" : "User"} Account
+                        </p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="sm:hidden flex items-center justify-between text-xs py-2">
+                      <span className="flex items-center gap-2"><Wallet className="size-3.5 text-[#4b9f71]" /> Balance:</span>
+                      <span className="font-semibold">KES {walletBalance.toLocaleString()}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push("/account")}>
+                      <User className="mr-2 h-4 w-4 text-blue-500" />
+                      <span>My Account</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => router.push("/deposit")}>
+                      <ArrowUpRight className="mr-2 h-4 w-4 text-[#4b9f71]" />
+                      <span>Deposit (M-Pesa)</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setWithdrawOpen(true)}>
+                      <ArrowDownLeft className="mr-2 h-4 w-4 text-rose-500" />
+                      <span>Withdraw Winnings</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setActiveTab("mybets")}>
+                      <History className="mr-2 h-4 w-4 text-blue-500" />
+                      <span>My Placed Bets</span>
+                    </DropdownMenuItem>
+                    {user.role === "admin" && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => router.push("/admin")}>
+                          <Settings className="mr-2 h-4 w-4 text-amber-500" />
+                          <span>Admin Panel</span>
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Log Out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <Button
+                    onClick={() => setLoginOpen(true)}
+                    size="sm"
+                    variant="outline"
+                    className="h-8 text-xs font-semibold"
+                  >
+                    Log In
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 mt-1">
-                  {user ? (
-                    <>
-                      <DropdownMenuLabel className="font-normal">
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-semibold leading-none">{user.phone}</p>
-                          <p className="text-xs leading-none text-muted-foreground">
-                            {user.role === "admin" ? "Admin" : "User"} Account
-                          </p>
-                        </div>
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="sm:hidden flex items-center justify-between text-xs py-2">
-                        <span className="flex items-center gap-2"><Wallet className="size-3.5 text-[#4b9f71]" /> Balance:</span>
-                        <span className="font-semibold">KES {walletBalance.toLocaleString()}</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => router.push("/account")}>
-                        <User className="mr-2 h-4 w-4 text-blue-500" />
-                        <span>My Account</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => router.push("/deposit")}>
-                        <ArrowUpRight className="mr-2 h-4 w-4 text-[#4b9f71]" />
-                        <span>Deposit (M-Pesa)</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setWithdrawOpen(true)}>
-                        <ArrowDownLeft className="mr-2 h-4 w-4 text-rose-500" />
-                        <span>Withdraw Winnings</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setActiveTab("mybets")}>
-                        <History className="mr-2 h-4 w-4 text-blue-500" />
-                        <span>My Placed Bets</span>
-                      </DropdownMenuItem>
-                      {user.role === "admin" && (
-                        <>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => router.push("/admin")}>
-                            <Settings className="mr-2 h-4 w-4 text-amber-500" />
-                            <span>Admin Panel</span>
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>Log Out</span>
-                      </DropdownMenuItem>
-                    </>
-                  ) : (
-                    <>
-                      <DropdownMenuLabel className="font-normal">
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-semibold leading-none">Not Logged In</p>
-                          <p className="text-xs leading-none text-muted-foreground">
-                            Sign in to access features
-                          </p>
-                        </div>
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setLoginOpen(true)}>
-                        <User className="mr-2 h-4 w-4" />
-                        <span>Log In</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setRegisterOpen(true)}>
-                        <User className="mr-2 h-4 w-4" />
-                        <span>Create Account</span>
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  <Button
+                    onClick={() => setRegisterOpen(true)}
+                    size="sm"
+                    className="bg-[#4b9f71] text-white font-semibold h-8 text-xs hover:bg-[#3e865f]"
+                  >
+                    Sign Up
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

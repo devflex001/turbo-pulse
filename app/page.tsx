@@ -252,10 +252,10 @@ export default function Page() {
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       <Header />
 
-      <div className="flex-1 flex max-w-[1400px] w-full mx-auto overflow-hidden">
-        <Sidebar className="hidden lg:flex w-60 shrink-0 h-full" />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar className="hidden lg:flex w-60 shrink-0 overflow-y-auto border-r border-border" />
 
-        <main className="flex-1 min-w-0 p-4 sm:p-6 overflow-y-auto h-full flex flex-col gap-6 scrollbar-thin">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-6 scrollbar-thin">
           {(activeTab === "home" || activeTab === "live" || activeTab === "featured") && (
 
             <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-2 border-b border-border scrollbar-none shrink-0">

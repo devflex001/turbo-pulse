@@ -7,13 +7,13 @@ import { useBetStore } from "@/hooks/use-bet-store"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { 
-  Home, 
-  PlayCircle, 
-  History, 
-  Trophy, 
-  Activity, 
-  ArrowUpRight, 
+import {
+  Home,
+  PlayCircle,
+  History,
+  Trophy,
+  Activity,
+  ArrowUpRight,
   ArrowDownLeft,
   PanelLeftClose,
   PanelLeftOpen,
@@ -23,6 +23,7 @@ import {
   CircleDot,
   LayoutGrid
 } from "lucide-react"
+import { useAuth } from "@/lib/auth/AuthContext"
 import { useRouter, usePathname } from "next/navigation"
 
 interface SidebarProps {
@@ -47,7 +48,7 @@ function titleCase(value: string) {
 function getSportIcon(slug: string) {
   switch (slug.toLowerCase()) {
     case "football": return Circle;
-    case "basketball": return CircleDashed;   
+    case "basketball": return CircleDashed;
     case "tennis": return CircleDot;
     case "mma":
     case "boxing": return Swords;
@@ -59,9 +60,10 @@ function getSportIcon(slug: string) {
 export function Sidebar({ className }: SidebarProps) {
   const { activeTab, setActiveTab, setSelectedSport, selectedSport, selectedLeague, setSelectedLeague } =
     useBetStore()
+  const { user } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
-  
+
   // State to manage collapse/expand
   const [isCollapsed, setIsCollapsed] = React.useState(false)
 
@@ -145,8 +147,8 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "flex h-full shrink-0 flex-col gap-6 overflow-y-auto border-r border-border bg-card text-card-foreground transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-16 items-center" : "w-64",
+        "flex flex-col gap-6 shrink-0 border-r border-border bg-card text-card-foreground transition-all duration-300 ease-in-out",
+        isCollapsed ? "w-16 items-center overflow-y-auto" : "w-64 overflow-y-auto",
         className
       )}
     >
@@ -158,9 +160,9 @@ export function Sidebar({ className }: SidebarProps) {
               Navigation
             </h2>
           )}
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="h-7 w-7 text-muted-foreground hover:text-foreground"
             onClick={() => setIsCollapsed(!isCollapsed)}
           >
@@ -208,30 +210,34 @@ export function Sidebar({ className }: SidebarProps) {
           </h2>
         )}
         <div className="space-y-1 w-full">
-          <Button
-            variant="ghost"
-            title={isCollapsed ? "Deposit" : undefined}
-            className={cn(
-              "h-9 w-full text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-              isCollapsed ? "justify-center px-0" : "justify-start gap-2.5 px-3"
-            )}
-            onClick={() => router.push("/deposit")}
-          >
-            <ArrowUpRight className="size-4 shrink-0 text-emerald-500" />
-            {!isCollapsed && <span>Deposit</span>}
-          </Button>
-          <Button
-            variant="ghost"
-            title={isCollapsed ? "Withdraw" : undefined}
-            className={cn(
-              "h-9 w-full text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-              isCollapsed ? "justify-center px-0" : "justify-start gap-2.5 px-3"
-            )}
-            onClick={() => router.push("/withdraw")}
-          >
-            <ArrowDownLeft className="size-4 shrink-0 text-amber-500" />
-            {!isCollapsed && <span>Withdraw</span>}
-          </Button>
+          {user && (
+            <>
+              <Button
+                variant="ghost"
+                title={isCollapsed ? "Deposit" : undefined}
+                className={cn(
+                  "h-9 w-full text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                  isCollapsed ? "justify-center px-0" : "justify-start gap-2.5 px-3"
+                )}
+                onClick={() => router.push("/deposit")}
+              >
+                <ArrowUpRight className="size-4 shrink-0 text-emerald-500" />
+                {!isCollapsed && <span>Deposit</span>}
+              </Button>
+              <Button
+                variant="ghost"
+                title={isCollapsed ? "Withdraw" : undefined}
+                className={cn(
+                  "h-9 w-full text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                  isCollapsed ? "justify-center px-0" : "justify-start gap-2.5 px-3"
+                )}
+                onClick={() => router.push("/withdraw")}
+              >
+                <ArrowDownLeft className="size-4 shrink-0 text-amber-500" />
+                {!isCollapsed && <span>Withdraw</span>}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -252,7 +258,7 @@ export function Sidebar({ className }: SidebarProps) {
             sportItems.map((sport) => {
               const isActive = selectedSport === sport.id || (sport.id === "all" && selectedSport === "all")
               const SportIcon = getSportIcon(sport.id)
-              
+
               return (
                 <Button
                   key={sport.id}
@@ -307,7 +313,7 @@ export function Sidebar({ className }: SidebarProps) {
               const isActive = selectedLeague === competition
               // If collapsed, use a generic trophy for competitions to save space
               const isAllLeagues = competition === "All Leagues"
-              
+
               return (
                 <Button
                   key={competition}
