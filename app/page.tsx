@@ -381,8 +381,6 @@ export default function Page() {
 
           {activeTab === "home" && (
             <>
-              <PublishedCustomEventsSection />
-
               {matches !== undefined && (
                 <div className="relative overflow-hidden rounded-lg border border-border bg-card w-full min-h-[220px] sm:h-[280px] lg:h-[320px] flex">
                   <img
@@ -433,6 +431,9 @@ export default function Page() {
                   </div>
                 </div>
               )}
+
+              {/* Placed Featured Events right below the Hero Slider */}
+              <PublishedCustomEventsSection />
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -492,6 +493,50 @@ export default function Page() {
 
           {activeTab === "featured" && (
             <div className="space-y-4">
+              {matches !== undefined && (
+                <div className="relative overflow-hidden rounded-lg border border-border bg-card w-full min-h-[220px] sm:h-[280px] lg:h-[320px] flex">
+                  <img
+                    key={SLIDES[slideIndex].id}
+                    src={SLIDES[slideIndex].image}
+                    alt={SLIDES[slideIndex].imageAlt}
+                    className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500"
+                  />
+
+                  <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 sm:via-background/60 to-transparent" aria-hidden="true" />
+
+                  <div className="relative z-10 flex w-full flex-col sm:flex-row justify-center sm:justify-between items-start sm:items-center p-5 sm:p-10 gap-3 sm:gap-6">
+                    <div className="w-full sm:max-w-[60%] lg:max-w-[50%] space-y-2 select-none">
+                      <Badge className="bg-[#4b9f71]/15 border-[#4b9f71]/40 text-[#4b9f71] font-bold tracking-wider text-[10px] uppercase px-2 py-0.5">
+                        {SLIDES[slideIndex].title}
+                      </Badge>
+                      <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white leading-snug sm:leading-tight tracking-tight shadow-sm drop-shadow-md">
+                        {SLIDES[slideIndex].subtitle}
+                      </h2>
+                    </div>
+
+                    <div className="shrink-0 pt-2 sm:pt-0 sm:pr-8">
+                      <Button
+                        size="sm"
+                        className="h-9 sm:h-10 text-xs sm:text-sm px-5 sm:px-6 font-bold bg-[#4b9f71] text-white hover:bg-[#3e865f] border-none shadow-md transition-transform hover:scale-105"
+                        onClick={() => setActiveTab(slideIndex === 2 ? "featured" : "home")}
+                      >
+                        {SLIDES[slideIndex].cta}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-6 z-10 flex justify-end items-center gap-1 sm:gap-1.5">
+                    {SLIDES.map((slide, index) => (
+                      <span
+                        key={slide.id}
+                        onClick={() => setSlideIndex(index)}
+                        className={`h-1 sm:h-1.5 rounded-full cursor-pointer transition-all ${index === slideIndex ? "w-4 sm:w-5 bg-[#4b9f71]" : "w-1.5 sm:w-1.5 bg-white/50 hover:bg-white/80"
+                          }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
               <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
                 <Flame className="size-4 text-primary fill-current" />
                 Featured Market Highlights
@@ -595,92 +640,6 @@ export default function Page() {
                 </form>
               </div>
             </div>
-          )}
-
-          {!activeTab && (
-            <>
-              <PublishedCustomEventsSection />
-
-              {matches !== undefined && (
-                <div className="relative overflow-hidden rounded-lg border border-border bg-card w-full min-h-[220px] sm:h-[280px] lg:h-[320px] flex">
-                  <img
-                    key={SLIDES[slideIndex].id}
-                    src={SLIDES[slideIndex].image}
-                    alt={SLIDES[slideIndex].imageAlt}
-                    className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500"
-                  />
-
-                  {/* Dynamic gradient that darkens appropriately on mobile to protect the stacked text */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 sm:via-background/60 to-transparent" aria-hidden="true" />
-
-                  {/* Fully responsive flex container */}
-                  <div className="relative z-10 flex w-full flex-col sm:flex-row justify-center sm:justify-between items-start sm:items-center p-5 sm:p-10 gap-3 sm:gap-6">
-
-                    {/* Left Side: Text */}
-                    <div className="w-full sm:max-w-[60%] lg:max-w-[50%] space-y-2 select-none">
-                      <Badge className="bg-[#4b9f71]/15 border-[#4b9f71]/40 text-[#4b9f71] font-bold tracking-wider text-[10px] uppercase px-2 py-0.5">
-                        {SLIDES[slideIndex].title}
-                      </Badge>
-                      <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white leading-snug sm:leading-tight tracking-tight shadow-sm drop-shadow-md">
-                        {SLIDES[slideIndex].subtitle}
-                      </h2>
-                    </div>
-
-                    {/* Right Side (Tablet/Desktop) or Bottom Left (Mobile): Button */}
-                    <div className="shrink-0 pt-2 sm:pt-0 sm:pr-8">
-                      <Button
-                        size="sm"
-                        className="h-9 sm:h-10 text-xs sm:text-sm px-5 sm:px-6 font-bold bg-[#4b9f71] text-white hover:bg-[#3e865f] border-none shadow-md transition-transform hover:scale-105"
-                        onClick={() => setActiveTab(slideIndex === 2 ? "featured" : "home")}
-                      >
-                        {SLIDES[slideIndex].cta}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Slider Navigation Dots - slimmed down for mobile so 10 fit neatly */}
-                  <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-6 z-10 flex justify-end items-center gap-1 sm:gap-1.5">
-                    {SLIDES.map((slide, index) => (
-                      <span
-                        key={slide.id}
-                        onClick={() => setSlideIndex(index)}
-                        className={`h-1 sm:h-1.5 rounded-full cursor-pointer transition-all ${index === slideIndex ? "w-4 sm:w-5 bg-[#4b9f71]" : "w-1.5 sm:w-1.5 bg-white/50 hover:bg-white/80"
-                          }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                    <PlayCircle className="size-4 text-muted-foreground" />
-                    <span>Upcoming Matches & Fixtures</span>
-                  </h3>
-                  <Badge variant="outline" className="font-semibold text-[10px] text-muted-foreground bg-muted/20 border-border">
-                    Fixtures {upcomingMatches.length}
-                  </Badge>
-                </div>
-
-                {!matches ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Skeleton className="h-32 rounded-lg" />
-                    <Skeleton className="h-32 rounded-lg" />
-                  </div>
-                ) : upcomingMatches.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {upcomingMatches.map((match) => (
-                      <MatchCard key={match.sourceMatchId} match={match} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center p-8 border border-dashed border-border rounded-lg text-muted-foreground text-xs py-12">
-                    No synced fixtures found. Ask an admin to run the scraper.
-                  </div>
-                )}
-              </div>
-            </>
           )}
 
           <footer className="mt-auto pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
