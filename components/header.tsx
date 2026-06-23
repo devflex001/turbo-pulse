@@ -20,7 +20,6 @@ import {
   User,
   LogOut,
   History,
-  ArrowUpRight,
   ArrowDownLeft,
   X,
   Settings
@@ -112,21 +111,13 @@ export function Header() {
             <div className="flex items-center gap-1.5 sm:gap-2">
               {/* Wallet Balance Display - Only show if logged in */}
               {user && (
-                <div className="hidden sm:flex items-center gap-2 bg-muted/50 px-3 py-1.5 rounded-md text-xs font-semibold border border-border">
-                  <Wallet className="size-3.5 text-[#4b9f71]" />
-                  <span>KES {walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
-              )}
-
-              {/* Deposit action - Only show if logged in */}
-              {user && (
                 <Button
                   onClick={() => router.push("/deposit")}
-                  size="sm"
-                  className="bg-[#4b9f71] text-white font-semibold px-2.5 sm:px-3 h-8 text-xs hover:bg-[#3e865f] flex items-center gap-1"
+                  variant="ghost"
+                  className="flex items-center gap-2 bg-muted/50 px-2 sm:px-3 py-1.5 rounded-md text-xs font-semibold border border-border hover:bg-muted text-foreground h-auto"
                 >
-                  <ArrowUpRight className="size-3.5" />
-                  <span className="hidden sm:inline">Deposit</span>
+                  <Wallet className="size-3.5 text-[#4b9f71]" />
+                  <span>KES {walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </Button>
               )}
 
