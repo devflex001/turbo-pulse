@@ -9,6 +9,7 @@ import {
   removeAuthToken,
   storeUserData,
   getUserData,
+  getAuthToken,
 } from "./jwt";
 import { Id } from "@/convex/_generated/dataModel";
 
@@ -43,19 +44,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Get current user from Convex (using session)
   const currentUser = useQuery(api.auth.user.getCurrentUser);
 
-  // Initialize user state from localStorage or Convex session
+  // Initialize user state from Convex session
   useEffect(() => {
+    // Wait for Convex query to resolve
     if (currentUser !== undefined) {
       setUser(currentUser);
       setIsLoading(false);
-    } else {
-      // Check localStorage as fallback
-      const storedUserData = getUserData();
-      if (storedUserData) {
-        // Will be validated by Convex session
-        setIsLoading(false);
-      } else {
-        setIsLoading(false);
+
+      // If Convex session is valid but user is null, clear local storage
+      if (currentUser === null) {
+        const storedToken = getAuthToken();
+        if (storedToken) {
+          // Token exists but session is invalid - clear it
+          removeAuthToken();
+        }
       }
     }
   }, [currentUser]);
@@ -89,6 +91,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setIsLoading(false);
 
+        // Trigger storage event to sync with ConvexProvider
+        window.dispatchEvent(
+          new StorageEvent("storage", {
+            key: "convex_auth_token",
+            newValue: token,
+          })
+        );
+
         // Return the role so the calling component can handle redirect
         return result.role;
       }
@@ -119,7 +129,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Remove auth token and user data
     removeAuthToken();
     setUser(null);
-    // Don't redirect - let the user stay on the current page as unlogged in
+
+    // Dispatch storage event to clear auth in ConvexProvider
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new StorageEvent("storage", {
+          key: "convex_auth_token",
+          newValue: null,
+        })
+      );
+    }
+
+    // Force a page reload to clear Convex connection state
+    // This ensures the client reconnects without the auth token
+    if (typeof window !== "undefined") {
+      window.location.href = "/";
+    }
   };
 
   const value: AuthContextType = {

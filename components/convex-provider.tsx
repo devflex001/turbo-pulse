@@ -6,39 +6,51 @@ import { AuthProvider } from "@/lib/auth/AuthContext";
 import { ConvexProvider as ConvexBase } from "convex/react";
 import { getAuthToken } from "@/lib/auth/jwt";
 
-const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+// Create Convex client with auth configuration
+// This ensures the token is included on every request, including initial connection
+function createConvexClient() {
+  const client = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+  // Set auth token on client if available
+  const token = getAuthToken();
+  if (token) {
+    client.setAuth(token);
+  }
+
+  return client;
+}
+
+const convex = createConvexClient();
 
 /**
  * Custom Convex Provider wrapper that handles JWT token passing
- * Intercepts fetch requests to add Authorization header
+ * Monitors token changes and updates Convex client accordingly
  */
 export function ConvexProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
-    // Store original fetch
-    const originalFetch = globalThis.fetch;
-
-    // Override fetch to add auth header
-    globalThis.fetch = (async (resource: any, config: any) => {
-      // Get token from localStorage
-      const token = getAuthToken();
-
-      // If this is a Convex request and we have a token, add the Authorization header
-      if (token && typeof resource === "string" && resource.includes("convex")) {
-        config = {
-          ...config,
-          headers: {
-            ...(config?.headers || {}),
-            Authorization: `Bearer ${token}`,
-          },
-        };
+    // Listen for storage events to detect token changes in other tabs
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "convex_auth_token") {
+        if (e.newValue) {
+          convex.setAuth(e.newValue);
+        } else {
+          convex.clearAuth();
+        }
       }
+    };
 
-      return originalFetch(resource, config);
-    }) as any;
+    window.addEventListener("storage", handleStorageChange);
+
+    // Sync auth token on mount
+    const token = getAuthToken();
+    if (token) {
+      convex.setAuth(token);
+    } else {
+      convex.clearAuth();
+    }
 
     return () => {
-      // Restore original fetch on cleanup
-      globalThis.fetch = originalFetch;
+      window.removeEventListener("storage", handleStorageChange);
     };
   }, []);
 
