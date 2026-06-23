@@ -201,7 +201,7 @@ export function PublishedCustomEventsSection() {
       <>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-foreground">Custom Events</h2>
+            <h2 className="text-base font-bold text-foreground">Featured Events</h2>
             <Badge variant="outline" className="text-[10px] font-mono">
               {sortedByStartTime.length}
             </Badge>
