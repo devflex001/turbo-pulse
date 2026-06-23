@@ -1,79 +1,47 @@
 import { QueryCtx, MutationCtx } from "../_generated/server";
-import { Id } from "../_generated/dataModel";
-import * as jose from "jose";
+import { Id, Doc } from "../_generated/dataModel";
 
 /**
- * Verify and decode JWT token
- * This is used for custom JWT auth (not Convex Auth)
- */
-async function verifyJWT(token: string): Promise<{ sub: string; tokenIdentifier: string } | null> {
-  try {
-    const secret = new TextEncoder().encode(
-      process.env.NEXT_PUBLIC_JWT_SECRET || "your-secret-key-change-in-production"
-    );
-
-    const verified = await jose.jwtVerify(token, secret, {
-      issuer: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-      audience: "convex",
-    });
-
-    return {
-      sub: verified.payload.sub as string,
-      tokenIdentifier: verified.payload.tokenIdentifier as string,
-    };
-  } catch (error) {
-    console.error("JWT verification failed:", error);
-    return null;
-  }
-}
-
-/**
- * Get the current authenticated user from the session
+ * Get the current authenticated user from the Convex Auth session
+ * Returns the user document from the database if authenticated
  * Returns null if not authenticated
+ * 
+ * This uses Convex Auth with JWT tokens configured in auth.config.ts
  */
 export async function getCurrentAuthenticatedUser(
   ctx: QueryCtx | MutationCtx
-) {
-  // Get the authorization header
-  const authHeader = ctx.request?.headers.get("authorization");
+): Promise<Doc<"users"> | null> {
+  // Get the authenticated identity from Convex Auth
+  const identity = await ctx.auth.getUserIdentity();
 
-  if (!authHeader) {
+  if (!identity) {
     return null;
   }
 
-  // Extract token from "Bearer <token>"
-  const parts = authHeader.split(" ");
-  if (parts.length !== 2 || parts[0] !== "Bearer") {
-    return null;
-  }
-
-  const token = parts[1];
-
-  // Verify and decode JWT
-  const verified = await verifyJWT(token);
-
-  if (!verified) {
-    return null;
-  }
-
-  // Extract userId from tokenIdentifier (format: "convex|<userId>")
-  const userId = verified.tokenIdentifier.split("|")[1] as Id<"users">;
+  // Look up the user in the database by phone (since we're using phone as auth)
+  // The tokenIdentifier is "convex|{userId}" as set in lib/auth/jwt.ts
+  // We extract the userId from the token identifier
+  const userId = identity.tokenIdentifier?.split("|")[1];
 
   if (!userId) {
     return null;
   }
 
-  // Fetch user from database
-  const user = await ctx.db.get(userId);
-
-  return user;
+  try {
+    // Get the user document from the database
+    const user = await ctx.db.get(userId as Id<"users">);
+    return user || null;
+  } catch {
+    // If the ID is invalid, return null
+    return null;
+  }
 }
 
 /**
  * Require authentication - throws if user is not authenticated
- * Returns the authenticated user
+ * Returns the authenticated user document
  */
-export async function requireAuth(ctx: QueryCtx | MutationCtx) {
+export async function requireAuth(ctx: QueryCtx | MutationCtx): Promise<Doc<"users">> {
   const user = await getCurrentAuthenticatedUser(ctx);
 
   if (!user) {
@@ -85,9 +53,9 @@ export async function requireAuth(ctx: QueryCtx | MutationCtx) {
 
 /**
  * Require admin role - throws if user is not authenticated or not an admin
- * Returns the authenticated admin user
+ * Returns the authenticated admin user document
  */
-export async function requireAdmin(ctx: QueryCtx | MutationCtx) {
+export async function requireAdmin(ctx: QueryCtx | MutationCtx): Promise<Doc<"users">> {
   const user = await requireAuth(ctx);
 
   if (user.role !== "admin") {
@@ -136,7 +104,7 @@ export async function isOwner(
 export async function requireOwnershipOrAdmin(
   ctx: QueryCtx | MutationCtx,
   resourceUserId: Id<"users">
-) {
+): Promise<Doc<"users">> {
   const user = await requireAuth(ctx);
 
   const isResourceOwner = user._id === resourceUserId;
