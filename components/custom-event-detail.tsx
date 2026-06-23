@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { EyeOff, Send, Save, Trash2, Clock } from "lucide-react"
@@ -461,73 +460,6 @@ export function CustomEventDetail({
                 </Button>
               </div>
             )}
-          </div>
-
-          {/* Score & Timer Section */}
-          <div className="border-t border-border/50 pt-4 space-y-3">
-            {/* Score Display */}
-            <div className="grid grid-cols-3 gap-2 items-center">
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground mb-1">Score</p>
-                <p className="text-2xl font-bold text-foreground tabular-nums">
-                  {currentHomeScore}
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground mb-1">vs</p>
-                <div className="text-sm font-medium text-muted-foreground">
-                  Match
-                </div>
-              </div>
-              <div className="text-center">
-                <p className="text-xs text-muted-foreground mb-1">Score</p>
-                <p className="text-2xl font-bold text-foreground tabular-nums">
-                  {currentAwayScore}
-                </p>
-              </div>
-            </div>
-
-            {/* Timer Bar */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant={badgeConfig.variant}
-                    className={cn(
-                      "text-[10px] font-semibold",
-                      badgeConfig.animate && "animate-pulse"
-                    )}
-                  >
-                    {badgeConfig.label}
-                  </Badge>
-                  <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                    <Clock className="size-4" />
-                    <span className="font-mono">
-                      {timer.lifecycle === "not_started"
-                        ? formatCountdownToStart(timer.remainingMs)
-                        : formatTimerDisplay(timer.remainingMs)}
-                    </span>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {timer.displayText}
-                </p>
-              </div>
-
-              {/* Progress Bar */}
-              <Progress
-                value={timer.progressPercent}
-                className="h-2 bg-muted"
-              />
-
-              {/* Match Timeline */}
-              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                <span>0m</span>
-                <span>45m</span>
-                <span>60m</span>
-                <span>105m</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>

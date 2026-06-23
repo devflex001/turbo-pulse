@@ -26,7 +26,6 @@ import {
   formatCountdownToStart,
   getEventBadgeConfig,
 } from "@/lib/event-timer"
-import { ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function PublishedCustomEventsSection() {
@@ -90,71 +89,61 @@ export function PublishedCustomEventsSection() {
   const renderEventCard = (event: any) => {
     const timer = calculateEventTimer(event.startTime, now)
     const badgeConfig = getEventBadgeConfig(timer.lifecycle)
-    const startTimeFormatted = new Date(event.startTime).toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
 
     return (
       <div
         key={event._id}
-        onClick={() => handleOpenDetail(event)}
         className="group relative overflow-hidden rounded-lg border border-border/60 bg-card hover:border-primary/40 hover:shadow-md transition-all cursor-pointer"
       >
-        {/* Top bar with sport and badge */}
+        {/* Header: Sport | Competition | Status & Markets (top right) */}
         <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-border/30 bg-muted/20">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-[9px] font-semibold uppercase bg-muted/50">
+          <div className="flex items-center gap-2 min-w-0">
+            <Badge variant="outline" className="text-[9px] font-semibold uppercase bg-muted/50 shrink-0">
               {event.sport}
             </Badge>
-            <span className="text-[10px] text-muted-foreground font-medium">{event.competition}</span>
+            <span className="text-[10px] text-muted-foreground font-medium truncate">{event.competition}</span>
           </div>
-          <Badge
-            variant={badgeConfig.variant}
-            className={cn(
-              "text-[9px] font-bold whitespace-nowrap",
-              badgeConfig.animate && "animate-pulse"
-            )}
-          >
-            {badgeConfig.label}
-          </Badge>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => handleOpenDetail(event)}
+              className="text-[9px] font-bold text-primary hover:text-primary/80 transition-colors"
+            >
+              {event.totalMarkets} markets
+            </button>
+            <Badge
+              variant={badgeConfig.variant}
+              className={cn(
+                "text-[9px] font-bold whitespace-nowrap",
+                badgeConfig.animate && "animate-pulse"
+              )}
+            >
+              {badgeConfig.label}
+            </Badge>
+          </div>
         </div>
 
         {/* Main content */}
-        <div className="p-4 space-y-4">
-          {/* Countdown - Large and Prominent */}
-          <div className="space-y-1">
-            <p className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">
+        <div className="p-4 space-y-3">
+          {/* Countdown - CENTERED */}
+          <div className="space-y-1 text-center">
+            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
               Starts In
             </p>
-            <p className="text-4xl font-black text-primary tabular-nums leading-tight">
+            <p className="text-3xl font-black text-primary tabular-nums leading-tight">
               {timer.lifecycle === "not_started"
                 ? formatCountdownToStart(timer.remainingMs)
                 : formatTimerDisplay(timer.remainingMs)}
             </p>
           </div>
 
-          {/* Teams */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="min-w-0 text-right">
-              <p className="font-bold text-sm text-foreground truncate">{event.homeTeam}</p>
-            </div>
-            <div className="flex-shrink-0 text-center px-2">
-              <p className="text-xs font-semibold text-muted-foreground">vs</p>
-            </div>
-            <div className="min-w-0 text-left">
-              <p className="font-bold text-sm text-foreground truncate">{event.awayTeam}</p>
-            </div>
+          {/* Teams - Compact */}
+          <div className="flex items-center justify-center gap-4">
+            <p className="font-bold text-sm text-foreground truncate max-w-[40%]">{event.homeTeam}</p>
+            <p className="text-xs font-semibold text-muted-foreground shrink-0">vs</p>
+            <p className="font-bold text-sm text-foreground truncate max-w-[40%]">{event.awayTeam}</p>
           </div>
 
-          {/* Start time */}
-          <p className="text-xs text-muted-foreground text-center">
-            Start: {startTimeFormatted}
-          </p>
-
-          {/* Odds Display - Top 3 outcomes from first market */}
+          {/* Odds Display - Top 3 outcomes */}
           <div className="grid grid-cols-3 gap-2 pt-2 border-t border-border/30">
             {[
               { label: "1", odds: 2.35 },
@@ -163,10 +152,7 @@ export function PublishedCustomEventsSection() {
             ].map((odd) => (
               <button
                 key={odd.label}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleOpenDetail(event)
-                }}
+                onClick={() => handleOpenDetail(event)}
                 className="flex flex-col items-center justify-center gap-0.5 p-2 rounded-md border border-border/40 bg-muted/30 hover:bg-muted/60 hover:border-primary/40 transition-all group/odd"
               >
                 <span className="text-[9px] font-semibold text-muted-foreground group-hover/odd:text-foreground">
@@ -177,25 +163,6 @@ export function PublishedCustomEventsSection() {
                 </span>
               </button>
             ))}
-          </div>
-
-          {/* Footer with markets count and action */}
-          <div className="flex items-center justify-between pt-2 border-t border-border/30">
-            <span className="text-xs text-muted-foreground font-medium">
-              {event.totalMarkets} markets
-            </span>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 gap-1 px-2 text-xs text-primary hover:text-primary hover:bg-primary/10"
-              onClick={(e) => {
-                e.stopPropagation()
-                handleOpenDetail(event)
-              }}
-            >
-              View
-              <ChevronRight className="size-3" />
-            </Button>
           </div>
         </div>
       </div>
