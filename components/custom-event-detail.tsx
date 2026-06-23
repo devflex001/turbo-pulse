@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { SmallLoader } from "@/components/small-loader"
+import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { EyeOff, Send, Save, Trash2 } from "lucide-react"
@@ -286,7 +286,13 @@ export function CustomEventDetail({
   }
 
   if (!event) {
-    return <SmallLoader />
+    return (
+      <div className="space-y-4 p-4">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    )
   }
 
   const currentHomeScore = event.homeScore ?? 0
@@ -315,7 +321,13 @@ export function CustomEventDetail({
 
   const marketList = (
     <div className="space-y-1 p-3">
-      {!markets && <SmallLoader />}
+      {!markets && (
+        <div className="space-y-2">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      )}
 
       {filteredMarkets.map((market) => (
         <Button
@@ -358,7 +370,13 @@ export function CustomEventDetail({
         </div>
       )}
 
-      {selectedMarket && !odds && <SmallLoader />}
+      {selectedMarket && !odds && (
+        <div className="space-y-2 p-3">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      )}
 
       {odds && odds.length > 0 && (
         <div

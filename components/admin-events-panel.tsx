@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { SmallLoader } from "@/components/small-loader"
+import { Skeleton } from "@/components/ui/skeleton"
 import { MarketsPanel, type SportsMatchWithOdds, type SportsMatch } from "@/components/markets-panel"
 import { Pagination } from "@/components/pagination"
 import { usePagination } from "@/hooks/use-pagination"
@@ -229,8 +229,10 @@ export function AdminEventsPanel() {
         </div>
 
         {!matchesData ? (
-          <div className="p-4">
-            <SmallLoader />
+          <div className="p-4 space-y-2">
+            <Skeleton className="h-32 rounded-lg" />
+            <Skeleton className="h-32 rounded-lg" />
+            <Skeleton className="h-32 rounded-lg" />
           </div>
         ) : matchesData.items && matchesData.items.length > 0 ? (
           <>

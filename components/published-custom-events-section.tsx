@@ -19,7 +19,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer"
 import { CustomEventDetail } from "@/components/custom-event-detail"
-import { SmallLoader } from "@/components/small-loader"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Id } from "@/convex/_generated/dataModel"
 
 export function PublishedCustomEventsSection() {

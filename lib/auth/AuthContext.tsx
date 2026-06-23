@@ -119,9 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Remove auth token and user data
     removeAuthToken();
     setUser(null);
-
-    // Redirect to login page
-    window.location.href = "/login";
+    // Don't redirect - let the user stay on the current page as unlogged in
   };
 
   const value: AuthContextType = {

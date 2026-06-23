@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
 import { useBetStore } from "@/hooks/use-bet-store"
 import { useAuth } from "@/lib/auth/AuthContext"
 import { ResponsiveModal } from "@/components/ui/responsive-modal"
@@ -33,7 +32,6 @@ function normalizeKenyanPhone(phone: string): string {
 }
 
 export function LoginModal({ open, onOpenChange }: ModalProps) {
-  const router = useRouter()
   const { login } = useAuth()
   const [phone, setPhone] = React.useState("")
   const [password, setPassword] = React.useState("")
@@ -64,13 +62,7 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
       onOpenChange(false)
       setPhone("")
       setPassword("")
-
-      // Redirect based on role
-      if (role === "admin") {
-        router.push("/admin")
-      } else {
-        router.push("/")
-      }
+      // Don't redirect - auth context is already updated
     } catch (error) {
       const errMsg =
         error instanceof Error
@@ -214,11 +206,7 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
       setPhone("")
       setPassword("")
       setConfirmPassword("")
-
-      // Reload to pick up new auth state
-      setTimeout(() => {
-        window.location.reload()
-      }, 100)
+      // Don't reload or redirect - auth context is already updated
     } catch (error) {
       const errMsg =
         error instanceof Error

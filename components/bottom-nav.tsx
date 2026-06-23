@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useBetStore } from "@/hooks/use-bet-store"
+import { getAuthToken } from "@/lib/auth/jwt"
 import { Home, PlayCircle, FileText, User, Receipt, Wallet, ArrowUpRight, ArrowDownLeft, LogOut, History } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
@@ -13,18 +14,43 @@ import { Button } from "@/components/ui/button"
 export function BottomNav({ liveCount }: { liveCount: number }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { activeTab, setActiveTab, betslip, user, walletBalance, logout } = useBetStore()
-  
+  const { activeTab, setActiveTab, betslip, walletBalance, logout } = useBetStore()
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false)
+
   const [betslipOpen, setBetslipOpen] = React.useState(false)
-  const [profileOpen, setProfileOpen] = React.useState(false)
   const [loginOpen, setLoginOpen] = React.useState(false)
   const [registerOpen, setRegisterOpen] = React.useState(false)
   const [depositOpen, setDepositOpen] = React.useState(false)
   const [withdrawOpen, setWithdrawOpen] = React.useState(false)
 
+  // Check auth status from localStorage
+  React.useEffect(() => {
+    const token = getAuthToken()
+    setIsAuthenticated(!!token)
+  }, [])
+
+  // Listen for storage changes
+  React.useEffect(() => {
+    const handleStorageChange = () => {
+      const token = getAuthToken()
+      setIsAuthenticated(!!token)
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+    return () => window.removeEventListener("storage", handleStorageChange)
+  }, [])
+
   const handleProfileClick = () => {
-    if (user) {
-      setProfileOpen(true)
+    if (isAuthenticated) {
+      router.push("/account")
+    } else {
+      setLoginOpen(true)
+    }
+  }
+
+  const handleMyBetsClick = () => {
+    if (isAuthenticated) {
+      router.push("/my-bets")
     } else {
       setLoginOpen(true)
     }
@@ -32,7 +58,6 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
 
   const handleLogout = async () => {
     await logout()
-    setProfileOpen(false)
     router.replace("/")
   }
 
@@ -48,8 +73,8 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
             }}
             className={cn(
               "flex flex-col items-center justify-center gap-1 h-full text-[10px] font-medium transition-colors",
-              (pathname === "/" && activeTab === "home") 
-                ? "text-primary font-semibold" 
+              (pathname === "/" && activeTab === "home")
+                ? "text-primary font-semibold"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -65,8 +90,8 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
             }}
             className={cn(
               "flex flex-col items-center justify-center gap-1 h-full text-[10px] font-medium transition-colors",
-              (pathname === "/" && activeTab === "live") 
-                ? "text-primary font-semibold" 
+              (pathname === "/" && activeTab === "live")
+                ? "text-primary font-semibold"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -91,13 +116,11 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
 
           {/* My Bets Tab */}
           <button
-            onClick={() => {
-              router.push("/my-bets")
-            }}
+            onClick={handleMyBetsClick}
             className={cn(
               "flex flex-col items-center justify-center gap-1 h-full text-[10px] font-medium transition-colors",
-              pathname === "/my-bets" 
-                ? "text-primary font-semibold" 
+              pathname === "/my-bets"
+                ? "text-primary font-semibold"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -110,12 +133,12 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
             onClick={handleProfileClick}
             className={cn(
               "flex flex-col items-center justify-center gap-1 h-full text-[10px] font-medium transition-colors",
-              profileOpen
-                ? "text-primary font-semibold" 
+              pathname === "/account"
+                ? "text-primary font-semibold"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <User className={cn("size-5", profileOpen ? "text-primary" : "text-muted-foreground")} />
+            <User className={cn("size-5", pathname === "/account" ? "text-primary" : "text-muted-foreground")} />
             <span>Profile</span>
           </button>
         </div>
@@ -136,82 +159,7 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
         </SheetContent>
       </Sheet>
 
-      {/* Profile Sheet/Drawer */}
-      <Sheet open={profileOpen} onOpenChange={setProfileOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl p-6 flex flex-col gap-4 border-t border-border bg-card">
-          <SheetHeader className="text-left border-b border-border pb-4">
-            <SheetTitle className="text-lg font-bold">My Account</SheetTitle>
-            {user && (
-              <SheetDescription className="text-xs text-muted-foreground mt-1">
-                Logged in as <span className="font-semibold text-foreground">{user.username}</span>
-              </SheetDescription>
-            )}
-          </SheetHeader>
 
-          {user && (
-            <div className="space-y-6">
-              {/* Balance Card */}
-              <div className="flex items-center justify-between bg-muted/50 p-4 rounded-lg border border-border">
-                <div className="flex items-center gap-2.5">
-                  <Wallet className="size-5 text-primary" />
-                  <div className="flex flex-col">
-                    <span className="text-[11px] text-muted-foreground font-medium uppercase tracking-wider">Wallet Balance</span>
-                    <span className="text-lg font-bold font-mono">
-                      KES {walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Transactions grid */}
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  onClick={() => {
-                    setProfileOpen(false)
-                    router.push("/deposit")
-                  }}
-                  className="bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 h-10 text-xs"
-                >
-                  <ArrowUpRight className="size-4" /> Deposit
-                </Button>
-                <Button
-                  onClick={() => {
-                    setProfileOpen(false)
-                    setWithdrawOpen(true)
-                  }}
-                  variant="outline"
-                  className="font-semibold flex items-center justify-center gap-2 h-10 text-xs border-border"
-                >
-                  <ArrowDownLeft className="size-4" /> Withdraw
-                </Button>
-              </div>
-
-              {/* Navigation list */}
-              <div className="space-y-1">
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setProfileOpen(false)
-                    router.push("/my-bets")
-                  }}
-                  className="w-full justify-start gap-3 h-11 text-sm text-muted-foreground hover:text-foreground font-normal"
-                >
-                  <History className="size-4" /> Placed Bets History
-                </Button>
-              </div>
-
-              {/* Log Out button */}
-              <Button
-                variant="destructive"
-                onClick={handleLogout}
-                className="w-full h-10 text-xs font-semibold mt-4"
-              >
-                <LogOut className="size-4 mr-2" /> Log Out
-              </Button>
-            </div>
-          )}
-        </SheetContent>
-      </Sheet>
 
       {/* Auth and transaction modals */}
       <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />

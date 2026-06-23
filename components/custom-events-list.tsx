@@ -20,7 +20,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { CustomEventDetail } from "@/components/custom-event-detail"
-import { SmallLoader } from "@/components/small-loader"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Pagination } from "@/components/pagination"
 import { usePagination } from "@/hooks/use-pagination"
 import { cn } from "@/lib/utils"
@@ -166,7 +166,13 @@ export function CustomEventsList({
   }, [events, sort])
 
   if (!events) {
-    return <SmallLoader />
+    return (
+      <div className="space-y-2">
+        <Skeleton className="h-32 rounded-lg" />
+        <Skeleton className="h-32 rounded-lg" />
+        <Skeleton className="h-32 rounded-lg" />
+      </div>
+    )
   }
 
   const formatTime = (ms: number) => {

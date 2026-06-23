@@ -1,15 +1,37 @@
 "use client"
 
 import * as React from "react"
+import { useAuth } from "@/lib/auth/AuthContext"
 import { Header } from "@/components/header"
 import { Sidebar } from "@/components/sidebar"
 import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
+import { LoginModal } from "@/components/modals"
 import { WithdrawalSheet } from "@/components/withdrawal-sheet"
 
 export default function WithdrawalPage() {
+  const { user } = useAuth()
+  const [loginOpen, setLoginOpen] = React.useState(!user)
+
+  if (!user) {
+    return (
+      <>
+        <div className="flex flex-col h-screen overflow-hidden bg-background">
+          <Header />
+          <div className="flex-1 flex items-center justify-center p-4">
+            <div className="text-muted-foreground text-center space-y-3">
+              <p>Please log in to withdraw funds</p>
+            </div>
+          </div>
+          <BottomNav liveCount={0} />
+        </div>
+        <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
+      </>
+    )
+  }
+
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       <Header />
