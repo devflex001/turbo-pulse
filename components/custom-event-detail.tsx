@@ -66,8 +66,10 @@ export function CustomEventDetail({
   const [awayScore, setAwayScore] = React.useState<string>("")
   const [savingScore, setSavingScore] = React.useState(false)
 
-  // All hooks
+  // All context/store hooks
   const { addToBetslip } = useBetStore()
+
+  // All query hooks
   const event = useQuery(api.customEvents.getCustomEvent, { eventId }) as
     | CustomEventRow
     | null
@@ -79,12 +81,13 @@ export function CustomEventDetail({
     eventId,
   }) as CustomOddRow[] | undefined
 
+  // All mutation hooks
   const publishEvent = useMutation(api.customEvents.publishCustomEvent)
   const unpublishEvent = useMutation(api.customEvents.unpublishCustomEvent)
   const deleteEvent = useMutation(api.customEvents.deleteCustomEvent)
   const updateScore = useMutation(api.customEvents.updateCustomEventScore)
 
-  // Effects after all hooks
+  // All effects
   React.useEffect(() => {
     if (event) {
       setHomeScore(String(event.homeScore ?? 0))
@@ -92,6 +95,41 @@ export function CustomEventDetail({
     }
   }, [event])
 
+  // All memos - MUST be after all hooks above
+  const groupedOdds = React.useMemo(() => {
+    if (!allOdds || !markets) return new Map<string, CustomOddRow[]>()
+    const groups = new Map<string, CustomOddRow[]>()
+    for (const odd of allOdds) {
+      const list = groups.get(odd.marketId) ?? []
+      list.push(odd)
+      groups.set(odd.marketId, list)
+    }
+    for (const list of groups.values()) {
+      list.sort(sortOdds)
+    }
+    return groups
+  }, [allOdds, markets])
+
+  const filteredMarkets = React.useMemo(() => {
+    if (!markets) return []
+    if (!search.trim()) return markets
+    const q = search.toLowerCase()
+    return markets.filter((m) => `${m.name} ${m.marketType}`.toLowerCase().includes(q))
+  }, [markets, search])
+
+  const marketsByCategory = React.useMemo(() => {
+    if (!filteredMarkets) return new Map<string, CustomMarketRow[]>()
+    const grouped = new Map<string, CustomMarketRow[]>()
+    for (const m of filteredMarkets) {
+      const cat = m.marketTypes[0] || m.marketType || "Other"
+      const list = grouped.get(cat) ?? []
+      list.push(m)
+      grouped.set(cat, list)
+    }
+    return grouped
+  }, [filteredMarkets])
+
+  // Handler functions
   const handleAddOdd = (odd: CustomOddRow, market: CustomMarketRow) => {
     const outcomeMap: Record<string, string> = {
       "1": event?.homeTeam || "Home",
@@ -168,42 +206,6 @@ export function CustomEventDetail({
   if (!event || !markets || !allOdds) {
     return <div className="p-4 text-center text-xs text-muted-foreground">Loading...</div>
   }
-
-  // Group odds by market
-  const groupedOdds = React.useMemo(() => {
-    if (!allOdds || !markets) return new Map<string, CustomOddRow[]>()
-    const groups = new Map<string, CustomOddRow[]>()
-    for (const odd of allOdds) {
-      const list = groups.get(odd.marketId) ?? []
-      list.push(odd)
-      groups.set(odd.marketId, list)
-    }
-    for (const list of groups.values()) {
-      list.sort(sortOdds)
-    }
-    return groups
-  }, [allOdds, markets])
-
-  // Filter markets by search
-  const filteredMarkets = React.useMemo(() => {
-    if (!markets) return []
-    if (!search.trim()) return markets
-    const q = search.toLowerCase()
-    return markets.filter((m) => `${m.name} ${m.marketType}`.toLowerCase().includes(q))
-  }, [markets, search])
-
-  // Group by category
-  const marketsByCategory = React.useMemo(() => {
-    if (!filteredMarkets) return new Map<string, CustomMarketRow[]>()
-    const grouped = new Map<string, CustomMarketRow[]>()
-    for (const m of filteredMarkets) {
-      const cat = m.marketTypes[0] || m.marketType || "Other"
-      const list = grouped.get(cat) ?? []
-      list.push(m)
-      grouped.set(cat, list)
-    }
-    return grouped
-  }, [filteredMarkets])
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

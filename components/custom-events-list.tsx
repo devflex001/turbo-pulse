@@ -266,8 +266,132 @@ export function CustomEventsList({
 
         {sortedEvents.length > 0 ? (
           <>
-            {/* Desktop Cards - Clean Admin View */}
-            <div className="hidden grid-cols-1 gap-2 p-3 md:grid lg:grid-cols-2 xl:grid-cols-3">
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border/50 bg-muted/30">
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Event</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Competition</th>
+                    <th className="px-4 py-2.5 text-left text-xs font-semibold text-muted-foreground">Start Time</th>
+                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Markets</th>
+                    <th className="px-4 py-2.5 text-center text-xs font-semibold text-muted-foreground">Status</th>
+                    <th className="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedEvents.map((event, idx) => (
+                    <tr
+                      key={event._id}
+                      className={cn(
+                        "border-b border-border/30 hover:bg-muted/20 transition-colors group",
+                        idx === sortedEvents.length - 1 && "border-b-0"
+                      )}
+                    >
+                      <td className="px-4 py-2.5">
+                        <p className="text-sm font-semibold text-foreground">
+                          {event.homeTeam} vs {event.awayTeam}
+                        </p>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <p className="text-xs text-muted-foreground">{event.competition}</p>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <p className="text-xs text-muted-foreground font-mono">{formatTime(event.startTime)}</p>
+                      </td>
+                      <td className="px-4 py-2.5 text-center">
+                        <Badge variant="outline" className="text-[9px] font-semibold">
+                          {event.totalMarkets}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-2.5 text-center">
+                        <Badge
+                          className={cn(
+                            "text-[9px] font-semibold",
+                            event.status === "draft"
+                              ? "bg-yellow-500/15 text-yellow-600 border border-yellow-500/20"
+                              : "bg-emerald-500/15 text-emerald-600 border border-emerald-500/20"
+                          )}
+                        >
+                          {event.status}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex justify-end gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 gap-1 px-2 text-xs"
+                            onClick={() => {
+                              setSelectedEvent(event)
+                              setDetailOpen(true)
+                            }}
+                          >
+                            <ListPlus className="size-3" />
+                            View
+                          </Button>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-1"
+                              >
+                                <MoreVertical className="size-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-32">
+                              {event.status === "draft" && (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={(e) => handleEdit(event, e as any)}
+                                    className="cursor-pointer gap-2 text-xs"
+                                  >
+                                    <Edit2 className="size-3" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={(e) =>
+                                      handlePublish(event._id, e as any)
+                                    }
+                                    className="cursor-pointer gap-2 text-xs"
+                                  >
+                                    <CheckCircle className="size-3" />
+                                    Publish
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              {event.status === "published" && (
+                                <DropdownMenuItem
+                                  onClick={(e) =>
+                                    handleUnpublish(event._id, e as any)
+                                  }
+                                  className="cursor-pointer gap-2 text-xs"
+                                >
+                                  <EyeOff className="size-3" />
+                                  Unpublish
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                onClick={(e) => handleDelete(event._id, e as any)}
+                                className="cursor-pointer gap-2 text-xs text-destructive"
+                              >
+                                <Trash2 className="size-3" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards - Compact */}
+            <div className="space-y-2 p-3 md:hidden">
               {sortedEvents.map((event) => (
                 <div
                   key={event._id}
@@ -375,28 +499,6 @@ export function CustomEventsList({
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-
-            {/* Mobile Cards */}
-            <div className="space-y-3 p-3 md:hidden">
-              {sortedEvents.map((event) => (
-                <CustomEventCard
-                  key={event._id}
-                  eventId={event._id}
-                  homeTeam={event.homeTeam}
-                  awayTeam={event.awayTeam}
-                  homeScore={event.homeScore || 0}
-                  awayScore={event.awayScore || 0}
-                  startTime={event.startTime}
-                  competition={event.competition}
-                  title={event.title}
-                  totalMarkets={event.totalMarkets}
-                  onClick={() => {
-                    setSelectedEvent(event)
-                    setDetailOpen(true)
-                  }}
-                />
               ))}
             </div>
           </>

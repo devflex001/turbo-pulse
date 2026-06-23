@@ -19,7 +19,6 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
-import { CustomEventDetail } from "@/components/custom-event-detail"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   calculateEventTimer,
@@ -29,6 +28,7 @@ import {
 } from "@/lib/event-timer"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
+import { CustomEventDetail } from "./custom-event-detail"
 
 export function PublishedCustomEventsSection() {
   const { addToBetslip } = useBetStore()
@@ -122,25 +122,25 @@ export function PublishedCustomEventsSection() {
         key={event._id}
         className="group relative overflow-hidden rounded-lg border border-border/60 bg-card hover:border-primary/40 hover:shadow-md transition-all"
       >
-        {/* Header: Sport | Competition | Status & Markets (top right) */}
-        <div className="flex items-center justify-between gap-2 px-4 py-2 border-b border-border/30 bg-muted/20">
+        {/* Header: Sport | Competition | Markets & Status (top right) */}
+        <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/30 bg-muted/20">
           <div className="flex items-center gap-2 min-w-0">
-            <Badge variant="outline" className="text-[9px] font-semibold uppercase bg-muted/50 shrink-0">
+            <Badge variant="outline" className="text-[8px] font-bold uppercase bg-muted/50 shrink-0">
               {event.sport}
             </Badge>
-            <span className="text-[10px] text-muted-foreground font-medium truncate">{event.competition}</span>
+            <span className="text-[9px] text-muted-foreground font-medium truncate">{event.competition}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => handleOpenDetail(event)}
-              className="text-[9px] font-bold text-primary hover:text-primary/80 transition-colors"
+              className="text-[8px] font-bold text-primary hover:text-primary/80 transition-colors cursor-pointer"
             >
-              {event.totalMarkets} markets
+              +{event.totalMarkets} markets
             </button>
             <Badge
               variant={badgeConfig.variant}
               className={cn(
-                "text-[9px] font-bold whitespace-nowrap",
+                "text-[8px] font-bold whitespace-nowrap",
                 badgeConfig.animate && "animate-pulse"
               )}
             >
@@ -150,28 +150,28 @@ export function PublishedCustomEventsSection() {
         </div>
 
         {/* Main content - TIGHT SPACING */}
-        <div className="p-3 space-y-2">
+        <div className="px-3 py-2.5 space-y-1.5">
           {/* Countdown - CENTERED */}
           <div className="space-y-0.5 text-center">
-            <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-wide">
+            <p className="text-[8px] text-muted-foreground font-semibold uppercase tracking-wider">
               Starts In
             </p>
-            <p className="text-3xl font-black text-primary tabular-nums leading-none">
+            <p className="text-2xl font-black text-primary tabular-nums leading-tight">
               {timer.lifecycle === "not_started"
                 ? formatCountdownToStart(timer.remainingMs)
                 : formatTimerDisplay(timer.remainingMs)}
             </p>
           </div>
 
-          {/* Teams - Compact */}
-          <div className="flex items-center justify-center gap-3">
-            <p className="font-bold text-sm text-foreground truncate max-w-[40%]">{event.homeTeam}</p>
+          {/* Teams - Compact with better spacing */}
+          <div className="flex items-center justify-center gap-2">
+            <p className="font-bold text-sm text-foreground truncate text-center flex-1">{event.homeTeam}</p>
             <p className="text-xs font-semibold text-muted-foreground shrink-0">vs</p>
-            <p className="font-bold text-sm text-foreground truncate max-w-[40%]">{event.awayTeam}</p>
+            <p className="font-bold text-sm text-foreground truncate text-center flex-1">{event.awayTeam}</p>
           </div>
 
           {/* Odds Display - Top 3 outcomes - ADD TO BETSLIP */}
-          <div className="grid grid-cols-3 gap-2 pt-1">
+          <div className="grid grid-cols-3 gap-1.5 pt-0.5">
             {[
               { label: "1", odds: 2.35 },
               { label: "X", odds: 3.15 },
@@ -180,12 +180,12 @@ export function PublishedCustomEventsSection() {
               <button
                 key={odd.label}
                 onClick={() => handleAddToSlip(event, odd)}
-                className="flex flex-col items-center justify-center gap-0.5 p-2 rounded-md border border-border/40 bg-muted/30 hover:bg-primary/10 hover:border-primary/40 transition-all group/odd"
+                className="flex flex-col items-center justify-center gap-0.5 p-1.5 rounded border border-border/40 bg-muted/30 hover:bg-primary/10 hover:border-primary/40 transition-all group/odd"
               >
-                <span className="text-[9px] font-semibold text-muted-foreground group-hover/odd:text-foreground">
+                <span className="text-[8px] font-semibold text-muted-foreground group-hover/odd:text-foreground">
                   {odd.label}
                 </span>
-                <span className="font-bold text-sm text-foreground group-hover/odd:text-primary">
+                <span className="font-bold text-xs text-foreground group-hover/odd:text-primary">
                   {odd.odds.toFixed(2)}
                 </span>
               </button>
