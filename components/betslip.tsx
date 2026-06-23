@@ -4,6 +4,7 @@ import * as React from "react"
 import { useBetStore } from "@/hooks/use-bet-store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { LoginModal } from "@/components/modals"
 import { Trash2, X, Wallet, AlertCircle, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -24,6 +25,7 @@ export function Betslip({ onClose }: BetslipProps) {
 
   const [stake, setStake] = React.useState("100")
   const [isPlacing, setIsPlacing] = React.useState(false)
+  const [loginOpen, setLoginOpen] = React.useState(false)
 
   const presets = [50, 100, 200, 500, 1000]
 
@@ -40,7 +42,7 @@ export function Betslip({ onClose }: BetslipProps) {
 
   const handlePlaceBet = async () => {
     if (!user) {
-      toast.error("Please login to place bets")
+      setLoginOpen(true)
       return
     }
 
@@ -240,6 +242,8 @@ export function Betslip({ onClose }: BetslipProps) {
           )}
         </Button>
       </div>
+
+      <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
     </div>
   )
 }
