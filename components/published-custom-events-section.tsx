@@ -230,13 +230,13 @@ export function PublishedCustomEventsSection() {
     <>
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-foreground">Custom Events</h2>
+          <h2 className="text-base font-bold text-foreground">Featured Events</h2>
           <Badge variant="outline" className="text-[10px] font-mono">
             {sortedByStartTime.length}
           </Badge>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 gap-3">
           {sortedByStartTime.map(renderEventCard)}
         </div>
       </div>
