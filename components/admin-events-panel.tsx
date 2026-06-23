@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { SmallLoader } from "@/components/small-loader"
+import { Skeleton } from "@/components/ui/skeleton"
 import { MarketsPanel, type SportsMatchWithOdds, type SportsMatch } from "@/components/markets-panel"
 import { Pagination } from "@/components/pagination"
 import { usePagination } from "@/hooks/use-pagination"

@@ -9,7 +9,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { SmallLoader } from "@/components/small-loader"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { ResponsiveModal } from "@/components/ui/responsive-modal"
@@ -492,7 +492,11 @@ export function AdminUsersPanel() {
       {/* ── Mobile Card List (< sm) ── */}
       <div className="sm:hidden space-y-2">
         {isLoading && (
-          <SmallLoader />
+          <div className="space-y-2">
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+          </div>
         )}
 
         {!isLoading && users.length === 0 && (
@@ -593,7 +597,11 @@ export function AdminUsersPanel() {
               {isLoading && (
                 <tr>
                   <td colSpan={5} className="py-8">
-                    <SmallLoader />
+                    <div className="space-y-2">
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                    </div>
                   </td>
                 </tr>
               )}

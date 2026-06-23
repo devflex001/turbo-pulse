@@ -7,7 +7,7 @@ import { ArrowLeft, Share2 } from "lucide-react"
 import { api } from "@/convex/_generated/api"
 import { Button } from "@/components/ui/button"
 import { BottomNav } from "@/components/bottom-nav"
-import { SmallLoader } from "@/components/small-loader"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   MarketsBrowser,
   type SportsMatchWithOdds,
@@ -117,7 +117,10 @@ export default function MatchMarketsPage() {
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       <main className="flex-1 min-w-0 flex flex-col">
         {!match && match !== null && (
-          <SmallLoader />
+          <div className="p-4 space-y-3">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-96 w-full" />
+          </div>
         )}
 
         {match === null && (

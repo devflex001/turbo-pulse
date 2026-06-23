@@ -13,7 +13,7 @@ import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { SmallLoader } from "@/components/small-loader"
+import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import {
@@ -446,7 +446,10 @@ export default function Page() {
                 </div>
 
                 {!matches ? (
-                  <SmallLoader />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Skeleton className="h-32 rounded-lg" />
+                    <Skeleton className="h-32 rounded-lg" />
+                  </div>
                 ) : upcomingMatches.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {upcomingMatches.map((match) => (
@@ -469,7 +472,10 @@ export default function Page() {
                 Live Sports Betting
               </h2>
               {!matches ? (
-                <SmallLoader />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Skeleton className="h-32 rounded-lg" />
+                  <Skeleton className="h-32 rounded-lg" />
+                </div>
               ) : displayedMatches.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {displayedMatches.map((match) => (
@@ -491,7 +497,10 @@ export default function Page() {
                 Featured Market Highlights
               </h2>
               {!matches ? (
-                <SmallLoader />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Skeleton className="h-32 rounded-lg" />
+                  <Skeleton className="h-32 rounded-lg" />
+                </div>
               ) : featuredMatches.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {featuredMatches.map((match) => (

@@ -17,7 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { SmallLoader } from "@/components/small-loader"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useMediaQuery } from "@/hooks/use-media-query"
 
 type SportsOdd = {
@@ -224,7 +224,11 @@ export function MarketsBrowser({
   const marketList = (
     <div className="space-y-1 p-3">
       {!markets && (
-        <SmallLoader />
+        <div className="space-y-2">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
       )}
 
       {filteredMarkets.map((market) => (
@@ -265,7 +269,11 @@ export function MarketsBrowser({
       )}
 
       {selectedMarket && !odds && (
-        <SmallLoader />
+        <div className="space-y-2 p-3">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
       )}
 
       {odds && odds.length > 0 && (
@@ -296,7 +304,12 @@ export function MarketsBrowser({
   const pageContent = (
     <div className="space-y-3 p-3 sm:p-4 pb-24">
       {(!markets || !allOdds) && (
-        <SmallLoader />
+        <div className="space-y-2">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
       )}
 
       {markets && allOdds && filteredMarkets.length === 0 && (
