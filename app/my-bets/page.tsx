@@ -23,8 +23,10 @@ export default function MyBetsPage() {
 
     if (!isAuth) {
       setLoginOpen(true)
+      setIsAuthenticated(false)
+    } else {
+      setIsAuthenticated(true)
     }
-    setIsAuthenticated(isAuth)
   }, [])
 
   // Listen for storage changes (logout from other tabs)
@@ -53,6 +55,21 @@ export default function MyBetsPage() {
     [allMatches]
   )
 
+  // Don't render anything until we know auth status
+  if (isAuthenticated === null) {
+    return null
+  }
+
+  // If not authenticated, only show login modal
+  if (!isAuthenticated) {
+    return (
+      <>
+        <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
+      </>
+    )
+  }
+
+  // Authenticated - render full page
   return (
     <>
       <div className="flex flex-col h-screen overflow-hidden bg-background">
@@ -62,11 +79,9 @@ export default function MyBetsPage() {
           <Sidebar className="hidden lg:flex w-60 shrink-0 h-full" />
 
           <main className="flex-1 min-w-0 p-4 sm:p-6 overflow-y-auto h-full flex flex-col gap-6 scrollbar-thin">
-            {isAuthenticated && (
-              <div className="flex flex-col gap-6 w-full">
-                <MyBetsPanel />
-              </div>
-            )}
+            <div className="flex flex-col gap-6 w-full">
+              <MyBetsPanel />
+            </div>
           </main>
         </div>
 

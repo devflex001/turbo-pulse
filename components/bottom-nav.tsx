@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useBetStore } from "@/hooks/use-bet-store"
+import { getAuthToken } from "@/lib/auth/jwt"
 import { Home, PlayCircle, FileText, User, Receipt, Wallet, ArrowUpRight, ArrowDownLeft, LogOut, History } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
@@ -13,8 +14,9 @@ import { Button } from "@/components/ui/button"
 export function BottomNav({ liveCount }: { liveCount: number }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { activeTab, setActiveTab, betslip, user, walletBalance, logout } = useBetStore()
-  
+  const { activeTab, setActiveTab, betslip, walletBalance, logout } = useBetStore()
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false)
+
   const [betslipOpen, setBetslipOpen] = React.useState(false)
   const [profileOpen, setProfileOpen] = React.useState(false)
   const [loginOpen, setLoginOpen] = React.useState(false)
@@ -22,9 +24,34 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
   const [depositOpen, setDepositOpen] = React.useState(false)
   const [withdrawOpen, setWithdrawOpen] = React.useState(false)
 
+  // Check auth status from localStorage
+  React.useEffect(() => {
+    const token = getAuthToken()
+    setIsAuthenticated(!!token)
+  }, [])
+
+  // Listen for storage changes
+  React.useEffect(() => {
+    const handleStorageChange = () => {
+      const token = getAuthToken()
+      setIsAuthenticated(!!token)
+    }
+
+    window.addEventListener("storage", handleStorageChange)
+    return () => window.removeEventListener("storage", handleStorageChange)
+  }, [])
+
   const handleProfileClick = () => {
-    if (user) {
+    if (isAuthenticated) {
       setProfileOpen(true)
+    } else {
+      setLoginOpen(true)
+    }
+  }
+
+  const handleMyBetsClick = () => {
+    if (isAuthenticated) {
+      router.push("/my-bets")
     } else {
       setLoginOpen(true)
     }
@@ -48,8 +75,8 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
             }}
             className={cn(
               "flex flex-col items-center justify-center gap-1 h-full text-[10px] font-medium transition-colors",
-              (pathname === "/" && activeTab === "home") 
-                ? "text-primary font-semibold" 
+              (pathname === "/" && activeTab === "home")
+                ? "text-primary font-semibold"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -65,8 +92,8 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
             }}
             className={cn(
               "flex flex-col items-center justify-center gap-1 h-full text-[10px] font-medium transition-colors",
-              (pathname === "/" && activeTab === "live") 
-                ? "text-primary font-semibold" 
+              (pathname === "/" && activeTab === "live")
+                ? "text-primary font-semibold"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -91,13 +118,11 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
 
           {/* My Bets Tab */}
           <button
-            onClick={() => {
-              router.push("/my-bets")
-            }}
+            onClick={handleMyBetsClick}
             className={cn(
               "flex flex-col items-center justify-center gap-1 h-full text-[10px] font-medium transition-colors",
-              pathname === "/my-bets" 
-                ? "text-primary font-semibold" 
+              pathname === "/my-bets"
+                ? "text-primary font-semibold"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -111,7 +136,7 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
             className={cn(
               "flex flex-col items-center justify-center gap-1 h-full text-[10px] font-medium transition-colors",
               profileOpen
-                ? "text-primary font-semibold" 
+                ? "text-primary font-semibold"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -141,14 +166,14 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
         <SheetContent side="bottom" className="rounded-t-2xl p-6 flex flex-col gap-4 border-t border-border bg-card">
           <SheetHeader className="text-left border-b border-border pb-4">
             <SheetTitle className="text-lg font-bold">My Account</SheetTitle>
-            {user && (
+            {isAuthenticated && (
               <SheetDescription className="text-xs text-muted-foreground mt-1">
-                Logged in as <span className="font-semibold text-foreground">{user.username}</span>
+                You are logged in
               </SheetDescription>
             )}
           </SheetHeader>
 
-          {user && (
+          {isAuthenticated && (
             <div className="space-y-6">
               {/* Balance Card */}
               <div className="flex items-center justify-between bg-muted/50 p-4 rounded-lg border border-border">
@@ -192,11 +217,11 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
                   variant="ghost"
                   onClick={() => {
                     setProfileOpen(false)
-                    router.push("/my-bets")
+                    router.push("/account")
                   }}
                   className="w-full justify-start gap-3 h-11 text-sm text-muted-foreground hover:text-foreground font-normal"
                 >
-                  <History className="size-4" /> Placed Bets History
+                  <User className="size-4" /> View Full Profile
                 </Button>
               </div>
 
