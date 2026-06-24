@@ -368,8 +368,8 @@ export default function PaymentsPage() {
           </div>
         </div>
 
-        {/* ── Mobile Layout (< sm) ── */}
-        <div className="sm:hidden space-y-2">
+        {/* ── Mobile Layout (< lg) ── */}
+        <div className="lg:hidden space-y-2">
           {isLoading && (
             <div className="space-y-2">
               <Skeleton className="h-20 w-full" />
@@ -423,8 +423,8 @@ export default function PaymentsPage() {
           })}
         </div>
 
-        {/* ── Desktop Layout (≥ sm) ── */}
-        <div className="hidden sm:block rounded-lg border border-border overflow-hidden bg-card">
+        {/* ── Desktop Layout (≥ lg) ── */}
+        <div className="hidden lg:block rounded-lg border border-border overflow-hidden bg-card">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse min-w-[700px]">
               <thead>
@@ -470,7 +470,7 @@ export default function PaymentsPage() {
                       className="hover:bg-muted/30 transition-colors cursor-pointer"
                       onClick={() => handleViewDetails(t)}
                     >
-                      <td className="py-3.5 px-4 font-mono font-medium text-foreground">
+                      <td className="py-3.5 px-4 font-mono font-medium text-foreground max-w-[150px] truncate block" title={t.txId}>
                         {t.txId}
                       </td>
                       <td className="py-3.5 px-4 text-muted-foreground font-semibold">
