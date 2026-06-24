@@ -376,10 +376,11 @@ export function CustomEventsList({
                                 setSelectedEvent(event)
                                 setScoreDialogOpen(true)
                               }}
-                              className="bg-red-500/15 text-red-600 border border-red-500/20 text-[9px] font-bold animate-pulse cursor-pointer hover:bg-red-500/25 transition-all"
+                              className="bg-red-500/10 text-red-500 border border-red-500/20 text-[9px] font-bold flex items-center gap-1 cursor-pointer hover:bg-red-500/20 transition-all select-none"
                               title="Click to update score"
                             >
-                              live
+                              <span className="size-1 rounded-full bg-red-500 animate-pulse" />
+                              LIVE
                             </Badge>
                           )
                         }
