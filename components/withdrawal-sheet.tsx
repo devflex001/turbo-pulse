@@ -45,7 +45,6 @@ export function WithdrawalSheet({ onSuccess }: { onSuccess?: () => void }) {
   const config = useQuery(api.platformConfig.getUserFacingConfig)
   const submitWithdrawal = useMutation(api.withdrawals.submitWithdrawalRequest)
   const payInstantFee = useMutation(api.withdrawals.payInstantFee)
-
   const [step, setStep] = React.useState<Step>("form")
   const [amount, setAmount] = React.useState("")
   const [phone, setPhone] = React.useState("")
