@@ -17,6 +17,7 @@ interface CustomEventDetailProps {
   eventId: Id<"customEvents">
   onBack?: () => void
   adminControls?: boolean
+  hideHeader?: boolean
 }
 
 interface CustomEventRow {
@@ -59,6 +60,7 @@ export function CustomEventDetail({
   eventId,
   onBack,
   adminControls = false,
+  hideHeader = false,
 }: CustomEventDetailProps) {
   // All state first
   const [search, setSearch] = React.useState("")
@@ -210,50 +212,52 @@ export function CustomEventDetail({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Header */}
-      <div className="shrink-0 border-b border-border p-3 space-y-2">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <h2 className="truncate text-sm font-bold">
-              {event.homeTeam} vs {event.awayTeam}
-            </h2>
-            <p className="text-xs text-muted-foreground truncate">{event.competition}</p>
+      {!hideHeader && (
+        <div className="shrink-0 border-b border-border p-3 space-y-2">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate text-sm font-bold">
+                {event.homeTeam} vs {event.awayTeam}
+              </h2>
+              <p className="text-xs text-muted-foreground truncate">{event.competition}</p>
+            </div>
+            {adminControls && (
+              <div className="flex gap-1 shrink-0">
+                {event.status === "published" ? (
+                  <Button size="sm" variant="outline" className="h-7 gap-1 px-2 text-xs" onClick={handleUnpublish}>
+                    <EyeOff className="size-3" />
+                    Unpublish
+                  </Button>
+                ) : (
+                  <Button size="sm" className="h-7 gap-1 px-2 text-xs" onClick={handlePublish}>
+                    <Send className="size-3" />
+                    Publish
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-destructive" onClick={handleDelete}>
+                  <Trash2 className="size-3" />
+                </Button>
+              </div>
+            )}
           </div>
+
           {adminControls && (
-            <div className="flex gap-1 shrink-0">
-              {event.status === "published" ? (
-                <Button size="sm" variant="outline" className="h-7 gap-1 px-2 text-xs" onClick={handleUnpublish}>
-                  <EyeOff className="size-3" />
-                  Unpublish
-                </Button>
-              ) : (
-                <Button size="sm" className="h-7 gap-1 px-2 text-xs" onClick={handlePublish}>
-                  <Send className="size-3" />
-                  Publish
-                </Button>
-              )}
-              <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-destructive" onClick={handleDelete}>
-                <Trash2 className="size-3" />
+            <div className="flex gap-2 items-end text-xs">
+              <div>
+                <label className="text-[10px] font-semibold text-muted-foreground block">Home</label>
+                <Input type="number" value={homeScore} onChange={(e) => setHomeScore(e.target.value)} className="h-7 w-16 text-xs" />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-muted-foreground block">Away</label>
+                <Input type="number" value={awayScore} onChange={(e) => setAwayScore(e.target.value)} className="h-7 w-16 text-xs" />
+              </div>
+              <Button size="sm" variant="outline" className="h-7 gap-1 px-2" onClick={handleScoreSave} disabled={savingScore}>
+                <Save className="size-3" />
               </Button>
             </div>
           )}
         </div>
-
-        {adminControls && (
-          <div className="flex gap-2 items-end text-xs">
-            <div>
-              <label className="text-[10px] font-semibold text-muted-foreground block">Home</label>
-              <Input type="number" value={homeScore} onChange={(e) => setHomeScore(e.target.value)} className="h-7 w-16 text-xs" />
-            </div>
-            <div>
-              <label className="text-[10px] font-semibold text-muted-foreground block">Away</label>
-              <Input type="number" value={awayScore} onChange={(e) => setAwayScore(e.target.value)} className="h-7 w-16 text-xs" />
-            </div>
-            <Button size="sm" variant="outline" className="h-7 gap-1 px-2" onClick={handleScoreSave} disabled={savingScore}>
-              <Save className="size-3" />
-            </Button>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Search */}
       <div className="shrink-0 border-b border-border p-3">
@@ -269,7 +273,7 @@ export function CustomEventDetail({
       </div>
 
       {/* Markets List */}
-      <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin">
         <div className="p-3 space-y-3">
           {marketsByCategory.size === 0 ? (
             <div className="text-center py-8 text-xs text-muted-foreground">No markets found</div>
@@ -278,7 +282,7 @@ export function CustomEventDetail({
               <div key={category} className="space-y-2">
                 {/* Category Header */}
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{category}</p>
-
+ 
                 {/* Markets */}
                 <div className="space-y-2">
                   {categoryMarkets.map((market) => {
@@ -290,7 +294,7 @@ export function CustomEventDetail({
                           <p className="text-xs font-semibold text-foreground">{market.name}</p>
                           <p className="text-[9px] text-muted-foreground">{odds.length}</p>
                         </div>
-
+ 
                         {/* Odds Grid */}
                         <div
                           className={cn(
@@ -302,10 +306,10 @@ export function CustomEventDetail({
                             <button
                               key={odd._id}
                               onClick={() => handleAddOdd(odd, market)}
-                              className="group flex flex-col items-center justify-center gap-1 p-2 rounded-md border border-border/50 bg-muted/30 hover:bg-primary/10 hover:border-primary/40 transition-all"
+                              className="group flex flex-col items-center justify-center gap-0.5 h-10 py-1 px-1.5 rounded border border-border/50 bg-muted/30 hover:bg-primary/10 hover:border-primary/40 transition-all w-full text-center"
                             >
-                              <span className="text-[9px] font-semibold text-muted-foreground group-hover:text-foreground">{odd.outcomeName}</span>
-                              <span className="font-bold text-sm text-foreground group-hover:text-primary">{odd.oddValue.toFixed(2)}</span>
+                              <span className="text-[9px] font-semibold text-muted-foreground group-hover:text-foreground truncate min-w-0 w-full">{odd.outcomeName}</span>
+                              <span className="font-bold text-[11px] text-foreground group-hover:text-primary font-mono">{odd.oddValue.toFixed(2)}</span>
                             </button>
                           ))}
                         </div>
@@ -317,7 +321,7 @@ export function CustomEventDetail({
             ))
           )}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   )
 }

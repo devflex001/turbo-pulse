@@ -187,7 +187,7 @@ export function MarketsBrowser({
         key={odd.sourceOddId}
         variant="outline"
         className={cn(
-          "flex flex-col items-center justify-center gap-1 h-12 py-1 px-1.5 border-border transition-all hover:bg-accent/40 text-center min-w-0 w-full",
+          "flex flex-col items-center justify-center gap-0.5 h-10 py-1 px-1.5 border-border transition-all hover:bg-accent/40 text-center min-w-0 w-full",
           readOnly && "cursor-default hover:bg-background",
           selected
             ? "bg-primary text-primary-foreground border-primary hover:bg-primary/95 hover:border-primary"

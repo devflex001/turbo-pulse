@@ -109,6 +109,7 @@ export function PublishedCustomEventsSection() {
       <CustomEventDetail
         eventId={selectedEvent._id}
         onBack={() => setDetailOpen(false)}
+        hideHeader={true}
       />
     </div>
   )
