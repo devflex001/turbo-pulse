@@ -415,9 +415,9 @@ export function CustomEventsList({
                               setSelectedEvent(event)
                               setDetailOpen(true)
                             }}
-                            className="cursor-pointer gap-2 text-[9px]"
+                            className="cursor-pointer gap-2 text-sm"
                           >
-                            <Eye className="size-3" />
+                            <Eye className="size-4" />
                             View Markets
                           </DropdownMenuItem>
                           {(() => {
@@ -431,9 +431,9 @@ export function CustomEventsList({
                                     setSelectedEvent(event)
                                     setScoreDialogOpen(true)
                                   }}
-                                  className="cursor-pointer gap-2 text-[9px] text-primary"
+                                  className="cursor-pointer gap-2 text-sm text-primary"
                                 >
-                                  <Edit2 className="size-3" />
+                                  <Edit2 className="size-4" />
                                   Update Score
                                 </DropdownMenuItem>
                               )
@@ -444,18 +444,18 @@ export function CustomEventsList({
                             <>
                               <DropdownMenuItem
                                 onClick={(e) => handleEdit(event, e as any)}
-                                className="cursor-pointer gap-2 text-[9px]"
+                                className="cursor-pointer gap-2 text-sm"
                               >
-                                <Edit2 className="size-3" />
+                                <Edit2 className="size-4" />
                                 Edit
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={(e) =>
                                   handlePublish(event._id, e as any)
                                 }
-                                className="cursor-pointer gap-2 text-[9px]"
+                                className="cursor-pointer gap-2 text-sm"
                               >
-                                <CheckCircle className="size-3" />
+                                <CheckCircle className="size-4" />
                                 Publish
                               </DropdownMenuItem>
                             </>
@@ -465,17 +465,17 @@ export function CustomEventsList({
                               onClick={(e) =>
                                 handleUnpublish(event._id, e as any)
                               }
-                              className="cursor-pointer gap-2 text-[9px]"
+                              className="cursor-pointer gap-2 text-sm"
                             >
-                              <EyeOff className="size-3" />
+                              <EyeOff className="size-4" />
                               Unpublish
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem
                             onClick={(e) => handleDelete(event._id, e as any)}
-                            className="cursor-pointer gap-2 text-[9px] text-destructive"
+                            className="cursor-pointer gap-2 text-sm text-destructive"
                           >
-                            <Trash2 className="size-3" />
+                            <Trash2 className="size-4" />
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
