@@ -291,7 +291,7 @@ export function DepositSheet() {
               Deposit
             </>
           )}
-        </Button
+        </Button>
       </form>
     )
   }
