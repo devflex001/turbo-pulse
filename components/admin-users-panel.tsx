@@ -919,14 +919,14 @@ export function AdminUsersPanel() {
           const userObj = u as { activeBan?: unknown }
           return !!userObj.activeBan
         }) && (
-        <div className="flex items-start gap-2 p-3 rounded-lg border border-rose-500/20 bg-rose-500/5 text-xs text-rose-600">
-          <AlertTriangle className="size-4 shrink-0 mt-0.5" />
-          <span>
-            Banned users see a suspension notice and can submit an appeal when
-            they log in.
-          </span>
-        </div>
-      )}
+          <div className="flex items-start gap-2 p-3 rounded-lg border border-rose-500/20 bg-rose-500/5 text-xs text-rose-600">
+            <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+            <span>
+              Banned users see a suspension notice and can submit an appeal when
+              they log in.
+            </span>
+          </div>
+        )}
 
       {/* Modals */}
       <UserDetailsModal
