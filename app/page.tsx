@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useBetStore } from "@/hooks/use-bet-store"
@@ -137,6 +138,7 @@ function getSportIcon(slug: string) {
 }
 
 export default function Page() {
+  const router = useRouter()
   const {
     activeTab,
     setActiveTab,
@@ -171,14 +173,6 @@ export default function Page() {
     status: "published",
     limit: 10,
   }) as any[] | undefined
-
-  const liveCustomEvents = React.useMemo(() => {
-    if (!Array.isArray(customEvents)) return []
-    return customEvents.filter((event) => {
-      // Include events that are currently live
-      return event.eventStatus && ["first_half", "halftime", "second_half"].includes(event.eventStatus)
-    })
-  }, [customEvents])
 
   const leagues = useQuery(api.sportsData.listCompetitions, {
     sport: selectedSport,
@@ -291,11 +285,9 @@ export default function Page() {
                   variant="ghost"
                   className={cn(
                     "h-9 px-4 rounded-md text-sm font-semibold shrink-0 gap-2 border transition-all",
-                    activeTab === "live"
-                      ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
-                      : "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
+                    "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
                   )}
-                  onClick={() => { setActiveTab("live"); setSelectedLeague("All Leagues"); }}
+                  onClick={() => { router.push("/live") }}
                 >
                   <PlayCircle className="size-4" />
                   Live
@@ -475,72 +467,6 @@ export default function Page() {
                 )}
               </div>
             </>
-          )}
-
-          {activeTab === "live" && (
-            <div className="space-y-6">
-              {/* Live Custom Events Section */}
-              {liveCustomEvents.length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                      <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
-                      Live Custom Events
-                    </h3>
-                    <Badge variant="outline" className="font-semibold text-[10px] text-muted-foreground bg-muted/20 border-border">
-                      Events {liveCustomEvents.length}
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {liveCustomEvents.map((event) => (
-                      <CustomEventCard
-                        key={event._id}
-                        eventId={event._id}
-                        homeTeam={event.homeTeam}
-                        awayTeam={event.awayTeam}
-                        homeScore={event.homeScore ?? 0}
-                        awayScore={event.awayScore ?? 0}
-                        startTime={event.startTime}
-                        competition={event.competition}
-                        title={event.title}
-                        totalMarkets={event.totalMarkets}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Live Sports Matches Section */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
-                    Live Sports Matches
-                  </h2>
-                  {displayedMatches.length > 0 && (
-                    <Badge variant="outline" className="font-semibold text-[10px] text-muted-foreground bg-muted/20 border-border">
-                      Matches {displayedMatches.length}
-                    </Badge>
-                  )}
-                </div>
-                {!matches ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Skeleton className="h-32 rounded-lg" />
-                    <Skeleton className="h-32 rounded-lg" />
-                  </div>
-                ) : displayedMatches.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {displayedMatches.map((match) => (
-                      <MatchCard key={match.sourceMatchId} match={match} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 border border-dashed border-border rounded-lg text-muted-foreground text-xs">
-                    No live games active at the moment.
-                  </div>
-                )}
-              </div>
-            </div>
           )}
 
           {activeTab === "featured" && (

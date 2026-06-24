@@ -9,41 +9,20 @@ import { api } from "@/convex/_generated/api"
 import { MyBetsPanel } from "@/components/my-bets-panel"
 import { LoginModal } from "@/components/modals"
 import { useBetStore } from "@/hooks/use-bet-store"
-import { getAuthToken } from "@/lib/auth/jwt"
+import { useAuth } from "@/lib/auth/AuthContext"
+import { Loader2 } from "lucide-react"
 
 export default function MyBetsPage() {
   const { setActiveTab } = useBetStore()
-  const [isAuthenticated, setIsAuthenticated] = React.useState<boolean | null>(null)
-  const [loginOpen, setLoginOpen] = React.useState(false)
+  const { user, isLoading } = useAuth()
+  const [showLoginModal, setShowLoginModal] = React.useState(false)
 
-  // Check session on mount - synchronously from localStorage
+  // Show login modal if not authenticated and not loading
   React.useEffect(() => {
-    const token = getAuthToken()
-    const isAuth = !!token
-
-    if (!isAuth) {
-      setLoginOpen(true)
-      setIsAuthenticated(false)
-    } else {
-      setIsAuthenticated(true)
+    if (!isLoading && !user) {
+      setShowLoginModal(true)
     }
-  }, [])
-
-  // Listen for storage changes (logout from other tabs)
-  React.useEffect(() => {
-    const handleStorageChange = () => {
-      const token = getAuthToken()
-      const isAuth = !!token
-
-      if (!isAuth) {
-        setIsAuthenticated(false)
-        setLoginOpen(true)
-      }
-    }
-
-    window.addEventListener("storage", handleStorageChange)
-    return () => window.removeEventListener("storage", handleStorageChange)
-  }, [])
+  }, [isLoading, user])
 
   React.useEffect(() => {
     setActiveTab("mybets")
@@ -55,16 +34,29 @@ export default function MyBetsPage() {
     [allMatches]
   )
 
-  // Don't render anything until we know auth status
-  if (isAuthenticated === null) {
-    return null
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-screen overflow-hidden bg-background">
+        <Header />
+        <div className="flex flex-1 items-center justify-center">
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        </div>
+        <BottomNav liveCount={liveCount} />
+      </div>
+    )
   }
 
-  // If not authenticated, only show login modal
-  if (!isAuthenticated) {
+  // Not logged in state
+  if (!user) {
     return (
       <>
-        <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
+        <div className="flex flex-col h-screen overflow-hidden bg-background">
+          <Header />
+          <div className="flex flex-1" />
+          <BottomNav liveCount={liveCount} />
+        </div>
+        <LoginModal open={showLoginModal} onOpenChange={setShowLoginModal} />
       </>
     )
   }
@@ -88,7 +80,7 @@ export default function MyBetsPage() {
         <BottomNav liveCount={liveCount} />
       </div>
 
-      <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
+      <LoginModal open={showLoginModal} onOpenChange={setShowLoginModal} />
     </>
   )
 }

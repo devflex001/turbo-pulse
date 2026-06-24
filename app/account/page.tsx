@@ -2,12 +2,12 @@
 
 import { useRouter } from "next/navigation"
 import * as React from "react"
+import { useAuth } from "@/lib/auth/AuthContext"
 import { Header } from "@/components/header"
 import { Sidebar } from "@/components/sidebar"
 import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { LoginModal } from "@/components/modals"
-import { getAuthToken, getUserData } from "@/lib/auth/jwt"
 import { useBetStore } from "@/hooks/use-bet-store"
 import {
   ArrowLeft,
@@ -16,58 +16,52 @@ import {
   LogOut,
   ArrowDownToLine,
   ArrowUpFromLine,
+  Loader2,
 } from "lucide-react"
 
 export default function AccountPage() {
   const router = useRouter()
-  const { walletBalance, logout } = useBetStore()
-  const [user, setUser] = React.useState<any>(null)
-  const [loginOpen, setLoginOpen] = React.useState(false)
-  const [mounted, setMounted] = React.useState(false)
+  const { user, isLoading, logout } = useAuth()
+  const { walletBalance } = useBetStore()
+  const [showLoginModal, setShowLoginModal] = React.useState(false)
 
+  // Show login modal if not authenticated and not loading
   React.useEffect(() => {
-    const token = getAuthToken()
-    const userData = getUserData()
-
-    if (!token || !userData) {
-      setLoginOpen(true)
-      setMounted(true)
-    } else {
-      setUser({
-        _id: userData.userId,
-        phone: userData.phone,
-        role: userData.role,
-      })
-      setMounted(true)
+    if (!isLoading && !user) {
+      setShowLoginModal(true)
     }
-  }, [])
-
-  React.useEffect(() => {
-    const handleStorageChange = () => {
-      const token = getAuthToken()
-      const userData = getUserData()
-
-      if (!token || !userData) {
-        setUser(null)
-        setLoginOpen(true)
-      }
-    }
-
-    window.addEventListener("storage", handleStorageChange)
-    return () => window.removeEventListener("storage", handleStorageChange)
-  }, [])
+  }, [isLoading, user])
 
   const handleLogout = async () => {
-    await logout()
+    logout()
     router.push("/")
   }
 
-  if (!mounted) {
-    return null
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-screen overflow-hidden bg-background">
+        <Header />
+        <div className="flex flex-1 items-center justify-center">
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        </div>
+        <BottomNav liveCount={0} />
+      </div>
+    )
   }
 
+  // Not logged in state
   if (!user) {
-    return <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
+    return (
+      <>
+        <div className="flex flex-col h-screen overflow-hidden bg-background">
+          <Header />
+          <div className="flex flex-1" />
+          <BottomNav liveCount={0} />
+        </div>
+        <LoginModal open={showLoginModal} onOpenChange={setShowLoginModal} />
+      </>
+    )
   }
 
   return (
@@ -163,7 +157,7 @@ export default function AccountPage() {
         <BottomNav liveCount={0} />
       </div>
 
-      <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
+      <LoginModal open={showLoginModal} onOpenChange={setShowLoginModal} />
     </>
   )
 }
