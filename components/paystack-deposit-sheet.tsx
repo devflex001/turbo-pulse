@@ -37,6 +37,20 @@ export function PaystackDepositSheet() {
   const isLoading = config === undefined || wallet === undefined
 
   const [amount, setAmount] = React.useState("")
+  const [phone, setPhone] = React.useState("")
+  const [isEditingPhone, setIsEditingPhone] = React.useState(false)
+
+  React.useEffect(() => {
+    if (user?.phone && !phone) {
+      setPhone(user.phone)
+    }
+  }, [user?.phone])
+
+  React.useEffect(() => {
+    if (config?.minDeposit && !amount) {
+      setAmount(config.minDeposit.toString())
+    }
+  }, [config?.minDeposit])
   const [stage, setStage] = React.useState<DepositStage>("idle")
   const [transactionResult, setTransactionResult] = React.useState<TransactionResult | null>(null)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
@@ -315,14 +329,14 @@ export function PaystackDepositSheet() {
       await createPaystackTransaction({
         type: "deposit",
         amount: parsedAmount,
-        email: user.phone,
+        email: phone,
         reference: ref,
       })
 
       console.log("[Paystack] Transaction record created successfully")
 
       // Open official Paystack Popup v2 modal with user's phone
-      openPaystackModal(ref, user.phone, parsedAmount)
+      openPaystackModal(ref, phone, parsedAmount)
     } catch (error) {
       console.error("[Paystack] Error during deposit initiation:", error)
       setErrorMessage("Failed to initiate payment. Please try again.")
@@ -354,9 +368,44 @@ export function PaystackDepositSheet() {
 
         {/* User Info Display */}
         {user && (
-          <div className="bg-slate-500/5 border border-slate-500/10 rounded-lg p-3">
-            <p className="text-xs text-muted-foreground">Depositing with:</p>
-            <p className="text-sm font-semibold text-foreground">{user.phone}</p>
+          <div className="bg-slate-500/5 border border-slate-500/10 rounded-lg p-3 flex justify-between items-center">
+            <div className="space-y-0.5 flex-1">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Depositing with:</p>
+              {isEditingPhone ? (
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="h-7 text-xs w-40 focus-visible:ring-primary py-1 px-2 font-mono"
+                    placeholder="e.g. 0712345678"
+                    autoFocus
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-[10px] font-semibold text-emerald-600 hover:text-emerald-500 hover:bg-emerald-500/10"
+                    onClick={() => setIsEditingPhone(false)}
+                  >
+                    Save
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-sm font-bold text-foreground font-mono">{phone}</p>
+              )}
+            </div>
+            {!isEditingPhone && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-[10px] text-muted-foreground hover:text-foreground"
+                onClick={() => setIsEditingPhone(true)}
+              >
+                Change
+              </Button>
+            )}
           </div>
         )}
 
@@ -384,7 +433,7 @@ export function PaystackDepositSheet() {
             autoFocus
           />
           <div className="grid grid-cols-3 gap-2 pt-2">
-            {QUICK_AMOUNTS.filter((amt) => amt >= minDeposit).map((amt, idx) => (
+            {QUICK_AMOUNTS.filter((amt) => amt >= minDeposit).slice(1, 4).map((amt, idx) => (
               <Button
                 key={amt}
                 type="button"
@@ -416,12 +465,12 @@ export function PaystackDepositSheet() {
           ) : stage === "initiating" ? (
             <>
               <Loader className="h-4 w-4 animate-spin" />
-              Opening Payment Modal...
+              Processing...
             </>
           ) : (
             <>
               <ArrowDownToLine className="h-4 w-4" />
-              Pay with Paystack
+              Deposit
             </>
           )}
         </Button>

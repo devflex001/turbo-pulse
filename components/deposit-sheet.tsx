@@ -249,7 +249,7 @@ export function DepositSheet() {
             autoFocus
           />
           <div className="grid grid-cols-3 gap-2 pt-2">
-            {QUICK_AMOUNTS.filter((amt) => amt >= minDeposit).map((amt, idx) => (
+            {QUICK_AMOUNTS.filter((amt) => amt >= minDeposit).slice(1, 4).map((amt, idx) => (
               <Button
                 key={amt}
                 type="button"

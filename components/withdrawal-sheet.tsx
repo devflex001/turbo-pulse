@@ -50,6 +50,12 @@ export function WithdrawalSheet({ onSuccess }: { onSuccess?: () => void }) {
       setPhone(user.phone)
     }
   }, [user?.phone])
+
+  React.useEffect(() => {
+    if (config?.minWithdrawal && !amount) {
+      setAmount(config.minWithdrawal.toString())
+    }
+  }, [config?.minWithdrawal])
   const [error, setError] = React.useState<string | null>(null)
   const [requestId, setRequestId] = React.useState<Id<"withdrawal_requests"> | null>(null)
   const [paystackPublicKey, setPaystackPublicKey] = React.useState("")
