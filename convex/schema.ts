@@ -325,6 +325,62 @@ const schema = defineSchema({
     .index("by_userId", ["userId"])
     .index("by_banId", ["banId"])
     .index("by_status", ["status"]),
+
+  ip_tracking: defineTable({
+    ip: v.string(),
+    userId: v.optional(v.id("users")), // null if visitor not logged in
+    location: v.object({
+      country: v.string(),
+      countryCode: v.string(),
+      state: v.optional(v.string()),
+      city: v.optional(v.string()),
+      timezone: v.optional(v.string()),
+      latitude: v.optional(v.number()),
+      longitude: v.optional(v.number()),
+    }),
+    device: v.object({
+      userAgent: v.string(),
+      browserName: v.optional(v.string()),
+      browserVersion: v.optional(v.string()),
+      osName: v.optional(v.string()),
+      osVersion: v.optional(v.string()),
+      deviceType: v.optional(v.string()), // mobile, desktop, tablet
+    }),
+    lastSeen: v.number(),
+    createdAt: v.number(),
+    isBot: v.boolean(),
+  })
+    .index("by_ip", ["ip"])
+    .index("by_userId", ["userId"])
+    .index("by_lastSeen", ["lastSeen"])
+    .index("by_createdAt", ["createdAt"]),
+
+  visitors: defineTable({
+    ip: v.string(),
+    userId: v.optional(v.id("users")), // null if visitor not logged in
+    location: v.object({
+      country: v.string(),
+      countryCode: v.string(),
+      state: v.optional(v.string()),
+      city: v.optional(v.string()),
+      timezone: v.optional(v.string()),
+      latitude: v.optional(v.number()),
+      longitude: v.optional(v.number()),
+    }),
+    device: v.object({
+      userAgent: v.string(),
+      browserName: v.optional(v.string()),
+      browserVersion: v.optional(v.string()),
+      osName: v.optional(v.string()),
+      osVersion: v.optional(v.string()),
+      deviceType: v.optional(v.string()),
+    }),
+    visitedAt: v.number(),
+    isBot: v.boolean(),
+  })
+    .index("by_visitedAt", ["visitedAt"])
+    .index("by_ip", ["ip"])
+    .index("by_userId", ["userId"]),
 })
 
 export default schema

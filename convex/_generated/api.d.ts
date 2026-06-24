@@ -21,6 +21,7 @@ import type * as bets from "../bets.js";
 import type * as crons from "../crons.js";
 import type * as customEvents from "../customEvents.js";
 import type * as daraja from "../daraja.js";
+import type * as ipTracking from "../ipTracking.js";
 import type * as mpesa from "../mpesa.js";
 import type * as paymentMode from "../paymentMode.js";
 import type * as paystack from "../paystack.js";
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   customEvents: typeof customEvents;
   daraja: typeof daraja;
+  ipTracking: typeof ipTracking;
   mpesa: typeof mpesa;
   paymentMode: typeof paymentMode;
   paystack: typeof paystack;
