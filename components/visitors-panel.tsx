@@ -9,7 +9,13 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
-import { ResponsiveModal } from "@/components/ui/responsive-modal"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,12 +30,12 @@ import {
   Globe,
   MapPin,
   Smartphone,
-  Monitor,
-  Tablet,
   Eye,
+  X,
 } from "lucide-react"
 import Link from "next/link"
 import { Id } from "@/convex/_generated/dataModel"
+import { useMediaQuery } from "@/hooks/use-media-query"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -58,7 +64,7 @@ type Visitor = {
   visitCount?: number
   firstVisitedAt?: number
   lastVisitedAt?: number
-  visitedAt?: number // Legacy field
+  visitedAt?: number
   isBot: boolean
 }
 
@@ -84,10 +90,6 @@ function getDeviceIcon(deviceType?: string) {
   switch (deviceType?.toLowerCase()) {
     case "mobile":
       return <Smartphone className="size-3.5" />
-    case "tablet":
-      return <Tablet className="size-3.5" />
-    case "desktop":
-      return <Monitor className="size-3.5" />
     default:
       return <Smartphone className="size-3.5 text-muted-foreground" />
   }
@@ -120,7 +122,7 @@ function LocationBadge({ visitor }: { visitor: Visitor }) {
   )
 }
 
-// ─── Details Modal ───────────────────────────────────────────────────────────
+// ─── Details Modal ───────────────────────────────────────────────────────
 
 interface VisitorDetailsModalProps {
   visitor: Visitor | null
@@ -133,174 +135,192 @@ function VisitorDetailsModal({
   open,
   onClose,
 }: VisitorDetailsModalProps) {
+  const isDesktop = useMediaQuery("(min-width: 768px)")
+
   if (!visitor) return null
 
-  return (
-    <ResponsiveModal
-      open={open}
-      onOpenChange={(v) => !v && onClose()}
-      title="Visitor Details"
-      description="Complete visitor information including location and device details."
-    >
-      <div className="space-y-4 py-2 text-xs">
-        {/* Basic Info */}
-        <div className="grid grid-cols-3 gap-y-3 gap-x-2 py-1">
-          <span className="font-semibold text-muted-foreground">Visit ID:</span>
-          <span className="col-span-2 font-mono break-all text-foreground select-all">
-            {visitor._id}
-          </span>
+  const content = (
+    <div className="space-y-4">
+      {/* Basic Info */}
+      <div className="grid grid-cols-3 gap-y-3 gap-x-2">
+        <span className="font-semibold text-muted-foreground text-xs">Visit ID:</span>
+        <span className="col-span-2 font-mono break-all text-foreground select-all text-xs">
+          {visitor._id}
+        </span>
 
-          <span className="font-semibold text-muted-foreground">Total Visits:</span>
-          <span className="col-span-2 text-foreground font-bold text-lg">
-            {visitor.visitCount || 1}
-          </span>
+        <span className="font-semibold text-muted-foreground text-xs">Total Visits:</span>
+        <span className="col-span-2 text-foreground font-bold text-sm">
+          {visitor.visitCount || 1}
+        </span>
 
-          {visitor.firstVisitedAt && (
-            <>
-              <span className="font-semibold text-muted-foreground">First Visit:</span>
-              <span className="col-span-2 text-foreground">
-                {formatDate(visitor.firstVisitedAt)} at {formatTime(visitor.firstVisitedAt)}
-              </span>
-            </>
-          )}
-
-          {visitor.lastVisitedAt && (
-            <>
-              <span className="font-semibold text-muted-foreground">Last Visit:</span>
-              <span className="col-span-2 text-foreground">
-                {formatDate(visitor.lastVisitedAt)} at {formatTime(visitor.lastVisitedAt)}
-              </span>
-            </>
-          )}
-
-          <span className="font-semibold text-muted-foreground">Status:</span>
-          <div className="col-span-2">
-            {visitor.isBot ? (
-              <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/30">
-                Bot
-              </Badge>
-            ) : (
-              <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-                Visitor
-              </Badge>
-            )}
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* IP & Location */}
-        <div className="space-y-2.5 rounded-lg border border-primary/20 bg-primary/5 p-3">
-          <h3 className="font-bold text-primary flex items-center gap-1.5">
-            <MapPin className="size-3.5" />
-            Location Information
-          </h3>
-
-          <div className="grid grid-cols-3 gap-y-2 gap-x-2 text-[11px]">
-            <span className="font-semibold text-muted-foreground">IP Address:</span>
-            <span className="col-span-2 font-mono text-foreground">{visitor.ip}</span>
-
-            <span className="font-semibold text-muted-foreground">Country:</span>
-            <span className="col-span-2 text-foreground">
-              {visitor.location.country} ({visitor.location.countryCode})
+        {visitor.firstVisitedAt && (
+          <>
+            <span className="font-semibold text-muted-foreground text-xs">First Visit:</span>
+            <span className="col-span-2 text-foreground text-xs">
+              {formatDate(visitor.firstVisitedAt)} at {formatTime(visitor.firstVisitedAt)}
             </span>
+          </>
+        )}
 
-            {visitor.location.city && (
-              <>
-                <span className="font-semibold text-muted-foreground">City:</span>
-                <span className="col-span-2 text-foreground">
-                  {visitor.location.city}
-                </span>
-              </>
-            )}
-
-            {visitor.location.state && (
-              <>
-                <span className="font-semibold text-muted-foreground">State:</span>
-                <span className="col-span-2 text-foreground">
-                  {visitor.location.state}
-                </span>
-              </>
-            )}
-
-            {visitor.location.timezone && (
-              <>
-                <span className="font-semibold text-muted-foreground">Timezone:</span>
-                <span className="col-span-2 text-foreground">
-                  {visitor.location.timezone}
-                </span>
-              </>
-            )}
-
-            {visitor.location.latitude && visitor.location.longitude && (
-              <>
-                <span className="font-semibold text-muted-foreground">
-                  Coordinates:
-                </span>
-                <span className="col-span-2 font-mono text-foreground">
-                  {visitor.location.latitude.toFixed(4)}, {visitor.location.longitude.toFixed(4)}
-                </span>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Device Info */}
-        <div className="space-y-2.5 rounded-lg border border-blue-500/20 bg-blue-500/5 p-3">
-          <h3 className="font-bold text-blue-600 flex items-center gap-1.5">
-            <Smartphone className="size-3.5" />
-            Device Information
-          </h3>
-
-          <div className="grid grid-cols-3 gap-y-2 gap-x-2 text-[11px]">
-            {visitor.device.deviceType && (
-              <>
-                <span className="font-semibold text-muted-foreground">Type:</span>
-                <span className="col-span-2 text-foreground capitalize">
-                  {visitor.device.deviceType}
-                </span>
-              </>
-            )}
-
-            {visitor.device.osName && (
-              <>
-                <span className="font-semibold text-muted-foreground">OS:</span>
-                <span className="col-span-2 text-foreground">
-                  {visitor.device.osName}
-                  {visitor.device.osVersion ? ` ${visitor.device.osVersion}` : ""}
-                </span>
-              </>
-            )}
-
-            {visitor.device.browserName && (
-              <>
-                <span className="font-semibold text-muted-foreground">Browser:</span>
-                <span className="col-span-2 text-foreground">
-                  {visitor.device.browserName}
-                  {visitor.device.browserVersion ? ` ${visitor.device.browserVersion}` : ""}
-                </span>
-              </>
-            )}
-
-            <span className="font-semibold text-muted-foreground">User Agent:</span>
-            <span className="col-span-2 font-mono text-[10px] text-foreground break-all">
-              {visitor.device.userAgent}
+        {visitor.lastVisitedAt && (
+          <>
+            <span className="font-semibold text-muted-foreground text-xs">Last Visit:</span>
+            <span className="col-span-2 text-foreground text-xs">
+              {formatDate(visitor.lastVisitedAt)} at {formatTime(visitor.lastVisitedAt)}
             </span>
-          </div>
-        </div>
+          </>
+        )}
 
-        <div className="pt-2 flex justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full sm:w-auto"
-            onClick={onClose}
-          >
-            Close
-          </Button>
+        <span className="font-semibold text-muted-foreground text-xs">Status:</span>
+        <div className="col-span-2">
+          {visitor.isBot ? (
+            <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/30">
+              Bot
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+              Visitor
+            </Badge>
+          )}
         </div>
       </div>
-    </ResponsiveModal>
+
+      <Separator />
+
+      {/* IP & Location */}
+      <div className="space-y-2.5 rounded-lg border border-primary/20 bg-primary/5 p-3">
+        <h3 className="font-bold text-primary flex items-center gap-1.5 text-xs">
+          <MapPin className="size-3.5" />
+          Location Information
+        </h3>
+
+        <div className="grid grid-cols-3 gap-y-2 gap-x-2 text-[11px]">
+          <span className="font-semibold text-muted-foreground">IP Address:</span>
+          <span className="col-span-2 font-mono text-foreground">{visitor.ip}</span>
+
+          <span className="font-semibold text-muted-foreground">Country:</span>
+          <span className="col-span-2 text-foreground">
+            {visitor.location.country} ({visitor.location.countryCode})
+          </span>
+
+          {visitor.location.city && (
+            <>
+              <span className="font-semibold text-muted-foreground">City:</span>
+              <span className="col-span-2 text-foreground">{visitor.location.city}</span>
+            </>
+          )}
+
+          {visitor.location.state && (
+            <>
+              <span className="font-semibold text-muted-foreground">State:</span>
+              <span className="col-span-2 text-foreground">{visitor.location.state}</span>
+            </>
+          )}
+
+          {visitor.location.timezone && (
+            <>
+              <span className="font-semibold text-muted-foreground">Timezone:</span>
+              <span className="col-span-2 text-foreground">
+                {visitor.location.timezone}
+              </span>
+            </>
+          )}
+
+          {visitor.location.latitude && visitor.location.longitude && (
+            <>
+              <span className="font-semibold text-muted-foreground">Coordinates:</span>
+              <span className="col-span-2 font-mono text-foreground">
+                {visitor.location.latitude.toFixed(4)}, {visitor.location.longitude.toFixed(4)}
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Device Info */}
+      <div className="space-y-2.5 rounded-lg border border-blue-500/20 bg-blue-500/5 p-3">
+        <h3 className="font-bold text-blue-600 flex items-center gap-1.5 text-xs">
+          <Smartphone className="size-3.5" />
+          Device Information
+        </h3>
+
+        <div className="grid grid-cols-3 gap-y-2 gap-x-2 text-[11px]">
+          {visitor.device.deviceType && (
+            <>
+              <span className="font-semibold text-muted-foreground">Type:</span>
+              <span className="col-span-2 text-foreground capitalize">
+                {visitor.device.deviceType}
+              </span>
+            </>
+          )}
+
+          {visitor.device.osName && (
+            <>
+              <span className="font-semibold text-muted-foreground">OS:</span>
+              <span className="col-span-2 text-foreground">
+                {visitor.device.osName}
+                {visitor.device.osVersion ? ` ${visitor.device.osVersion}` : ""}
+              </span>
+            </>
+          )}
+
+          {visitor.device.browserName && (
+            <>
+              <span className="font-semibold text-muted-foreground">Browser:</span>
+              <span className="col-span-2 text-foreground">
+                {visitor.device.browserName}
+                {visitor.device.browserVersion ? ` ${visitor.device.browserVersion}` : ""}
+              </span>
+            </>
+          )}
+
+          <span className="font-semibold text-muted-foreground">User Agent:</span>
+          <span className="col-span-2 font-mono text-[10px] text-foreground break-all">
+            {visitor.device.userAgent}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+
+  if (isDesktop) {
+    // Desktop: Side panel (sheet positioned to the right)
+    return (
+      <Sheet open={open} onOpenChange={onClose}>
+        <SheetContent side="right" className="w-full sm:w-96">
+          <SheetHeader className="mb-4">
+            <SheetTitle className="text-base">Visitor Details</SheetTitle>
+            <SheetDescription className="text-xs">
+              Complete visitor information and analytics
+            </SheetDescription>
+          </SheetHeader>
+          <div className="overflow-y-auto max-h-[calc(100vh-120px)] pr-4">
+            {content}
+          </div>
+        </SheetContent>
+      </Sheet>
+    )
+  }
+
+  // Mobile: Bottom drawer
+  return (
+    <Sheet open={open} onOpenChange={onClose}>
+      <SheetContent side="bottom" className="rounded-t-lg max-h-[85vh]">
+        <SheetHeader className="mb-4 pt-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <SheetTitle className="text-base">Visitor Details</SheetTitle>
+              <SheetDescription className="text-xs mt-1">
+                Complete visitor information
+              </SheetDescription>
+            </div>
+          </div>
+        </SheetHeader>
+        <div className="overflow-y-auto max-h-[calc(85vh-100px)] pb-4">
+          {content}
+        </div>
+      </SheetContent>
+    </Sheet>
   )
 }
 
@@ -330,9 +350,6 @@ export function VisitorsPanel() {
   }, [allVisitors, filterBot])
 
   const [detailTarget, setDetailTarget] = React.useState<Visitor | null>(null)
-
-  const displayName = (v: Visitor) =>
-    v.location.city || v.location.state || v.location.country || v.ip
 
   return (
     <div className="space-y-4">
@@ -432,7 +449,7 @@ export function VisitorsPanel() {
 
               <div className="flex items-center justify-between text-[10px]">
                 <span className="text-muted-foreground">
-                  {(visitor.visitCount || 1)} visit{(visitor.visitCount || 1) !== 1 ? "s" : ""}
+                  {(v.visitCount || 1)} visit{(v.visitCount || 1) !== 1 ? "s" : ""}
                 </span>
                 {v.device.browserName && (
                   <span className="flex items-center gap-1 text-muted-foreground">
@@ -464,7 +481,7 @@ export function VisitorsPanel() {
             <tbody className="divide-y divide-border">
               {isLoading && (
                 <tr>
-                  <td colSpan={6} className="py-8">
+                  <td colSpan={7} className="py-8">
                     <div className="space-y-2">
                       <Skeleton className="h-12 w-full" />
                       <Skeleton className="h-12 w-full" />
