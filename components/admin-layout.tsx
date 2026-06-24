@@ -20,8 +20,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { useBetStore } from "@/hooks/use-bet-store"
+import { NotificationsCenter } from "@/components/notifications-center"
 import {
-  Bell,
   Sun,
   Moon,
   Menu,
@@ -277,16 +277,7 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
                   </Button>
                 )}
 
-                {/* Notification Bell */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8 rounded-full border border-border hover:bg-muted/50 relative"
-                  aria-label="Notifications"
-                >
-                  <Bell className="size-4 text-muted-foreground" />
-                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive animate-pulse" />
-                </Button>
+                <NotificationsCenter />
 
                 {/* User Avatar */}
                 <DropdownMenu>

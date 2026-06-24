@@ -4,6 +4,7 @@ import * as React from "react"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { toast } from "sonner"
+import { useAuth } from "@/lib/auth/AuthContext"
 
 export interface Selection {
   id: string          // unique identifier, e.g., matchId-outcome
@@ -83,6 +84,7 @@ const BetStoreContext = React.createContext<BetStoreContextType | undefined>(und
 
 
 export function BetStoreProvider({ children }: { children: React.ReactNode }) {
+  const { user: authUser } = useAuth()
   const [betslip, setBetslipState] = React.useState<Selection[]>([])
   const [localBalance, setLocalBalance] = React.useState<number>(0)
   const [localBets, setLocalBets] = React.useState<PlacedBet[]>([])
@@ -251,6 +253,7 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
         const totalOdds = sel.odds
         const potentialReturn = parseFloat((stake * totalOdds).toFixed(2))
         const result = await placeBetMutation({
+          userId: authUser?._id,
           selections: [
             {
               id: sel.id,

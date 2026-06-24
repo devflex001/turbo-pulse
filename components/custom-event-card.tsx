@@ -1,10 +1,14 @@
 "use client"
 
 import * as React from "react"
+import { useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { useAuth } from "@/lib/auth/AuthContext"
 import { cn } from "@/lib/utils"
 import {
   calculateEventTimer,
@@ -44,7 +48,10 @@ export function CustomEventCard({
   totalMarkets,
   onClick,
 }: CustomEventCardProps) {
+  const { user } = useAuth()
+  const notifyCustomEventStarted = useMutation(api.notifications.notifyCustomEventStarted)
   const [now, setNow] = React.useState(() => Date.now());
+  const notifiedRef = React.useRef(false)
 
   // Update timer every second (client-side only, no DB queries)
   React.useEffect(() => {
@@ -54,6 +61,25 @@ export function CustomEventCard({
 
   const timer = calculateEventTimer(startTime, now);
   const badgeConfig = getEventBadgeConfig(timer.lifecycle);
+
+  React.useEffect(() => {
+    notifiedRef.current = false
+  }, [eventId])
+
+  React.useEffect(() => {
+    if (!user || notifiedRef.current || now < startTime) {
+      return
+    }
+
+    notifiedRef.current = true
+    notifyCustomEventStarted({
+      userId: user._id,
+      eventId: eventId as Id<"customEvents">,
+    }).catch((error) => {
+      notifiedRef.current = false
+      console.error("Failed to create match-start notification", error)
+    })
+  }, [eventId, notifyCustomEventStarted, now, startTime, user])
 
   return (
     <Card

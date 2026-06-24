@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { EyeOff, Send, Save, Trash2, Search } from "lucide-react"
 import { formatOddOutcome } from "@/lib/odds-format"
+import { calculateEventTimer } from "@/lib/event-timer"
 
 interface CustomEventDetailProps {
   eventId: Id<"customEvents">
@@ -68,6 +69,13 @@ export function CustomEventDetail({
   const [homeScore, setHomeScore] = React.useState<string>("")
   const [awayScore, setAwayScore] = React.useState<string>("")
   const [savingScore, setSavingScore] = React.useState(false)
+  const [now, setNow] = React.useState(() => Date.now())
+
+  // Update timer every second
+  React.useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   // All context/store hooks
   const { betslip, addToBetslip } = useBetStore()
@@ -124,6 +132,11 @@ export function CustomEventDetail({
 
   // Handler functions
   const handleAddOdd = (odd: CustomOddRow, market: CustomMarketRow) => {
+    if (isEventFinished) {
+      toast.error("This event has finished. Betting is no longer available.")
+      return
+    }
+
     const outcomeMap: Record<string, string> = {
       "1": event?.homeTeam || "Home",
       "X": "Draw",
@@ -200,6 +213,9 @@ export function CustomEventDetail({
     return <div className="p-4 text-center text-xs text-muted-foreground">Loading...</div>
   }
 
+  const timer = calculateEventTimer(event.startTime, now)
+  const isEventFinished = timer.isFinished
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Header */}
@@ -263,6 +279,15 @@ export function CustomEventDetail({
         </div>
       </div>
 
+      {/* Closed Markets Banner */}
+      {isEventFinished && (
+        <div className="shrink-0 bg-muted/60 border-b border-muted-foreground/30 px-3 py-2">
+          <p className="text-xs font-semibold text-muted-foreground">
+            This event has finished. Betting is no longer available.
+          </p>
+        </div>
+      )}
+
       {/* Markets List */}
       <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin">
         <div className="p-3 space-y-4">
@@ -285,7 +310,8 @@ export function CustomEventDetail({
                   <div
                     className={cn(
                       "grid gap-2 px-2",
-                      odds.length === 2 || odds.length === 4 ? "grid-cols-2" : "grid-cols-3"
+                      odds.length === 2 || odds.length === 4 ? "grid-cols-2" : "grid-cols-3",
+                      isEventFinished && "opacity-50 pointer-events-none"
                     )}
                   >
                     {odds.map((odd) => {
@@ -305,9 +331,11 @@ export function CustomEventDetail({
                       return (
                         <button
                           key={odd._id}
-                          onClick={() => handleAddOdd(odd, market)}
+                          disabled={isEventFinished}
+                          onClick={() => !isEventFinished && handleAddOdd(odd, market)}
                           className={cn(
                             "group flex flex-col items-center justify-center gap-0.5 h-10 py-1 px-1.5 rounded border transition-all w-full text-center min-w-0",
+                            isEventFinished && "opacity-50 cursor-not-allowed",
                             isSelected
                               ? "bg-primary border-primary text-primary-foreground hover:bg-primary/95"
                               : "border-border/50 bg-muted/30 hover:bg-primary/10 hover:border-primary/40 text-foreground"

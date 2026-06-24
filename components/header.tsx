@@ -38,6 +38,7 @@ import {
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Betslip } from "./betslip"
 import { Sidebar } from "./sidebar"
+import { NotificationsCenter } from "./notifications-center"
 
 export function Header() {
   const router = useRouter()
@@ -142,14 +143,17 @@ export function Header() {
             <div className="flex items-center gap-1.5 sm:gap-2">
               {/* Wallet Balance Display - Only show if logged in */}
               {user && (
-                <Button
-                  onClick={() => router.push("/deposit")}
-                  variant="ghost"
-                  className="flex items-center gap-2 bg-muted/50 px-2 sm:px-3 py-1.5 rounded-md text-xs font-semibold border border-border hover:bg-muted text-foreground h-auto"
-                >
-                  <Wallet className="size-3.5 text-[#4b9f71]" />
-                  <span>KES {walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </Button>
+                <>
+                  <NotificationsCenter />
+                  <Button
+                    onClick={() => router.push("/deposit")}
+                    variant="ghost"
+                    className="flex items-center gap-2 bg-muted/50 px-2 sm:px-3 py-1.5 rounded-md text-xs font-semibold border border-border hover:bg-muted text-foreground h-auto"
+                  >
+                    <Wallet className="size-3.5 text-[#4b9f71]" />
+                    <span>KES {walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </Button>
+                </>
               )}
 
               {/* User menu dropdown - Show login/signup for non-logged-in users */}

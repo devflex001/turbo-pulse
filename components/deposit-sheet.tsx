@@ -171,6 +171,7 @@ export function DepositSheet() {
 
       // Step 2: Create transaction record in database
       await createTransaction({
+        userId: user?._id,
         type: "deposit",
         amount: parsedAmount,
         phone: phone.trim(),

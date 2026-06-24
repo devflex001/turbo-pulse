@@ -327,6 +327,7 @@ export function PaystackDepositSheet() {
 
       // Create transaction record in database
       await createPaystackTransaction({
+        userId: user._id,
         type: "deposit",
         amount: parsedAmount,
         email: phone,

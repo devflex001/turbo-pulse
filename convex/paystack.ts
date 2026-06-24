@@ -1,6 +1,14 @@
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
 import type { MutationCtx } from "./_generated/server"
+import { notifyAdmins, notifyUser } from "./notifications"
+
+function formatKes(amount: number) {
+  return `KES ${amount.toLocaleString("en-KE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`
+}
 
 /**
  * Get current Paystack configuration
@@ -154,6 +162,7 @@ export const testConfig = mutation({
  */
 export const createTransaction = mutation({
   args: {
+    userId: v.optional(v.id("users")),
     type: v.union(v.literal("deposit"), v.literal("withdrawal")),
     amount: v.number(),
     email: v.string(),
@@ -172,6 +181,7 @@ export const createTransaction = mutation({
     // Create transaction record
     const txId = await ctx.db.insert("transactions", {
       txId: `PAYSTACK-${args.reference}`,
+      userId: args.userId,
       type: args.type,
       amount: args.amount,
       phone: args.email,
@@ -224,6 +234,7 @@ export const updateTransactionStatus = mutation({
     }
 
     const feedback = getFeedback(args.status)
+    const oldStatus = transaction.status
 
     // Update transaction record
     await ctx.db.patch(transaction._id, {
@@ -240,9 +251,38 @@ export const updateTransactionStatus = mutation({
     )
 
     // If successful, update wallet balance
-    if (args.status === "success" && args.amount) {
+    if (args.status === "success" && oldStatus !== "success" && args.amount) {
       await updateWalletBalance(ctx, args.amount, "add")
       console.log(`[Wallet] Credited with KES ${args.amount}`)
+
+      if (transaction.userId && transaction.type === "deposit") {
+        await notifyUser(ctx, {
+          recipientUserId: transaction.userId,
+          type: "payment",
+          title: "Deposit successful",
+          message: `${formatKes(args.amount)} has been added to your wallet.`,
+          href: "/account",
+          dedupeKey: `transaction-success:user:${transaction._id}`,
+          metadata: {
+            transactionId: transaction._id,
+            amount: args.amount,
+          },
+        })
+      }
+
+      if (transaction.type === "deposit") {
+        await notifyAdmins(ctx, {
+          type: "payment",
+          title: "New Paystack deposit",
+          message: `${formatKes(args.amount)} was deposited${transaction.phone ? ` by ${transaction.phone}` : ""}.`,
+          href: "/admin/payments",
+          dedupeKey: `transaction-success:${transaction._id}`,
+          metadata: {
+            transactionId: transaction._id,
+            amount: args.amount,
+          },
+        })
+      }
     }
 
     return {

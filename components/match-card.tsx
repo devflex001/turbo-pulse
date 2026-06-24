@@ -13,6 +13,8 @@ import { Share2, ListPlus, Radio } from "lucide-react"
 import { ShareModal } from "./modals"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { MarketsPanel, type SportsMatch, type SportsMatchWithOdds } from "./markets-panel"
+import { calculateEventTimer } from "@/lib/event-timer"
+import { cn } from "@/lib/utils"
 
 interface MatchCardProps {
   match: SportsMatch & { firstMarket?: any }
@@ -41,9 +43,19 @@ export function MatchCard({ match }: MatchCardProps) {
   const [shareOpen, setShareOpen] = React.useState(false)
   const [marketsOpen, setMarketsOpen] = React.useState(false)
   const [showMainOdds, setShowMainOdds] = React.useState(false)
+  const [now, setNow] = React.useState(() => Date.now())
+
+  // Update timer every second to track if match is finished
+  React.useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const timer = calculateEventTimer(match.startTime, now)
+  const isMatchFinished = timer.isFinished
 
   // Load main odds only when user shows interest (hover/click) and no first market available
-  const shouldLoadOdds = showMainOdds && !match.firstMarket
+  const shouldLoadOdds = showMainOdds && !match.firstMarket && !isMatchFinished
   const mainOdds = useQuery(
     api.sportsData.getMatchMainOdds,
     shouldLoadOdds ? { sourceMatchId: match.sourceMatchId } : "skip"
@@ -59,7 +71,7 @@ export function MatchCard({ match }: MatchCardProps) {
   ) : []
 
   const handleSelection = (odd: any) => {
-    if (!odd) return
+    if (!odd || isMatchFinished) return
     const outcome = formatOddOutcome(odd, match as SportsMatchWithOdds)
 
     addToBetslip({
@@ -171,9 +183,12 @@ export function MatchCard({ match }: MatchCardProps) {
           </div>
 
           <div
-            className="grid grid-cols-3 gap-2.5 pt-1"
-            onMouseEnter={() => setShowMainOdds(true)}
-            onClick={() => setShowMainOdds(true)}
+            className={cn(
+              "grid grid-cols-3 gap-2.5 pt-1",
+              isMatchFinished && "opacity-50 pointer-events-none"
+            )}
+            onMouseEnter={() => !isMatchFinished && setShowMainOdds(true)}
+            onClick={() => !isMatchFinished && setShowMainOdds(true)}
           >
             {sortedMainOdds.length > 0 ? (
               sortedMainOdds.map((odd) => {
@@ -183,11 +198,14 @@ export function MatchCard({ match }: MatchCardProps) {
                   <Button
                     key={odd.sourceOddId}
                     variant="outline"
-                    className={`flex flex-col gap-0.5 h-11 py-1 px-2 border-border font-medium transition-colors hover:border-primary/50 hover:bg-accent/40 ${selected
-                      ? "bg-primary text-primary-foreground border-primary hover:bg-primary/95 hover:border-primary"
-                      : "text-foreground"
+                    disabled={isMatchFinished}
+                    className={`flex flex-col gap-0.5 h-11 py-1 px-2 border-border font-medium transition-colors ${isMatchFinished
+                      ? "opacity-50 cursor-not-allowed"
+                      : "hover:border-primary/50 hover:bg-accent/40 " + (selected
+                        ? "bg-primary text-primary-foreground border-primary hover:bg-primary/95 hover:border-primary"
+                        : "text-foreground")
                       }`}
-                    onClick={() => handleSelection(odd)}
+                    onClick={() => !isMatchFinished && handleSelection(odd)}
                   >
                     <span className={`text-[9px] ${selected ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
                       {outcome.code}
@@ -210,7 +228,7 @@ export function MatchCard({ match }: MatchCardProps) {
               <Button
                 variant="outline"
                 className="col-span-3 h-11 text-xs font-semibold"
-                onClick={openMarkets}
+                onClick={() => !isMatchFinished && openMarkets()}
               >
                 View available markets
               </Button>

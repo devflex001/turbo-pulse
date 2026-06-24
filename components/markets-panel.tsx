@@ -19,6 +19,7 @@ import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/u
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useMediaQuery } from "@/hooks/use-media-query"
+import { calculateEventTimer } from "@/lib/event-timer"
 
 type SportsOdd = {
   sourceOddId: string
@@ -98,6 +99,16 @@ export function MarketsBrowser({
   const [search, setSearch] = React.useState("")
   const [activeCategory, setActiveCategory] = React.useState("All")
   const [selectedMarketKey, setSelectedMarketKey] = React.useState<string | null>(null)
+  const [now, setNow] = React.useState(() => Date.now())
+
+  // Update timer every second to track if match is finished
+  React.useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const timer = calculateEventTimer(match.startTime, now)
+  const isMatchFinished = timer.isFinished
 
   const markets = useQuery(
     api.sportsData.listMarkets,
@@ -153,7 +164,7 @@ export function MarketsBrowser({
   const matchName = `${match.homeTeam} vs ${match.awayTeam}`
 
   const handleOdd = (odd: SportsOdd) => {
-    if (readOnly) return
+    if (readOnly || isMatchFinished) return
 
     const outcome = formatOddOutcome(odd, match)
 
@@ -186,14 +197,16 @@ export function MarketsBrowser({
       <Button
         key={odd.sourceOddId}
         variant="outline"
+        disabled={isMatchFinished}
         className={cn(
           "flex flex-col items-center justify-center gap-0.5 h-10 py-1 px-1.5 border-border transition-all hover:bg-accent/40 text-center min-w-0 w-full",
-          readOnly && "cursor-default hover:bg-background",
+          isMatchFinished && "opacity-50 cursor-not-allowed",
+          readOnly && !isMatchFinished && "cursor-default hover:bg-background",
           selected
             ? "bg-primary text-primary-foreground border-primary hover:bg-primary/95 hover:border-primary"
             : "bg-card hover:border-muted-foreground/30 text-foreground"
         )}
-        onClick={() => handleOdd(odd)}
+        onClick={() => !isMatchFinished && handleOdd(odd)}
       >
         <span className={cn(
           "min-w-0 w-full truncate text-[9px] font-semibold leading-none",
@@ -351,6 +364,17 @@ export function MarketsBrowser({
 
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col", className)}>
+      {isMatchFinished && mode === "page" && (
+        <div className="shrink-0 bg-muted/60 border-b border-muted-foreground/30 px-4 py-3">
+          <p className="text-sm font-semibold text-muted-foreground">
+            Markets Closed
+          </p>
+          <p className="text-xs text-muted-foreground/80">
+            This match has finished. Betting is no longer available.
+          </p>
+        </div>
+      )}
+
       {mode !== "page" && (
         <div className="shrink-0 space-y-3 border-b border-border p-4">
           <Input

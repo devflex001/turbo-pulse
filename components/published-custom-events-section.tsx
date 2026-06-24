@@ -1,10 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { useQuery } from "convex/react"
+import { useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { useBetStore } from "@/hooks/use-bet-store"
+import { useAuth } from "@/lib/auth/AuthContext"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -32,9 +34,12 @@ import { CustomEventDetail } from "./custom-event-detail"
 
 export function PublishedCustomEventsSection() {
   const { addToBetslip } = useBetStore()
+  const { user } = useAuth()
+  const notifyCustomEventStarted = useMutation(api.notifications.notifyCustomEventStarted)
   const [detailOpen, setDetailOpen] = React.useState(false)
   const [selectedEvent, setSelectedEvent] = React.useState<any>(null)
   const [now, setNow] = React.useState(() => Date.now())
+  const notifiedEventIdsRef = React.useRef(new Set<string>())
   const isMobile = useMediaQuery("(max-width: 768px)")
 
   // Update timer every second
@@ -65,6 +70,28 @@ export function PublishedCustomEventsSection() {
     return []
   }, [publishedEvents])
 
+  React.useEffect(() => {
+    if (!user) {
+      return
+    }
+
+    for (const event of publishedEventItems) {
+      const eventId = String(event._id)
+      if (now < event.startTime || notifiedEventIdsRef.current.has(eventId)) {
+        continue
+      }
+
+      notifiedEventIdsRef.current.add(eventId)
+      notifyCustomEventStarted({
+        userId: user._id,
+        eventId: event._id as Id<"customEvents">,
+      }).catch((error) => {
+        notifiedEventIdsRef.current.delete(eventId)
+        console.error("Failed to create match-start notification", error)
+      })
+    }
+  }, [notifyCustomEventStarted, now, publishedEventItems, user])
+
   if (publishedEventItems.length === 0) {
     return null
   }
@@ -77,6 +104,12 @@ export function PublishedCustomEventsSection() {
   }
 
   const handleAddToSlip = (event: any, outcome: { label: string; odds: number }) => {
+    const timer = calculateEventTimer(event.startTime, now)
+    if (timer.isFinished) {
+      toast.error("This event has finished. Betting is no longer available.")
+      return
+    }
+
     const outcomeMap: Record<string, string> = {
       "1": event.homeTeam,
       "X": "Draw",
@@ -117,6 +150,7 @@ export function PublishedCustomEventsSection() {
   const renderEventCard = (event: any) => {
     const timer = calculateEventTimer(event.startTime, now)
     const badgeConfig = getEventBadgeConfig(timer.lifecycle)
+    const isEventFinished = timer.isFinished
 
     return (
       <div
@@ -171,12 +205,24 @@ export function PublishedCustomEventsSection() {
             <p className="font-bold text-sm text-foreground truncate text-center flex-1">{event.awayTeam}</p>
           </div>
 
-          {/* Signature Green Styled Event Cards (Mobile) */}
-          <div className="grid grid-cols-1 gap-3">
-            {sortedByStartTime.map((event) => (
-              <div
-                key={event._id}
-                className="group relative overflow-hidden rounded-lg border-2 border-[#4b9f71]/40 bg-[#4b9f71]/5 hover:bg-[#4b9f71]/10 transition-all p-4"
+          {/* Odds Display - Top 3 outcomes - ADD TO BETSLIP */}
+          <div className={cn(
+            "grid grid-cols-3 gap-1.5 pt-0.5",
+            isEventFinished && "opacity-50 pointer-events-none"
+          )}>
+            {[
+              { label: "1", odds: 2.35 },
+              { label: "X", odds: 3.15 },
+              { label: "2", odds: 3.90 },
+            ].map((odd) => (
+              <button
+                key={odd.label}
+                disabled={isEventFinished}
+                onClick={() => !isEventFinished && handleAddToSlip(event, odd)}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-0.5 p-1.5 rounded border border-border/40 bg-muted/30 hover:bg-primary/10 hover:border-primary/40 transition-all group/odd",
+                  isEventFinished && "opacity-50 cursor-not-allowed"
+                )}
               >
                 {/* Signature Green accent line */}
                 <div className="absolute top-0 left-0 right-0 h-1 bg-[#4b9f71]" />
