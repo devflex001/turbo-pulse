@@ -1,56 +1,8 @@
-import * as jose from "jose";
-
 /**
- * JWT Configuration
- * IMPORTANT: In production, use a secure secret stored in environment variables
+ * Client-side auth helpers
+ * This file intentionally does NOT import any server-only libraries such as `jose`.
+ * Keep only localStorage helpers here so it can be imported from client components.
  */
-const JWT_SECRET = process.env.NEXT_PUBLIC_JWT_SECRET || "your-secret-key-change-in-production";
-const JWT_ISSUER = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-const JWT_AUDIENCE = "convex";
-
-/**
- * Create a JWT token for authenticated user
- * This token will be used by Convex Auth for session management
- */
-export async function createAuthToken(userId: string, role: string): Promise<string> {
-  const secret = new TextEncoder().encode(JWT_SECRET);
-
-  const token = await new jose.SignJWT({
-    // Standard claims
-    sub: userId, // Subject (user ID)
-    aud: JWT_AUDIENCE, // Audience (must match auth.config.ts)
-    iss: JWT_ISSUER, // Issuer (must match auth.config.ts domain)
-    
-    // Custom claims
-    role,
-    tokenIdentifier: `convex|${userId}`,
-  })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("7d") // Token expires in 7 days
-    .sign(secret);
-
-  return token;
-}
-
-/**
- * Verify and decode a JWT token
- */
-export async function verifyAuthToken(token: string): Promise<jose.JWTPayload | null> {
-  try {
-    const secret = new TextEncoder().encode(JWT_SECRET);
-
-    const { payload } = await jose.jwtVerify(token, secret, {
-      issuer: JWT_ISSUER,
-      audience: JWT_AUDIENCE,
-    });
-
-    return payload;
-  } catch (error) {
-    console.error("JWT verification failed:", error);
-    return null;
-  }
-}
 
 /**
  * Storage keys for auth tokens
