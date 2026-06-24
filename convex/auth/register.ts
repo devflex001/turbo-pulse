@@ -100,7 +100,7 @@ export const registerUser = mutation({
       role: "user",
       createdAt: Date.now(),
       referralCode: newUserReferralCode,
-      referredBy: referrerId,
+      referredBy: referrerId || undefined,
       totalReferrals: 0,
       totalReferralEarnings: 0,
     });

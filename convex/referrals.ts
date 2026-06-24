@@ -261,7 +261,7 @@ export const trackReferralSignup = mutation({
 
     if (!wallet) {
       // Create wallet if it doesn't exist
-      wallet = await ctx.db.insert("wallets", {
+      await ctx.db.insert("wallets", {
         userId: referrer._id.toString(),
         balance: REFERRAL_REWARD,
       });
