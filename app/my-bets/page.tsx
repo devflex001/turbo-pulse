@@ -15,14 +15,12 @@ import { Loader2 } from "lucide-react"
 export default function MyBetsPage() {
   const { setActiveTab } = useBetStore()
   const { user, isLoading } = useAuth()
-  const [showLoginModal, setShowLoginModal] = React.useState(false)
+  const [mounted, setMounted] = React.useState(false)
 
-  // Show login modal if not authenticated and not loading
+  // Only render after hydration
   React.useEffect(() => {
-    if (!isLoading && !user) {
-      setShowLoginModal(true)
-    }
-  }, [isLoading, user])
+    setMounted(true)
+  }, [])
 
   React.useEffect(() => {
     setActiveTab("mybets")
@@ -33,6 +31,11 @@ export default function MyBetsPage() {
     () => (allMatches?.items ?? []).filter((match: any) => match.isLive).length,
     [allMatches]
   )
+
+  // Don't render anything until mounted
+  if (!mounted) {
+    return null
+  }
 
   // Loading state
   if (isLoading) {
@@ -56,7 +59,7 @@ export default function MyBetsPage() {
           <div className="flex flex-1" />
           <BottomNav liveCount={liveCount} />
         </div>
-        <LoginModal open={showLoginModal} onOpenChange={setShowLoginModal} />
+        <LoginModal open={true} onOpenChange={() => { }} />
       </>
     )
   }
@@ -79,8 +82,6 @@ export default function MyBetsPage() {
 
         <BottomNav liveCount={liveCount} />
       </div>
-
-      <LoginModal open={showLoginModal} onOpenChange={setShowLoginModal} />
     </>
   )
 }

@@ -44,9 +44,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Get session token on mount (only once)
   useEffect(() => {
-    const token = getSessionToken();
-    setSessionToken(token);
-    setSessionTokenChecked(true);
+    const token = getSessionToken()
+    setSessionToken(token)
+    setSessionTokenChecked(true)
+
+    // Debug log
+    if (typeof window !== 'undefined') {
+      console.log('[AuthContext] Session token on mount:', token ? 'exists' : 'missing')
+      console.log('[AuthContext] Session storage keys:', Object.keys(localStorage))
+    }
   }, []);
 
   // Get current user from Convex using session token
@@ -57,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Update user state when Convex query resolves or when session token changes
   useEffect(() => {
-    // Wait until we've checked for session tokenmo
+    // Wait until we've checked for session token
     if (!sessionTokenChecked) {
       return;
     }
@@ -71,14 +77,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // If we have a session token, wait for the query to resolve
     if (currentUser !== undefined) {
+      console.log('[AuthContext] getCurrentUser resolved:', currentUser ? 'user found' : 'no user');
       setUser(currentUser);
       setIsLoading(false);
 
       // If session is invalid, clear local storage
       if (currentUser === null && sessionToken) {
+        console.log('[AuthContext] Session invalid, clearing token');
         removeSessionToken();
         setSessionToken(null);
       }
+    } else {
+      // Query is still loading
+      console.log('[AuthContext] getCurrentUser query loading...');
     }
   }, [currentUser, sessionToken, sessionTokenChecked]);
 

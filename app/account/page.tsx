@@ -23,18 +23,21 @@ export default function AccountPage() {
   const router = useRouter()
   const { user, isLoading, logout } = useAuth()
   const { walletBalance } = useBetStore()
-  const [showLoginModal, setShowLoginModal] = React.useState(false)
+  const [mounted, setMounted] = React.useState(false)
 
-  // Show login modal if not authenticated and not loading
+  // Only render after hydration
   React.useEffect(() => {
-    if (!isLoading && !user) {
-      setShowLoginModal(true)
-    }
-  }, [isLoading, user])
+    setMounted(true)
+  }, [])
 
   const handleLogout = async () => {
     logout()
     router.push("/")
+  }
+
+  // Don't render anything until mounted
+  if (!mounted) {
+    return null
   }
 
   // Loading state
@@ -59,11 +62,12 @@ export default function AccountPage() {
           <div className="flex flex-1" />
           <BottomNav liveCount={0} />
         </div>
-        <LoginModal open={showLoginModal} onOpenChange={setShowLoginModal} />
+        <LoginModal open={true} onOpenChange={() => { }} />
       </>
     )
   }
 
+  // Logged in - render full page
   return (
     <>
       <div className="flex flex-col h-screen overflow-hidden bg-background">
@@ -156,8 +160,6 @@ export default function AccountPage() {
 
         <BottomNav liveCount={0} />
       </div>
-
-      <LoginModal open={showLoginModal} onOpenChange={setShowLoginModal} />
     </>
   )
 }
