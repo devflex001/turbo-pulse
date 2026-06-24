@@ -15,6 +15,8 @@ import {
   Activity,
   ArrowUpRight,
   ArrowDownLeft,
+  ArrowDownToLine,
+  ArrowUpFromLine,
   PanelLeftClose,
   PanelLeftOpen,
   CircleDashed,
@@ -221,7 +223,7 @@ export function Sidebar({ className }: SidebarProps) {
                 )}
                 onClick={() => router.push("/deposit")}
               >
-                <ArrowUpRight className="size-4 shrink-0 text-emerald-500" />
+                <ArrowDownToLine className="size-4 shrink-0 text-emerald-500" />
                 {!isCollapsed && <span>Deposit</span>}
               </Button>
               <Button
@@ -233,7 +235,7 @@ export function Sidebar({ className }: SidebarProps) {
                 )}
                 onClick={() => router.push("/withdraw")}
               >
-                <ArrowDownLeft className="size-4 shrink-0 text-amber-500" />
+                <ArrowUpFromLine className="size-4 shrink-0 text-amber-500" />
                 {!isCollapsed && <span>Withdraw</span>}
               </Button>
             </>

@@ -382,9 +382,16 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
 }
 
 export function DepositModal({ open, onOpenChange }: ModalProps) {
+  const { user } = useAuth()
   const [amount, setAmount] = React.useState("")
   const [phone, setPhone] = React.useState("")
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+
+  React.useEffect(() => {
+    if (user?.phone) {
+      setPhone(user.phone)
+    }
+  }, [user?.phone])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

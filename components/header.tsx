@@ -22,6 +22,8 @@ import {
   LogOut,
   History,
   ArrowDownLeft,
+  ArrowDownToLine,
+  ArrowUpFromLine,
   X,
   Settings,
   ArrowUpRight
@@ -156,11 +158,11 @@ export function Header() {
                       <span>My Account</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => router.push("/deposit")}>
-                      <ArrowUpRight className="mr-2 h-4 w-4 text-[#4b9f71]" />
+                      <ArrowDownToLine className="mr-2 h-4 w-4 text-[#4b9f71]" />
                       <span>Deposit (M-Pesa)</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setWithdrawOpen(true)}>
-                      <ArrowDownLeft className="mr-2 h-4 w-4 text-rose-500" />
+                      <ArrowUpFromLine className="mr-2 h-4 w-4 text-rose-500" />
                       <span>Withdraw Winnings</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setActiveTab("mybets")}>

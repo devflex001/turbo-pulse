@@ -14,8 +14,8 @@ import {
   User,
   Phone,
   LogOut,
-  ArrowUpRight,
-  ArrowDownLeft,
+  ArrowDownToLine,
+  ArrowUpFromLine,
 } from "lucide-react"
 
 export default function AccountPage() {
@@ -86,7 +86,7 @@ export default function AccountPage() {
                   variant="ghost"
                   size="icon"
                   onClick={() => router.back()}
-                  className="size-8 rounded-full border border-border hover:bg-muted/50 shrink-0"
+                  className="size-8 rounded-full border border-border hover:bg-muted/50 shrink-0 hidden sm:inline-flex"
                 >
                   <ArrowLeft className="size-4" />
                 </Button>
@@ -118,13 +118,14 @@ export default function AccountPage() {
                   onClick={() => router.push("/deposit")}
                   className="bg-[#4b9f71] text-white font-semibold h-10 text-sm hover:bg-[#3e865f]"
                 >
-                  <ArrowUpRight className="size-4 mr-2" /> Deposit
+                  <ArrowDownToLine className="size-4 mr-2" /> Deposit
                 </Button>
                 <Button
                   variant="outline"
                   className="font-semibold h-10 text-sm border-border"
+                  onClick={() => router.push("/withdraw")}
                 >
-                  <ArrowDownLeft className="size-4 mr-2" /> Withdraw
+                  <ArrowUpFromLine className="size-4 mr-2" /> Withdraw
                 </Button>
               </div>
 

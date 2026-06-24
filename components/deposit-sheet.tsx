@@ -36,6 +36,7 @@ interface TransactionResult {
 }
 
 export function DepositSheet() {
+  const { user } = useAuth()
   const wallet = useQuery(api.mpesa.getWallet)
   const config = useQuery(api.platformConfig.getUserFacingConfig)
   const createTransaction = useMutation(api.mpesa.createTransaction)
@@ -45,6 +46,12 @@ export function DepositSheet() {
 
   const [amount, setAmount] = React.useState("")
   const [phone, setPhone] = React.useState("")
+
+  React.useEffect(() => {
+    if (user?.phone) {
+      setPhone(user.phone)
+    }
+  }, [user?.phone])
   const [stage, setStage] = React.useState<DepositStage>("idle")
   const [transactionResult, setTransactionResult] = React.useState<TransactionResult | null>(
     null
@@ -288,7 +295,7 @@ export function DepositSheet() {
             </>
           ) : (
             <>
-              <ArrowUpRight className="h-4 w-4" />
+              <ArrowDownToLine className="h-4 w-4" />
               Deposit
             </>
           )}

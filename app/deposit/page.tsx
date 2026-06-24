@@ -43,7 +43,7 @@ export default function DepositPage() {
         <main className="flex-1 min-w-0 p-4 sm:p-6 overflow-y-auto h-full flex flex-col gap-4 scrollbar-thin">
           {/* Minimal Header */}
           <div className="flex items-center gap-2">
-            <Link href="/">
+            <Link href="/" className="hidden sm:inline-block">
               <Button variant="ghost" size="icon" className="h-8 w-8">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
