@@ -29,6 +29,7 @@ import type * as notifications from "../notifications.js";
 import type * as paymentMode from "../paymentMode.js";
 import type * as paystack from "../paystack.js";
 import type * as platformConfig from "../platformConfig.js";
+import type * as referrals from "../referrals.js";
 import type * as scraper from "../scraper.js";
 import type * as scraperValidators from "../scraperValidators.js";
 import type * as scrapers_kwikbet from "../scrapers/kwikbet.js";
@@ -64,6 +65,7 @@ declare const fullApi: ApiFromModules<{
   paymentMode: typeof paymentMode;
   paystack: typeof paystack;
   platformConfig: typeof platformConfig;
+  referrals: typeof referrals;
   scraper: typeof scraper;
   scraperValidators: typeof scraperValidators;
   "scrapers/kwikbet": typeof scrapers_kwikbet;

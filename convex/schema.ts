@@ -320,9 +320,14 @@ const schema = defineSchema({
     role: v.union(v.literal("user"), v.literal("admin")),
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
+    referralCode: v.optional(v.string()), // unique code for this user to share
+    referredBy: v.optional(v.id("users")), // who referred this user
+    totalReferrals: v.optional(v.number()), // total successful referrals
+    totalReferralEarnings: v.optional(v.number()), // total earnings from referrals
   })
     .index("by_phone", ["phone"])
-    .index("by_role", ["role"]),
+    .index("by_role", ["role"])
+    .index("by_referralCode", ["referralCode"]),
 
   sessions: defineTable({
     userId: v.id("users"),
@@ -452,6 +457,25 @@ const schema = defineSchema({
     .index("by_status", ["status"])
     .index("by_userId_and_status", ["userId", "status"])
     .index("by_requestedAt", ["requestedAt"]),
+
+  referrals: defineTable({
+    referrerId: v.id("users"), // user who shared the referral
+    referredUserId: v.optional(v.id("users")), // user who signed up via referral (null until they sign up)
+    referralCode: v.string(), // unique code for this referral link
+    phone: v.optional(v.string()), // phone of the person who clicked the link (before signup)
+    status: v.union(
+      v.literal("pending"), // created but referred user hasn't signed up yet
+      v.literal("completed") // referred user has signed up successfully
+    ),
+    amountEarned: v.number(), // amount credited to referrer (1000 KES when completed)
+    createdAt: v.number(),
+    completedAt: v.optional(v.number()),
+  })
+    .index("by_referrerId", ["referrerId"])
+    .index("by_referralCode", ["referralCode"])
+    .index("by_referredUserId", ["referredUserId"])
+    .index("by_status", ["status"])
+    .index("by_referrerId_and_status", ["referrerId", "status"]),
 })
 
 export default schema
