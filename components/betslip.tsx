@@ -99,15 +99,12 @@ export function Betslip({ onClose }: BetslipProps) {
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-card text-card-foreground">
-      <div className="flex shrink-0 items-center justify-between px-4 py-2.5 border-b border-border bg-muted/10 text-xs">
-        <span className="font-semibold text-muted-foreground">
-          {betslip.length} selection{betslip.length !== 1 ? "s" : ""}
-        </span>
+      <div className="flex shrink-0 items-center justify-end px-4 py-1 border-b border-border bg-muted/5">
         <Button
           variant="ghost"
           size="sm"
           onClick={clearBetslip}
-          className="text-destructive hover:text-destructive hover:bg-destructive/10 text-xs h-7 px-2"
+          className="text-destructive hover:text-destructive hover:bg-destructive/10 text-[10px] h-6 px-2 py-0.5 font-medium"
         >
           Clear all
         </Button>
@@ -193,12 +190,6 @@ export function Betslip({ onClose }: BetslipProps) {
         </div>
 
         <div className="space-y-1.5 text-xs pt-1">
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Selections</span>
-            <span className="font-semibold text-foreground">
-              {betslip.length}
-            </span>
-          </div>
           {betslip.length > 1 && (
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Stake (per selection)</span>
