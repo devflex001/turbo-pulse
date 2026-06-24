@@ -285,7 +285,7 @@ export function PaystackDepositSheet() {
       await createPaystackTransaction({
         type: "deposit",
         amount: parsedAmount,
-        phone: user.phone,
+        email: user.phone,
         reference: ref,
       })
 
