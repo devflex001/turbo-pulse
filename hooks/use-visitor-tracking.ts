@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useMutation, useAction } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useAuthClient } from "@/lib/auth-client"
@@ -6,14 +6,24 @@ import { useAuthClient } from "@/lib/auth-client"
 /**
  * Hook to track visitor on homepage
  * Collects IP, location, and device info
+ * Uses ref to prevent duplicate tracking in React strict mode
  */
 export function useVisitorTracking() {
   const { user } = useAuthClient()
   const trackVisitor = useMutation(api.ipTracking.trackVisitor)
   const getIPLocationAndDevice = useAction(api.ipTracking.getIPLocationAndDevice)
   const updateUserIPTracking = useMutation(api.ipTracking.updateUserIPTracking)
+  const hasTrackedRef = useRef(false)
 
   useEffect(() => {
+    // Skip if already tracked in this session
+    if (hasTrackedRef.current) {
+      return
+    }
+
+    // Mark as tracked immediately to prevent duplicate calls
+    hasTrackedRef.current = true
+
     // Track visitor on mount
     const trackPage = async () => {
       try {
@@ -51,7 +61,10 @@ export function useVisitorTracking() {
           })
         }
       } catch (error) {
-        console.error("Error tracking visitor.... Note:: We only track your visits so we can enhance your experience:", error)
+        console.error(
+          "Error tracking visitor. Note: We only track your visits to enhance your experience:",
+          error
+        )
         // Silently fail - don't disrupt user experience
       }
     }
