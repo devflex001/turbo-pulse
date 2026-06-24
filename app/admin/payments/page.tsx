@@ -24,15 +24,10 @@ import {
   Globe,
   Loader2,
   ChevronRight,
-  Calendar,
-  CheckCircle,
-  XCircle,
   Clock,
   ArrowUpRight,
   TrendingUp,
   DollarSign,
-  AlertTriangle,
-  Info,
 } from "lucide-react"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
