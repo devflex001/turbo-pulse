@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useBetStore } from "@/hooks/use-bet-store"
@@ -35,84 +36,59 @@ import { PublishedCustomEventsSection } from "@/components/published-custom-even
 
 const SLIDES = [
   {
-    id: "promo1",
-    title: "Matchday Specials",
-    subtitle: "Bet on today's top fixtures and win big!",
-    cta: "Win Today",
-    image: "/images/p1.jfif",
-    imageAlt: "Sports betting action",
+    id: "banner1",
+    image: "/images/banner-1.png",
+    imageAlt: "Banner 1",
+    title: "Live Matches",
+    subtitle: "Catch all the action right now",
   },
   {
-    id: "promo2",
-    title: "Live Action",
-    subtitle: "Catch the best live odds and boost your payouts.",
-    cta: "Bet Live Now",
-    image: "/images/p2.jfif",
-    imageAlt: "Live sports betting",
+    id: "banner2",
+    image: "/images/banner-2.png",
+    imageAlt: "Banner 2",
+    title: "Exclusive Odds",
+    subtitle: "Maximize your returns today",
+    showButton: true,
+    buttonText: "Explore",
+    buttonAction: "home",
   },
   {
-    id: "promo3",
-    title: "Premium Markets",
-    subtitle: "Unlock exclusive odds and maximize your returns.",
-    cta: "Explore Markets",
-    image: "/images/p3.jfif",
-    imageAlt: "Premium sports markets",
+    id: "banner3",
+    image: "/images/banner-3.png",
+    imageAlt: "Banner 3",
+    title: "Weekend Specials",
+    subtitle: "Premium markets for you",
   },
   {
-    id: "promo4",
-    title: "Weekend Accumulators",
-    subtitle: "Build your ultimate betslip for massive rewards.",
-    cta: "Build a Slip",
-    image: "/images/p4.jfif",
-    imageAlt: "Accumulator betting",
-  },
-  {
-    id: "promo5",
+    id: "banner4",
+    image: "/images/banner-4.png",
+    imageAlt: "Banner 4",
     title: "In-Play Betting",
-    subtitle: "React to the action and bet minute-by-minute.",
-    cta: "View In-Play",
-    image: "/images/p5.jfif",
-    imageAlt: "In-play betting action",
+    subtitle: "React to every moment",
+    showButton: true,
+    buttonText: "Bet Now",
+    buttonAction: "live",
   },
   {
-    id: "promo6",
+    id: "banner5",
+    image: "/images/banner-5.png",
+    imageAlt: "Banner 5",
+    title: "Accumulator Bets",
+    subtitle: "Build your ultimate slip",
+  },
+  {
+    id: "banner6",
+    image: "/images/banner-6.png",
+    imageAlt: "Banner 6",
     title: "Early Payouts",
-    subtitle: "Cash out your winnings early before the final whistle.",
-    cta: "Learn More",
-    image: "/images/p6.jfif",
-    imageAlt: "Early payout options",
+    subtitle: "Cash out before the final whistle",
   },
   {
-    id: "promo7",
+    id: "banner7",
+    image: "/images/banner-7.png",
+    imageAlt: "Banner 7",
     title: "Boosted Odds",
-    subtitle: "Get maximum value with daily super-boosted markets.",
-    cta: "See Boosts",
-    image: "/images/p7.jfif",
-    imageAlt: "Boosted sports odds",
-  },
-  {
-    id: "promo8",
-    title: "Esports Arena",
-    subtitle: "Back your favorite teams in top tier esports tournaments.",
-    cta: "Bet Esports",
-    image: "/images/p8.jfif",
-    imageAlt: "Esports betting",
-  },
-  {
-    id: "promo9",
-    title: "Virtual Sports",
-    subtitle: "24/7 action with our high-definition virtual leagues.",
-    cta: "Play Virtuals",
-    image: "/images/p9.jfif",
-    imageAlt: "Virtual sports betting",
-  },
-  {
-    id: "promo10",
-    title: "VIP Rewards",
-    subtitle: "Join the VIP club for exclusive bonuses and cashback.",
-    cta: "Claim Bonus",
-    image: "/images/p10.jfif",
-    imageAlt: "VIP rewards and bonuses",
+    subtitle: "Daily super-boosted markets",
   },
 ]
 
@@ -137,6 +113,7 @@ function getSportIcon(slug: string) {
 }
 
 export default function Page() {
+  const router = useRouter()
   const {
     activeTab,
     setActiveTab,
@@ -283,11 +260,9 @@ export default function Page() {
                   variant="ghost"
                   className={cn(
                     "h-9 px-4 rounded-md text-sm font-semibold shrink-0 gap-2 border transition-all",
-                    activeTab === "live"
-                      ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
-                      : "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
+                    "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
                   )}
-                  onClick={() => { setActiveTab("live"); setSelectedLeague("All Leagues"); }}
+                  onClick={() => { router.push("/live") }}
                 >
                   <PlayCircle className="size-4" />
                   Live
@@ -386,57 +361,49 @@ export default function Page() {
           {activeTab === "home" && (
             <>
               {matches !== undefined && (
-                <div className="relative overflow-hidden rounded-lg border border-border bg-card w-full min-h-[220px] sm:h-[280px] lg:h-[320px] flex">
-                  <img
-                    key={SLIDES[slideIndex].id}
-                    src={SLIDES[slideIndex].image}
-                    alt={SLIDES[slideIndex].imageAlt}
-                    className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500"
-                  />
-
-                  {/* Dynamic gradient that darkens appropriately on mobile to protect the stacked text */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 sm:via-background/60 to-transparent" aria-hidden="true" />
-
-                  {/* Fully responsive flex container */}
-                  <div className="relative z-10 flex w-full flex-col sm:flex-row justify-center sm:justify-between items-start sm:items-center p-5 sm:p-10 gap-3 sm:gap-6">
-
-                    {/* Left Side: Text */}
-                    <div className="w-full sm:max-w-[60%] lg:max-w-[50%] space-y-2 select-none">
-                      <Badge className="bg-[#4b9f71]/15 border-[#4b9f71]/40 text-[#4b9f71] font-bold tracking-wider text-[10px] uppercase px-2 py-0.5">
-                        {SLIDES[slideIndex].title}
-                      </Badge>
-                      <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white leading-snug sm:leading-tight tracking-tight shadow-sm drop-shadow-md">
-                        {SLIDES[slideIndex].subtitle}
-                      </h2>
-                    </div>
-
-                    {/* Right Side (Tablet/Desktop) or Bottom Left (Mobile): Button */}
-                    <div className="shrink-0 pt-2 sm:pt-0 sm:pr-8">
-                      <Button
-                        size="sm"
-                        className="h-9 sm:h-10 text-xs sm:text-sm px-5 sm:px-6 font-bold bg-[#4b9f71] text-white hover:bg-[#3e865f] border-none shadow-md transition-transform hover:scale-105"
-                        onClick={() => setActiveTab(slideIndex === 2 ? "featured" : "home")}
-                      >
-                        {SLIDES[slideIndex].cta}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Slider Navigation Dots - slimmed down for mobile so 10 fit neatly */}
-                  <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-6 z-10 flex justify-end items-center gap-1 sm:gap-1.5">
-                    {SLIDES.map((slide, index) => (
-                      <span
-                        key={slide.id}
-                        onClick={() => setSlideIndex(index)}
-                        className={`h-1 sm:h-1.5 rounded-full cursor-pointer transition-all ${index === slideIndex ? "w-4 sm:w-5 bg-[#4b9f71]" : "w-1.5 sm:w-1.5 bg-white/50 hover:bg-white/80"
-                          }`}
+                <div className="relative overflow-hidden rounded-lg border border-border bg-card w-full h-24 sm:h-32 flex shrink-0">
+                  {SLIDES[slideIndex] && (
+                    <>
+                      <img
+                        key={SLIDES[slideIndex].id}
+                        src={SLIDES[slideIndex].image}
+                        alt={SLIDES[slideIndex].imageAlt}
+                        className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500"
+                        loading="eager"
+                        decoding="async"
                       />
-                    ))}
-                  </div>
+
+                      {/* Dark gradient overlay for text readability */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" aria-hidden="true" />
+
+                      {/* Text and Button at Bottom Left */}
+                      <div className="absolute bottom-0 left-0 flex flex-col items-start gap-2 px-4 sm:px-6 py-2 sm:py-3 z-10">
+                        {/* Button */}
+                        {SLIDES[slideIndex].showButton && (
+                          <Button
+                            size="sm"
+                            className="h-7 sm:h-8 text-[11px] sm:text-xs px-3 sm:px-4 font-semibold bg-[#4b9f71] text-white hover:bg-[#3e865f] shadow-md"
+                            onClick={() => SLIDES[slideIndex].buttonAction === "live" ? router.push("/live") : setActiveTab("home")}
+                          >
+                            {SLIDES[slideIndex].buttonText}
+                          </Button>
+                        )}
+
+                        {/* Text */}
+                        <div className="space-y-0.5 text-left">
+                          <h3 className="text-xs sm:text-sm font-bold text-white">
+                            {SLIDES[slideIndex].title}
+                          </h3>
+                          <p className="text-[10px] sm:text-xs text-white/95">
+                            {SLIDES[slideIndex].subtitle}
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
-              {/* Placed Featured Events right below the Hero Slider */}
               <PublishedCustomEventsSection />
 
               <div className="space-y-3">
@@ -468,31 +435,6 @@ export default function Page() {
                 )}
               </div>
             </>
-          )}
-
-          {activeTab === "live" && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
-                Live Sports Betting
-              </h2>
-              {!matches ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Skeleton className="h-32 rounded-lg" />
-                  <Skeleton className="h-32 rounded-lg" />
-                </div>
-              ) : displayedMatches.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {displayedMatches.map((match) => (
-                    <MatchCard key={match.sourceMatchId} match={match} />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 border border-dashed border-border rounded-lg text-muted-foreground text-xs">
-                  No live games active at the moment.
-                </div>
-              )}
-            </div>
           )}
 
           {activeTab === "featured" && (
@@ -646,6 +588,85 @@ export default function Page() {
             </div>
           )}
 
+          {!activeTab && (
+            <>
+              {matches !== undefined && (
+                <div className="relative overflow-hidden rounded-lg border border-border bg-card w-full h-24 sm:h-32 flex shrink-0">
+                  {SLIDES[slideIndex] && (
+                    <>
+                      <img
+                        key={SLIDES[slideIndex].id}
+                        src={SLIDES[slideIndex].image}
+                        alt={SLIDES[slideIndex].imageAlt}
+                        className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500"
+                        loading="eager"
+                        decoding="async"
+                      />
+
+                      {/* Dark gradient overlay for text readability */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" aria-hidden="true" />
+
+                      {/* Text and Button at Bottom Left */}
+                      <div className="absolute bottom-0 left-0 flex flex-col items-start gap-2 px-4 sm:px-6 py-2 sm:py-3 z-10">
+                        {/* Button */}
+                        {SLIDES[slideIndex].showButton && (
+                          <Button
+                            size="sm"
+                            className="h-7 sm:h-8 text-[11px] sm:text-xs px-3 sm:px-4 font-semibold bg-[#4b9f71] text-white hover:bg-[#3e865f] shadow-md"
+                            onClick={() => SLIDES[slideIndex].buttonAction === "live" ? router.push("/live") : setActiveTab("home")}
+                          >
+                            {SLIDES[slideIndex].buttonText}
+                          </Button>
+                        )}
+
+                        {/* Text */}
+                        <div className="space-y-0.5 text-left">
+                          <h3 className="text-xs sm:text-sm font-bold text-white">
+                            {SLIDES[slideIndex].title}
+                          </h3>
+                          <p className="text-[10px] sm:text-xs text-white/95">
+                            {SLIDES[slideIndex].subtitle}
+                          </p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <PublishedCustomEventsSection />
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                    <PlayCircle className="size-4 text-muted-foreground" />
+                    <span>Upcoming Matches & Fixtures</span>
+                  </h3>
+                  <Badge variant="outline" className="font-semibold text-[10px] text-muted-foreground bg-muted/20 border-border">
+                    Fixtures {upcomingMatches.length}
+                  </Badge>
+                </div>
+
+                {!matches ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Skeleton className="h-32 rounded-lg" />
+                    <Skeleton className="h-32 rounded-lg" />
+                  </div>
+                ) : upcomingMatches.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {upcomingMatches.map((match) => (
+                      <MatchCard key={match.sourceMatchId} match={match} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center p-8 border border-dashed border-border rounded-lg text-muted-foreground text-xs py-12">
+                    No synced fixtures found. Ask an admin to run the scraper.
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
           <footer className="mt-auto pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
             <div className="flex flex-col gap-1 text-center sm:text-left">
               <span className="font-bold text-foreground text-sm">BetFlexx</span>
@@ -657,14 +678,14 @@ export default function Page() {
               <span className="hover:text-foreground cursor-pointer" onClick={() => setActiveTab("contact")}>Contact Support</span>
             </div>
           </footer>
-        </main>
+        </main >
 
         <aside className="hidden lg:flex w-80 shrink-0 border-l border-border bg-card flex-col h-full min-h-0">
           <Betslip />
         </aside>
-      </div>
+      </div >
 
       <BottomNav liveCount={liveCount} />
-    </div>
+    </div >
   )
 }

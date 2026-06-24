@@ -2,12 +2,12 @@
 
 import { useRouter } from "next/navigation"
 import * as React from "react"
+import { useAuth } from "@/lib/auth/AuthContext"
 import { Header } from "@/components/header"
 import { Sidebar } from "@/components/sidebar"
 import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { LoginModal } from "@/components/modals"
-import { getAuthToken, getUserData } from "@/lib/auth/jwt"
 import { useBetStore } from "@/hooks/use-bet-store"
 import {
   ArrowLeft,
@@ -16,60 +16,80 @@ import {
   LogOut,
   ArrowDownToLine,
   ArrowUpFromLine,
+  Loader2,
+  Bug,
 } from "lucide-react"
+import { Card } from "@/components/ui/card"
 
 export default function AccountPage() {
   const router = useRouter()
-  const { walletBalance, logout } = useBetStore()
-  const [user, setUser] = React.useState<any>(null)
-  const [loginOpen, setLoginOpen] = React.useState(false)
+  const { user, isLoading, logout } = useAuth()
+  const { walletBalance } = useBetStore()
   const [mounted, setMounted] = React.useState(false)
 
+  // Only render after hydration
   React.useEffect(() => {
-    const token = getAuthToken()
-    const userData = getUserData()
-
-    if (!token || !userData) {
-      setLoginOpen(true)
-      setMounted(true)
-    } else {
-      setUser({
-        _id: userData.userId,
-        phone: userData.phone,
-        role: userData.role,
-      })
-      setMounted(true)
-    }
-  }, [])
-
-  React.useEffect(() => {
-    const handleStorageChange = () => {
-      const token = getAuthToken()
-      const userData = getUserData()
-
-      if (!token || !userData) {
-        setUser(null)
-        setLoginOpen(true)
-      }
-    }
-
-    window.addEventListener("storage", handleStorageChange)
-    return () => window.removeEventListener("storage", handleStorageChange)
+    setMounted(true)
+    console.log('[AccountPage] Mounted, auth state:', { isLoading, user })
   }, [])
 
   const handleLogout = async () => {
-    await logout()
+    logout()
     router.push("/")
   }
 
+  const goToDebug = () => {
+    router.push("/debug-auth")
+  }
+
+  // Don't render anything until mounted
   if (!mounted) {
     return null
   }
 
-  if (!user) {
-    return <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-screen overflow-hidden bg-background">
+        <Header />
+        <div className="flex flex-1 items-center justify-center">
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        </div>
+        <BottomNav liveCount={0} />
+      </div>
+    )
   }
 
+  // Not logged in state
+  if (!user) {
+    return (
+      <>
+        <div className="flex flex-col h-screen overflow-hidden bg-background">
+          <Header />
+          <div className="flex flex-1 items-center justify-center">
+            <Card className="p-8 max-w-md w-full text-center space-y-4">
+              <User className="size-12 mx-auto text-muted-foreground" />
+              <h2 className="text-lg font-bold text-foreground">Authentication Required</h2>
+              <p className="text-sm text-muted-foreground">Please log in to view your account</p>
+              <div className="flex gap-3 justify-center">
+                <Button onClick={() => router.push("/")}>
+                  Go Home
+                </Button>
+                <Button variant="outline" onClick={goToDebug}>
+                  <Bug className="size-4 mr-2" />
+                  Debug Auth
+                </Button>
+              </div>
+            </Card>
+          </div>
+          <BottomNav liveCount={0} />
+        </div>
+        <LoginModal open={true} onOpenChange={() => { }} />
+      </>
+    )
+  }
+
+  // Logged in - render full page
   return (
     <>
       <div className="flex flex-col h-screen overflow-hidden bg-background">
@@ -81,16 +101,27 @@ export default function AccountPage() {
           <main className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
             <div className="max-w-md w-full mx-auto space-y-6">
               {/* Back Button & Title */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => router.back()}
+                    className="size-8 rounded-full border border-border hover:bg-muted/50 shrink-0 hidden sm:inline-flex"
+                  >
+                    <ArrowLeft className="size-4" />
+                  </Button>
+                  <h1 className="text-xl font-bold text-foreground">My Profile</h1>
+                </div>
                 <Button
                   variant="ghost"
-                  size="icon"
-                  onClick={() => router.back()}
-                  className="size-8 rounded-full border border-border hover:bg-muted/50 shrink-0 hidden sm:inline-flex"
+                  size="sm"
+                  onClick={goToDebug}
+                  className="gap-2"
                 >
-                  <ArrowLeft className="size-4" />
+                  <Bug className="size-3.5" />
+                  Debug
                 </Button>
-                <h1 className="text-xl font-bold text-foreground">My Profile</h1>
               </div>
 
               {/* Profile Header */}
@@ -162,8 +193,6 @@ export default function AccountPage() {
 
         <BottomNav liveCount={0} />
       </div>
-
-      <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
     </>
   )
 }

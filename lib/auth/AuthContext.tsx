@@ -8,6 +8,7 @@ import {
   removeSessionToken,
   storeUserData,
   getSessionToken,
+  getUserData,
 } from "./session";
 import { Id } from "@/convex/_generated/dataModel";
 
@@ -44,9 +45,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Get session token on mount (only once)
   useEffect(() => {
-    const token = getSessionToken();
-    setSessionToken(token);
-    setSessionTokenChecked(true);
+    const token = getSessionToken()
+    const userData = getUserData()
+    setSessionToken(token)
+    setSessionTokenChecked(true)
+
+    // Debug log
+    if (typeof window !== 'undefined') {
+      console.log('[AuthContext] Session token on mount:', token ? 'exists' : 'missing')
+      console.log('[AuthContext] User data on mount:', userData ? 'exists' : 'missing')
+      console.log('[AuthContext] Session storage keys:', Object.keys(localStorage))
+
+      // TEMPORARY FIX: If we have user data in localStorage but getCurrentUser fails,
+      // we can use the localStorage data as a fallback
+      if (userData && !token) {
+        console.log('[AuthContext] WARNING: Found user data without token, clearing invalid data')
+        removeSessionToken()
+      }
+    }
   }, []);
 
   // Get current user from Convex using session token
@@ -57,28 +73,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Update user state when Convex query resolves or when session token changes
   useEffect(() => {
-    // Wait until we've checked for session tokenmo
+    // Wait until we've checked for session token
     if (!sessionTokenChecked) {
       return;
     }
 
     // If no session token, auth is done loading (user is not logged in)
     if (!sessionToken || sessionToken.length === 0) {
+      console.log('[AuthContext] No session token found, user not logged in');
       setUser(null);
       setIsLoading(false);
       return;
     }
 
+    console.log('[AuthContext] Session token found, querying getCurrentUser...');
+
     // If we have a session token, wait for the query to resolve
     if (currentUser !== undefined) {
+      console.log('[AuthContext] getCurrentUser resolved:', currentUser ? 'user found' : 'no user');
+      if (currentUser) {
+        console.log('[AuthContext] User details:', { id: currentUser._id, phone: currentUser.phone });
+      }
       setUser(currentUser);
       setIsLoading(false);
 
       // If session is invalid, clear local storage
       if (currentUser === null && sessionToken) {
+        console.log('[AuthContext] Session invalid, clearing token');
         removeSessionToken();
         setSessionToken(null);
       }
+    } else {
+      // Query is still loading
+      console.log('[AuthContext] getCurrentUser query loading...');
     }
   }, [currentUser, sessionToken, sessionTokenChecked]);
 

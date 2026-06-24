@@ -1,7 +1,5 @@
 "use client"
 
-import * as React from "react"
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/AuthContext"
 import { LoginModal } from "@/components/modals"
 import { Header } from "@/components/header"
@@ -9,38 +7,49 @@ import { Sidebar } from "@/components/sidebar"
 import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Loader2 } from "lucide-react"
 import { UnifiedDepositSheet } from "@/components/unified-deposit-sheet"
 
 export default function DepositPage() {
-  const { user } = useAuth()
-  const [loginOpen, setLoginOpen] = React.useState(!user)
+  const { user, isLoading } = useAuth()
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen flex-col overflow-hidden bg-background">
+        <Header />
+        <div className="flex flex-1 items-center justify-center">
+          <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        </div>
+        <BottomNav liveCount={0} />
+      </div>
+    )
+  }
 
   if (!user) {
     return (
       <>
-        <div className="flex flex-col h-screen overflow-hidden bg-background">
+        <div className="flex h-screen flex-col overflow-hidden bg-background">
           <Header />
-          <div className="flex-1 flex items-center justify-center p-4">
-            <div className="text-muted-foreground text-center space-y-3">
+          <div className="flex flex-1 items-center justify-center p-4">
+            <div className="space-y-3 text-center text-muted-foreground">
               <p>Please log in to deposit funds</p>
             </div>
           </div>
           <BottomNav liveCount={0} />
         </div>
-        <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
+        <LoginModal open={true} onOpenChange={() => {}} />
       </>
     )
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background">
+    <div className="flex h-screen flex-col overflow-hidden bg-background">
       <Header />
 
-      <div className="flex-1 flex max-w-[1400px] w-full mx-auto overflow-hidden">
-        <Sidebar className="hidden lg:flex w-60 shrink-0 h-full" />
+      <div className="mx-auto flex w-full max-w-[1400px] flex-1 overflow-hidden">
+        <Sidebar className="hidden h-full w-60 shrink-0 lg:flex" />
 
-        <main className="flex-1 min-w-0 p-4 sm:p-6 overflow-y-auto h-full flex flex-col gap-4 scrollbar-thin">
+        <main className="flex h-full min-w-0 flex-1 scrollbar-thin flex-col gap-4 overflow-y-auto p-4 sm:p-6">
           {/* Minimal Header */}
           <div className="flex items-center gap-2">
             <Link href="/" className="hidden sm:inline-block">
@@ -52,8 +61,8 @@ export default function DepositPage() {
           </div>
 
           {/* Deposit Form */}
-          <div className="max-w-sm w-full mx-auto">
-            <div className="border border-border bg-card rounded-lg p-4">
+          <div className="mx-auto w-full max-w-sm">
+            <div className="rounded-lg border border-border bg-card p-4">
               <UnifiedDepositSheet />
             </div>
           </div>

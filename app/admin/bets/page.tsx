@@ -90,6 +90,14 @@ function formatDateTime(ts: number) {
   )
 }
 
+function getDisplayMarketName(marketName: string) {
+  const clean = marketName.toLowerCase().replace(/[^a-z0-9]/g, "")
+  if (clean === "matchwinner" || clean === "1x2" || clean === "matchresult") {
+    return "Match Result"
+  }
+  return marketName
+}
+
 function StatusBadge({ status }: { status: string }) {
   switch (status) {
     case "won":
@@ -201,7 +209,7 @@ function BetDetailsModal({ bet, open, onClose }: DetailsModalProps) {
                 </div>
                 <div className="grid grid-cols-2 gap-x-2 text-[10px] text-muted-foreground">
                   <div>
-                    <span className="font-semibold">Market:</span> {sel.marketName || sel.market || "N/A"}
+                    <span className="font-semibold">Market:</span> {getDisplayMarketName(sel.marketName || sel.market || "N/A")}
                   </div>
                   <div>
                     <span className="font-semibold">Pick:</span> {sel.selectionName || sel.selection || "N/A"}
@@ -565,7 +573,7 @@ export default function BetsPage() {
                               {mainSel.matchName || `${mainSel.team1} vs ${mainSel.team2}`}
                             </p>
                             <p className="text-[10px] text-muted-foreground truncate">
-                              {mainSel.marketName || mainSel.market}:{" "}
+                              Pick:{" "}
                               <span className="font-medium text-foreground">{mainSel.selectionName}</span>
                             </p>
                           </div>
