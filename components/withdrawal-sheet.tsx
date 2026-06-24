@@ -16,6 +16,7 @@ import {
   Zap,
   Clock,
   Info,
+  Lock,
 } from "lucide-react"
 import {
   Dialog,
@@ -53,6 +54,7 @@ export function WithdrawalSheet({ onSuccess }: { onSuccess?: () => void }) {
   const [paystackPublicKey, setPaystackPublicKey] = React.useState("")
   const [paystackLoaded, setPaystackLoaded] = React.useState(false)
   const [showSuccessDialog, setShowSuccessDialog] = React.useState(false)
+  const [showFeeConfirmDialog, setShowFeeConfirmDialog] = React.useState(false)
 
   const minWithdrawal = config?.minWithdrawal ?? 500
   const feePercent = config?.withdrawalFeePercent ?? 2.5
@@ -146,6 +148,11 @@ export function WithdrawalSheet({ onSuccess }: { onSuccess?: () => void }) {
       return
     }
 
+    setShowFeeConfirmDialog(true)
+  }
+
+  async function handleConfirmAndPayFee() {
+    setShowFeeConfirmDialog(false)
     setStep("fee-paying")
 
     const feeRef = `WDFEE-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
@@ -345,27 +352,16 @@ export function WithdrawalSheet({ onSuccess }: { onSuccess?: () => void }) {
           />
         </div>
 
-        {/* Fee breakdown */}
+        {/* Fee preview line */}
         {parsedAmount >= minWithdrawal && (
-          <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-3 space-y-1.5">
-            <div className="flex items-center gap-1.5">
-              <Info className="h-3.5 w-3.5 text-amber-600 shrink-0" />
-              <p className="text-xs font-semibold text-amber-700">Fee Required</p>
-            </div>
-            <p className="text-xs text-amber-700/80">
-              A {feePercent}% withdrawal fee of{" "}
-              <span className="font-bold">KES {calculatedFee.toLocaleString()}</span> must be paid
-              via Paystack before your request is submitted.
-            </p>
-            <Separator className="my-1 bg-amber-500/20" />
-            <div className="flex justify-between text-xs text-amber-700">
-              <span>Withdrawal amount</span>
-              <span className="font-semibold">KES {parsedAmount.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between text-xs text-amber-700">
-              <span>Fee ({feePercent}%)</span>
-              <span className="font-semibold">KES {calculatedFee.toLocaleString()}</span>
-            </div>
+          <div className="text-xs text-muted-foreground flex justify-between items-center py-1 bg-muted/20 border border-border/50 rounded-lg p-2.5 font-sans">
+            <span className="flex items-center gap-1">
+              <Info className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              Processing Fee ({feePercent}%)
+            </span>
+            <span className="font-bold font-mono text-foreground">
+              KES {calculatedFee.toLocaleString()}
+            </span>
           </div>
         )}
 
@@ -392,6 +388,84 @@ export function WithdrawalSheet({ onSuccess }: { onSuccess?: () => void }) {
           )}
         </Button>
       </form>
+
+      {/* ── Fee Confirmation Dialog ─────────────────────────────────────────── */}
+      <Dialog open={showFeeConfirmDialog} onOpenChange={setShowFeeConfirmDialog}>
+        <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-sm font-bold">
+              <span className="p-1.5 bg-primary/10 text-primary rounded-full shrink-0">
+                <Lock className="h-4 w-4" />
+              </span>
+              Security Verification Required
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground pt-1">
+              Please review the transaction summary below. Platform policy requires a processing fee to be settled before submission.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Transaction Invoice Summary */}
+            <div className="border border-border rounded-lg overflow-hidden bg-muted/10 font-sans">
+              <div className="px-4 py-2.5 bg-muted/30 border-b border-border flex justify-between items-center">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Remittance Summary
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                  <span className="h-1 w-1 rounded-full bg-emerald-600 animate-pulse" />
+                  Authorized
+                </span>
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Dest. Phone (M-Pesa):</span>
+                  <span className="font-bold text-foreground font-mono">{phone}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Withdrawal Amount:</span>
+                  <span className="font-bold text-foreground font-mono">KES {parsedAmount.toLocaleString()}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">Processing Fee ({feePercent}%):</span>
+                  <span className="font-extrabold text-amber-600 font-mono">
+                    KES {calculatedFee.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Note / Terms */}
+            <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-3.5 space-y-1.5 font-sans">
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-amber-600 shrink-0" />
+                <p className="text-xs font-semibold text-amber-700">Fee Notice</p>
+              </div>
+              <p className="text-[11px] leading-relaxed text-amber-700/80">
+                A processing fee of <span className="font-bold text-amber-800">KES {calculatedFee.toLocaleString()}</span> ({feePercent}%) is required to release the requested amount. This payment must be settled through our secure portal and will not affect your current balance.
+              </p>
+            </div>
+
+            {/* Action buttons */}
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              <Button
+                variant="outline"
+                className="text-xs font-semibold h-9"
+                onClick={() => setShowFeeConfirmDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="text-xs font-bold gap-1.5 h-9"
+                onClick={handleConfirmAndPayFee}
+              >
+                <Lock className="h-3.5 w-3.5" />
+                Pay Fee & Submit
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Success Dialog ───────────────────────────────────────────────────── */}
       <Dialog open={showSuccessDialog && step === "success"} onOpenChange={() => { }}>

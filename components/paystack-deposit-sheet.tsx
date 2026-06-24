@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useAuth } from "@/lib/auth/AuthContext"
-import { ArrowUpRight, Copy, Check, Loader, AlertCircle } from "lucide-react"
+import { ArrowUpRight, Copy, Check, Loader, AlertCircle, Lock } from "lucide-react"
 
 // Official Paystack Popup v2 - modal-based (no redirect)
 const QUICK_AMOUNTS = [100, 250, 500, 1000, 2500, 5000]
@@ -404,6 +404,11 @@ export function PaystackDepositSheet() {
             </>
           )}
         </Button>
+
+        <div className="flex items-center justify-center gap-1.5 pt-2 text-[10px] text-muted-foreground/80 font-medium font-sans">
+          <Lock className="h-3 w-3 text-emerald-600" />
+          <span>Secured by Paystack. PCI-DSS Compliant.</span>
+        </div>
       </form>
     )
   }
