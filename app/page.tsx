@@ -36,84 +36,45 @@ import { PublishedCustomEventsSection } from "@/components/published-custom-even
 
 const SLIDES = [
   {
-    id: "promo1",
-    title: "Matchday Specials",
-    subtitle: "Bet on today's top fixtures and win big!",
-    cta: "Win Today",
-    image: "/images/p1.jfif",
-    imageAlt: "Sports betting action",
+    id: "banner1",
+    image: "/images/banner-1.png",
+    imageAlt: "Banner 1",
   },
   {
-    id: "promo2",
-    title: "Live Action",
-    subtitle: "Catch the best live odds and boost your payouts.",
-    cta: "Bet Live Now",
-    image: "/images/p2.jfif",
-    imageAlt: "Live sports betting",
+    id: "banner2",
+    image: "/images/banner-2.png",
+    imageAlt: "Banner 2",
+    showButton: true,
+    buttonText: "Explore",
+    buttonAction: "home",
   },
   {
-    id: "promo3",
-    title: "Premium Markets",
-    subtitle: "Unlock exclusive odds and maximize your returns.",
-    cta: "Explore Markets",
-    image: "/images/p3.jfif",
-    imageAlt: "Premium sports markets",
+    id: "banner3",
+    image: "/images/banner-3.png",
+    imageAlt: "Banner 3",
   },
   {
-    id: "promo4",
-    title: "Weekend Accumulators",
-    subtitle: "Build your ultimate betslip for massive rewards.",
-    cta: "Build a Slip",
-    image: "/images/p4.jfif",
-    imageAlt: "Accumulator betting",
+    id: "banner4",
+    image: "/images/banner-4.png",
+    imageAlt: "Banner 4",
+    showButton: true,
+    buttonText: "Bet Now",
+    buttonAction: "live",
   },
   {
-    id: "promo5",
-    title: "In-Play Betting",
-    subtitle: "React to the action and bet minute-by-minute.",
-    cta: "View In-Play",
-    image: "/images/p5.jfif",
-    imageAlt: "In-play betting action",
+    id: "banner5",
+    image: "/images/banner-5.png",
+    imageAlt: "Banner 5",
   },
   {
-    id: "promo6",
-    title: "Early Payouts",
-    subtitle: "Cash out your winnings early before the final whistle.",
-    cta: "Learn More",
-    image: "/images/p6.jfif",
-    imageAlt: "Early payout options",
+    id: "banner6",
+    image: "/images/banner-6.png",
+    imageAlt: "Banner 6",
   },
   {
-    id: "promo7",
-    title: "Boosted Odds",
-    subtitle: "Get maximum value with daily super-boosted markets.",
-    cta: "See Boosts",
-    image: "/images/p7.jfif",
-    imageAlt: "Boosted sports odds",
-  },
-  {
-    id: "promo8",
-    title: "Esports Arena",
-    subtitle: "Back your favorite teams in top tier esports tournaments.",
-    cta: "Bet Esports",
-    image: "/images/p8.jfif",
-    imageAlt: "Esports betting",
-  },
-  {
-    id: "promo9",
-    title: "Virtual Sports",
-    subtitle: "24/7 action with our high-definition virtual leagues.",
-    cta: "Play Virtuals",
-    image: "/images/p9.jfif",
-    imageAlt: "Virtual sports betting",
-  },
-  {
-    id: "promo10",
-    title: "VIP Rewards",
-    subtitle: "Join the VIP club for exclusive bonuses and cashback.",
-    cta: "Claim Bonus",
-    image: "/images/p10.jfif",
-    imageAlt: "VIP rewards and bonuses",
+    id: "banner7",
+    image: "/images/banner-7.png",
+    imageAlt: "Banner 7",
   },
 ]
 
@@ -385,58 +346,47 @@ export default function Page() {
 
           {activeTab === "home" && (
             <>
-              <PublishedCustomEventsSection />
-
               {matches !== undefined && (
-                <div className="relative overflow-hidden rounded-lg border border-border bg-card w-full min-h-[220px] sm:h-[280px] lg:h-[320px] flex">
-                  <img
-                    key={SLIDES[slideIndex].id}
-                    src={SLIDES[slideIndex].image}
-                    alt={SLIDES[slideIndex].imageAlt}
-                    className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500"
-                  />
+                <div className="relative overflow-hidden rounded-lg border border-border bg-card w-full h-24 sm:h-32 flex shrink-0">
+                  {SLIDES[slideIndex] && (
+                    <>
+                      <img
+                        key={SLIDES[slideIndex].id}
+                        src={SLIDES[slideIndex].image}
+                        alt={SLIDES[slideIndex].imageAlt}
+                        className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500"
+                      />
 
-                  {/* Dynamic gradient that darkens appropriately on mobile to protect the stacked text */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 sm:via-background/60 to-transparent" aria-hidden="true" />
+                      {/* Button on selected slides */}
+                      {SLIDES[slideIndex].showButton && (
+                        <div className="absolute inset-0 flex items-center justify-end p-4 z-10">
+                          <Button
+                            size="sm"
+                            className="h-8 text-xs px-4 font-semibold bg-[#4b9f71] text-white hover:bg-[#3e865f] shadow-md"
+                            onClick={() => SLIDES[slideIndex].buttonAction === "live" ? router.push("/live") : setActiveTab("home")}
+                          >
+                            {SLIDES[slideIndex].buttonText}
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  )}
 
-                  {/* Fully responsive flex container */}
-                  <div className="relative z-10 flex w-full flex-col sm:flex-row justify-center sm:justify-between items-start sm:items-center p-5 sm:p-10 gap-3 sm:gap-6">
-
-                    {/* Left Side: Text */}
-                    <div className="w-full sm:max-w-[60%] lg:max-w-[50%] space-y-2 select-none">
-                      <Badge className="bg-[#4b9f71]/15 border-[#4b9f71]/40 text-[#4b9f71] font-bold tracking-wider text-[10px] uppercase px-2 py-0.5">
-                        {SLIDES[slideIndex].title}
-                      </Badge>
-                      <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white leading-snug sm:leading-tight tracking-tight shadow-sm drop-shadow-md">
-                        {SLIDES[slideIndex].subtitle}
-                      </h2>
-                    </div>
-
-                    {/* Right Side (Tablet/Desktop) or Bottom Left (Mobile): Button */}
-                    <div className="shrink-0 pt-2 sm:pt-0 sm:pr-8">
-                      <Button
-                        size="sm"
-                        className="h-9 sm:h-10 text-xs sm:text-sm px-5 sm:px-6 font-bold bg-[#4b9f71] text-white hover:bg-[#3e865f] border-none shadow-md transition-transform hover:scale-105"
-                        onClick={() => setActiveTab(slideIndex === 2 ? "featured" : "home")}
-                      >
-                        {SLIDES[slideIndex].cta}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Slider Navigation Dots - slimmed down for mobile so 10 fit neatly */}
-                  <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-6 z-10 flex justify-end items-center gap-1 sm:gap-1.5">
+                  {/* Slider Navigation Dots */}
+                  <div className="absolute bottom-2 right-3 z-10 flex justify-end items-center gap-0.5">
                     {SLIDES.map((slide, index) => (
                       <span
                         key={slide.id}
                         onClick={() => setSlideIndex(index)}
-                        className={`h-1 sm:h-1.5 rounded-full cursor-pointer transition-all ${index === slideIndex ? "w-4 sm:w-5 bg-[#4b9f71]" : "w-1.5 sm:w-1.5 bg-white/50 hover:bg-white/80"
+                        className={`h-1 rounded-full cursor-pointer transition-all ${index === slideIndex ? "w-3 bg-[#4b9f71]" : "w-1 bg-white/50 hover:bg-white/80"
                           }`}
                       />
                     ))}
                   </div>
                 </div>
               )}
+
+              <PublishedCustomEventsSection />
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -578,58 +528,47 @@ export default function Page() {
 
           {!activeTab && (
             <>
-              <PublishedCustomEventsSection />
-
               {matches !== undefined && (
-                <div className="relative overflow-hidden rounded-lg border border-border bg-card w-full min-h-[220px] sm:h-[280px] lg:h-[320px] flex">
-                  <img
-                    key={SLIDES[slideIndex].id}
-                    src={SLIDES[slideIndex].image}
-                    alt={SLIDES[slideIndex].imageAlt}
-                    className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500"
-                  />
+                <div className="relative overflow-hidden rounded-lg border border-border bg-card w-full h-24 sm:h-32 flex shrink-0">
+                  {SLIDES[slideIndex] && (
+                    <>
+                      <img
+                        key={SLIDES[slideIndex].id}
+                        src={SLIDES[slideIndex].image}
+                        alt={SLIDES[slideIndex].imageAlt}
+                        className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500"
+                      />
 
-                  {/* Dynamic gradient that darkens appropriately on mobile to protect the stacked text */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 sm:via-background/60 to-transparent" aria-hidden="true" />
+                      {/* Button on selected slides */}
+                      {SLIDES[slideIndex].showButton && (
+                        <div className="absolute inset-0 flex items-center justify-end p-4 z-10">
+                          <Button
+                            size="sm"
+                            className="h-8 text-xs px-4 font-semibold bg-[#4b9f71] text-white hover:bg-[#3e865f] shadow-md"
+                            onClick={() => SLIDES[slideIndex].buttonAction === "live" ? router.push("/live") : setActiveTab("home")}
+                          >
+                            {SLIDES[slideIndex].buttonText}
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  )}
 
-                  {/* Fully responsive flex container */}
-                  <div className="relative z-10 flex w-full flex-col sm:flex-row justify-center sm:justify-between items-start sm:items-center p-5 sm:p-10 gap-3 sm:gap-6">
-
-                    {/* Left Side: Text */}
-                    <div className="w-full sm:max-w-[60%] lg:max-w-[50%] space-y-2 select-none">
-                      <Badge className="bg-[#4b9f71]/15 border-[#4b9f71]/40 text-[#4b9f71] font-bold tracking-wider text-[10px] uppercase px-2 py-0.5">
-                        {SLIDES[slideIndex].title}
-                      </Badge>
-                      <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white leading-snug sm:leading-tight tracking-tight shadow-sm drop-shadow-md">
-                        {SLIDES[slideIndex].subtitle}
-                      </h2>
-                    </div>
-
-                    {/* Right Side (Tablet/Desktop) or Bottom Left (Mobile): Button */}
-                    <div className="shrink-0 pt-2 sm:pt-0 sm:pr-8">
-                      <Button
-                        size="sm"
-                        className="h-9 sm:h-10 text-xs sm:text-sm px-5 sm:px-6 font-bold bg-[#4b9f71] text-white hover:bg-[#3e865f] border-none shadow-md transition-transform hover:scale-105"
-                        onClick={() => setActiveTab(slideIndex === 2 ? "featured" : "home")}
-                      >
-                        {SLIDES[slideIndex].cta}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Slider Navigation Dots - slimmed down for mobile so 10 fit neatly */}
-                  <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-6 z-10 flex justify-end items-center gap-1 sm:gap-1.5">
+                  {/* Slider Navigation Dots */}
+                  <div className="absolute bottom-2 right-3 z-10 flex justify-end items-center gap-0.5">
                     {SLIDES.map((slide, index) => (
                       <span
                         key={slide.id}
                         onClick={() => setSlideIndex(index)}
-                        className={`h-1 sm:h-1.5 rounded-full cursor-pointer transition-all ${index === slideIndex ? "w-4 sm:w-5 bg-[#4b9f71]" : "w-1.5 sm:w-1.5 bg-white/50 hover:bg-white/80"
+                        className={`h-1 rounded-full cursor-pointer transition-all ${index === slideIndex ? "w-3 bg-[#4b9f71]" : "w-1 bg-white/50 hover:bg-white/80"
                           }`}
                       />
                     ))}
                   </div>
                 </div>
               )}
+
+              <PublishedCustomEventsSection />
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -673,14 +612,14 @@ export default function Page() {
               <span className="hover:text-foreground cursor-pointer" onClick={() => setActiveTab("contact")}>Contact Support</span>
             </div>
           </footer>
-        </main>
+        </main >
 
         <aside className="hidden lg:flex w-80 shrink-0 border-l border-border bg-card flex-col h-full min-h-0">
           <Betslip />
         </aside>
-      </div>
+      </div >
 
       <BottomNav liveCount={liveCount} />
-    </div>
+    </div >
   )
 }
