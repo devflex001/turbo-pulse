@@ -3,45 +3,30 @@
 import * as React from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useBetStore } from "@/hooks/use-bet-store"
-import { getAuthToken } from "@/lib/auth/jwt"
-import { Home, PlayCircle, FileText, User, Receipt, Wallet, ArrowUpRight, ArrowDownLeft, LogOut, History } from "lucide-react"
+import { useAuth } from "@/lib/auth/AuthContext"
+import { Home, PlayCircle, FileText, User, Receipt } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet"
 import { Betslip } from "./betslip"
-import { LoginModal, RegisterModal, DepositModal, WithdrawModal } from "./modals"
-import { Button } from "@/components/ui/button"
+import { LoginModal } from "./modals"
 
 export function BottomNav({ liveCount }: { liveCount: number }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { activeTab, setActiveTab, betslip, walletBalance, logout } = useBetStore()
-  const [isAuthenticated, setIsAuthenticated] = React.useState(false)
+  const { activeTab, setActiveTab, betslip } = useBetStore()
+  const { user, isLoading } = useAuth()
 
   const [betslipOpen, setBetslipOpen] = React.useState(false)
   const [loginOpen, setLoginOpen] = React.useState(false)
-  const [registerOpen, setRegisterOpen] = React.useState(false)
-  const [depositOpen, setDepositOpen] = React.useState(false)
-  const [withdrawOpen, setWithdrawOpen] = React.useState(false)
-
-  // Check auth status from localStorage
-  React.useEffect(() => {
-    const token = getAuthToken()
-    setIsAuthenticated(!!token)
-  }, [])
-
-  // Listen for storage changes
-  React.useEffect(() => {
-    const handleStorageChange = () => {
-      const token = getAuthToken()
-      setIsAuthenticated(!!token)
-    }
-
-    window.addEventListener("storage", handleStorageChange)
-    return () => window.removeEventListener("storage", handleStorageChange)
-  }, [])
 
   const handleProfileClick = () => {
-    if (isAuthenticated) {
+    if (user || isLoading) {
       router.push("/account")
     } else {
       setLoginOpen(true)
@@ -49,22 +34,17 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
   }
 
   const handleMyBetsClick = () => {
-    if (isAuthenticated) {
+    if (user || isLoading) {
       router.push("/my-bets")
     } else {
       setLoginOpen(true)
     }
   }
 
-  const handleLogout = async () => {
-    await logout()
-    router.replace("/")
-  }
-
   return (
     <>
-      <div className="lg:hidden h-16 bg-card border-t border-border relative z-40 overflow-visible shrink-0 pb-safe">
-        <div className="grid grid-cols-5 h-full items-center text-center">
+      <div className="pb-safe relative z-40 h-16 shrink-0 overflow-visible border-t border-border bg-card lg:hidden">
+        <div className="grid h-full grid-cols-5 items-center text-center">
           {/* Home Tab */}
           <button
             onClick={() => {
@@ -72,13 +52,20 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
               router.push("/")
             }}
             className={cn(
-              "flex flex-col items-center justify-center gap-1 h-full text-[10px] font-medium transition-colors",
-              (pathname === "/" && activeTab === "home")
-                ? "text-primary font-semibold"
+              "flex h-full flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors",
+              pathname === "/" && activeTab === "home"
+                ? "font-semibold text-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <Home className={cn("size-5", (pathname === "/" && activeTab === "home") ? "text-primary" : "text-muted-foreground")} />
+            <Home
+              className={cn(
+                "size-5",
+                pathname === "/" && activeTab === "home"
+                  ? "text-primary"
+                  : "text-muted-foreground"
+              )}
+            />
             <span>Home</span>
           </button>
 
@@ -89,25 +76,32 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
               router.push("/")
             }}
             className={cn(
-              "flex flex-col items-center justify-center gap-1 h-full text-[10px] font-medium transition-colors",
-              (pathname === "/" && activeTab === "live")
-                ? "text-primary font-semibold"
+              "flex h-full flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors",
+              pathname === "/" && activeTab === "live"
+                ? "font-semibold text-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <PlayCircle className={cn("size-5", (pathname === "/" && activeTab === "live") ? "text-primary" : "text-muted-foreground")} />
+            <PlayCircle
+              className={cn(
+                "size-5",
+                pathname === "/" && activeTab === "live"
+                  ? "text-primary"
+                  : "text-muted-foreground"
+              )}
+            />
             <span>Live ({liveCount})</span>
           </button>
 
           {/* Betslip FAB */}
-          <div className="relative flex justify-center h-full items-center">
+          <div className="relative flex h-full items-center justify-center">
             <button
               onClick={() => setBetslipOpen(true)}
-              className="absolute -top-5 flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg hover:opacity-90 active:scale-95 transition-all z-50 border-4 border-background"
+              className="absolute -top-5 z-50 flex size-14 items-center justify-center rounded-full border-4 border-background bg-primary text-primary-foreground shadow-lg transition-all hover:opacity-90 active:scale-95"
             >
-              <FileText className="size-6 text-primary-foreground stroke-[2.5]" />
+              <FileText className="size-6 stroke-[2.5] text-primary-foreground" />
               {betslip.length > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground border-2 border-primary">
+                <span className="text-destructive-foreground absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-primary bg-destructive text-[10px] font-bold">
                   {betslip.length}
                 </span>
               )}
@@ -118,13 +112,20 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
           <button
             onClick={handleMyBetsClick}
             className={cn(
-              "flex flex-col items-center justify-center gap-1 h-full text-[10px] font-medium transition-colors",
+              "flex h-full flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors",
               pathname === "/my-bets"
-                ? "text-primary font-semibold"
+                ? "font-semibold text-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <Receipt className={cn("size-5", pathname === "/my-bets" ? "text-primary" : "text-muted-foreground")} />
+            <Receipt
+              className={cn(
+                "size-5",
+                pathname === "/my-bets"
+                  ? "text-primary"
+                  : "text-muted-foreground"
+              )}
+            />
             <span>My Bets</span>
           </button>
 
@@ -132,13 +133,20 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
           <button
             onClick={handleProfileClick}
             className={cn(
-              "flex flex-col items-center justify-center gap-1 h-full text-[10px] font-medium transition-colors",
+              "flex h-full flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors",
               pathname === "/account"
-                ? "text-primary font-semibold"
+                ? "font-semibold text-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <User className={cn("size-5", pathname === "/account" ? "text-primary" : "text-muted-foreground")} />
+            <User
+              className={cn(
+                "size-5",
+                pathname === "/account"
+                  ? "text-primary"
+                  : "text-muted-foreground"
+              )}
+            />
             <span>Profile</span>
           </button>
         </div>
@@ -146,26 +154,26 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
 
       {/* Betslip Mobile Drawer/Sheet */}
       <Sheet open={betslipOpen} onOpenChange={setBetslipOpen}>
-        <SheetContent side="bottom" className="h-[85vh] max-h-[720px] rounded-t-2xl p-0 flex flex-col gap-0 border-t border-border bg-card">
-          <SheetHeader className="p-4 border-b border-border bg-muted/20">
-            <SheetTitle className="text-lg font-bold">Betslip Manager</SheetTitle>
+        <SheetContent
+          side="bottom"
+          className="flex h-[85vh] max-h-[720px] flex-col gap-0 rounded-t-2xl border-t border-border bg-card p-0"
+        >
+          <SheetHeader className="border-b border-border bg-muted/20 p-4">
+            <SheetTitle className="text-lg font-bold">
+              Betslip Manager
+            </SheetTitle>
             <SheetDescription className="text-xs">
               Review selections and place your bet.
             </SheetDescription>
           </SheetHeader>
-          <div className="flex-1 min-h-0 flex flex-col">
+          <div className="flex min-h-0 flex-1 flex-col">
             <Betslip onClose={() => setBetslipOpen(false)} />
           </div>
         </SheetContent>
       </Sheet>
 
-
-
       {/* Auth and transaction modals */}
-      <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
-      <RegisterModal open={registerOpen} onOpenChange={setRegisterOpen} />
-      <DepositModal open={depositOpen} onOpenChange={setDepositOpen} />
-      <WithdrawModal open={withdrawOpen} onOpenChange={setWithdrawOpen} />
+      <LoginModal open={loginOpen && !user} onOpenChange={setLoginOpen} />
     </>
   )
 }

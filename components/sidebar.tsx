@@ -159,11 +159,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
       <div className={cn("pt-4", isCollapsed ? "px-2" : "px-4")}>
         {/* Toggle Button & Header */}
         <div className={cn("flex items-center mb-3", isCollapsed ? "justify-center" : "justify-between px-2")}>
-          {!isCollapsed && (
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Navigation
-            </h2>
-          )}
+    
           <Button
             variant="ghost"
             size="icon"
