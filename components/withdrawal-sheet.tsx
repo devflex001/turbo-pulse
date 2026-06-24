@@ -344,11 +344,11 @@ export function WithdrawalSheet({ onSuccess }: { onSuccess?: () => void }) {
             className="text-sm focus-visible:ring-primary"
             disabled={step === "fee-paying" || isLoading}
           />
-          {config && (
+          {/* {config && (
             <p className="text-[10px] text-muted-foreground">
               Min: KES {minWithdrawal.toLocaleString()}
             </p>
-          )}
+          )} */}
         </div>
 
         {/* Phone */}
