@@ -574,8 +574,7 @@ export default function BetsPage() {
                             </p>
                             <p className="text-[10px] text-muted-foreground truncate">
                               Pick:{" "}
-                              <span className="font-medium text-foreground">{mainSel.selectionName}</span>{" "}
-                              <span className="text-[9px] text-muted-foreground/80">({getDisplayMarketName(mainSel.marketName || mainSel.market)})</span>
+                              <span className="font-medium text-foreground">{mainSel.selectionName}</span>
                             </p>
                           </div>
                         ) : (

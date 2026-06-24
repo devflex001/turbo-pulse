@@ -73,6 +73,20 @@ const STATUS_OPTIONS = [
   { value: "published", label: "Published" },
 ]
 
+function getLiveStatusLabel(lifecycle: string) {
+  switch (lifecycle) {
+    case "first_half":
+      return "LIVE (1st Half)"
+    case "halftime":
+      return "LIVE (Halftime)"
+    case "second_half":
+      return "LIVE (2nd Half)"
+    default:
+      return "LIVE"
+  }
+}
+
+
 export function CustomEventsList({
   onSelectEvent,
   status,
@@ -382,7 +396,7 @@ export function CustomEventsList({
                                 title="Click to update score"
                               >
                                 <span className="size-1.5 rounded-full bg-white animate-pulse" />
-                                LIVE
+                                {getLiveStatusLabel(timer.lifecycle)}
                               </Badge>
                             )
                           }
@@ -510,7 +524,7 @@ export function CustomEventsList({
                       title="Click to update score"
                     >
                       <span className="size-1.5 rounded-full bg-white animate-pulse" />
-                      LIVE
+                      {getLiveStatusLabel(timer.lifecycle)}
                     </Badge>
                   )
                 }
