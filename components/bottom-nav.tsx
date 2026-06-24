@@ -19,11 +19,23 @@ import { LoginModal } from "./modals"
 export function BottomNav({ liveCount }: { liveCount: number }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { activeTab, setActiveTab, betslip } = useBetStore()
+  const { activeTab, setActiveTab, setSelectedLeague, betslip } = useBetStore()
   const { user, isLoading } = useAuth()
 
   const [betslipOpen, setBetslipOpen] = React.useState(false)
   const [loginOpen, setLoginOpen] = React.useState(false)
+
+  const handleHomeClick = () => {
+    setActiveTab("home")
+    setSelectedLeague("All Leagues")
+    router.push("/")
+  }
+
+  const handleLiveClick = () => {
+    setActiveTab("live")
+    setSelectedLeague("All Leagues")
+    router.push("/")
+  }
 
   const handleProfileClick = () => {
     if (user || isLoading) {
@@ -44,13 +56,10 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
   return (
     <>
       <div className="pb-safe relative z-40 h-16 shrink-0 overflow-visible border-t border-border bg-card lg:hidden">
-        <div className="grid h-full grid-cols-5 items-center text-center">
+        <div className="grid h-full grid-cols-4 items-center text-center">
           {/* Home Tab */}
           <button
-            onClick={() => {
-              setActiveTab("home")
-              router.push("/")
-            }}
+            onClick={handleHomeClick}
             className={cn(
               "flex h-full flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors",
               pathname === "/" && activeTab === "home"
@@ -67,30 +76,6 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
               )}
             />
             <span>Home</span>
-          </button>
-
-          {/* Live Tab */}
-          <button
-            onClick={() => {
-              setActiveTab("live")
-              router.push("/")
-            }}
-            className={cn(
-              "flex h-full flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors",
-              pathname === "/" && activeTab === "live"
-                ? "font-semibold text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <PlayCircle
-              className={cn(
-                "size-5",
-                pathname === "/" && activeTab === "live"
-                  ? "text-primary"
-                  : "text-muted-foreground"
-              )}
-            />
-            <span>Live ({liveCount})</span>
           </button>
 
           {/* Betslip FAB */}

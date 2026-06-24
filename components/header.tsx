@@ -89,9 +89,7 @@ export function Header() {
                 <SheetHeader className="px-6 pt-6 pb-2 border-b border-border bg-muted/20 flex-shrink-0">
                   <SheetTitle className="text-left text-sm font-bold flex items-center gap-2">
                     <img src="/images/logo.png" alt="BetFlexx Logo" className="h-8 w-auto" />
-                    <span>Navigation</span>
                   </SheetTitle>
-                  <SheetDescription className="hidden">BetFlexx Navigation Drawer</SheetDescription>
                 </SheetHeader>
                 <div className="flex-1 overflow-y-auto min-h-0">
                   <Sidebar className="w-full border-r-0 h-full" onClose={() => setMenuOpen(false)} />
