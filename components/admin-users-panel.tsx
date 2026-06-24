@@ -345,9 +345,17 @@ interface UserDetailsModalProps {
   user: UserWithBan | null
   open: boolean
   onClose: () => void
+  adminUserId?: string
 }
 
-function UserDetailsModal({ user, open, onClose }: UserDetailsModalProps) {
+function UserDetailsModal({ user, open, onClose, adminUserId }: UserDetailsModalProps) {
+  const ipInfo = useQuery(
+    api.ipTracking.getUserIPInfo,
+    user && open
+      ? { userId: user._id as Id<"users">, adminUserId: adminUserId as Id<"users"> | undefined }
+      : "skip"
+  )
+
   if (!user) return null
 
   const displayId = user.phone ?? user._id
@@ -383,7 +391,7 @@ function UserDetailsModal({ user, open, onClose }: UserDetailsModalProps) {
         </div>
 
         {/* IP Tracking Info */}
-        {user.ipInfo && (
+        {ipInfo && (
           <>
             <Separator />
             <div className="space-y-3.5">
@@ -394,61 +402,61 @@ function UserDetailsModal({ user, open, onClose }: UserDetailsModalProps) {
 
               <div className="grid grid-cols-3 gap-y-2 gap-x-2 text-[11px]">
                 <span className="font-semibold text-muted-foreground">IP Address:</span>
-                <span className="col-span-2 font-mono text-foreground">{user.ipInfo.ip}</span>
+                <span className="col-span-2 font-mono text-foreground">{ipInfo.ip}</span>
 
                 <span className="font-semibold text-muted-foreground">Country:</span>
                 <span className="col-span-2 text-foreground">
-                  {user.ipInfo.location.country} ({user.ipInfo.location.countryCode})
+                  {ipInfo.location.country} ({ipInfo.location.countryCode})
                 </span>
 
-                {user.ipInfo.location.city && (
+                {ipInfo.location.city && (
                   <>
                     <span className="font-semibold text-muted-foreground">City:</span>
-                    <span className="col-span-2 text-foreground">{user.ipInfo.location.city}</span>
+                    <span className="col-span-2 text-foreground">{ipInfo.location.city}</span>
                   </>
                 )}
 
-                {user.ipInfo.location.state && (
+                {ipInfo.location.state && (
                   <>
                     <span className="font-semibold text-muted-foreground">State:</span>
-                    <span className="col-span-2 text-foreground">{user.ipInfo.location.state}</span>
+                    <span className="col-span-2 text-foreground">{ipInfo.location.state}</span>
                   </>
                 )}
 
-                {user.ipInfo.location.timezone && (
+                {ipInfo.location.timezone && (
                   <>
                     <span className="font-semibold text-muted-foreground">Timezone:</span>
-                    <span className="col-span-2 text-foreground">{user.ipInfo.location.timezone}</span>
+                    <span className="col-span-2 text-foreground">{ipInfo.location.timezone}</span>
                   </>
                 )}
 
                 <span className="font-semibold text-muted-foreground">Last Seen:</span>
                 <span className="col-span-2 text-foreground">
-                  {formatDate(user.ipInfo.lastSeen)}
+                  {formatDate(ipInfo.lastSeen)}
                 </span>
               </div>
 
               <div className="space-y-2 pt-1 border-t border-border/50">
                 <h4 className="font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Device</h4>
                 <div className="grid grid-cols-3 gap-y-1.5 gap-x-2 text-[10px]">
-                  {user.ipInfo.device.deviceType && (
+                  {ipInfo.device.deviceType && (
                     <>
                       <span className="font-semibold text-muted-foreground">Type:</span>
-                      <span className="col-span-2 text-foreground capitalize">{user.ipInfo.device.deviceType}</span>
+                      <span className="col-span-2 text-foreground capitalize">{ipInfo.device.deviceType}</span>
                     </>
                   )}
 
-                  {user.ipInfo.device.browserName && (
+                  {ipInfo.device.browserName && (
                     <>
                       <span className="font-semibold text-muted-foreground">Browser:</span>
-                      <span className="col-span-2 text-foreground">{user.ipInfo.device.browserName}</span>
+                      <span className="col-span-2 text-foreground">{ipInfo.device.browserName}</span>
                     </>
                   )}
 
-                  {user.ipInfo.device.osName && (
+                  {ipInfo.device.osName && (
                     <>
                       <span className="font-semibold text-muted-foreground">OS:</span>
-                      <span className="col-span-2 text-foreground">{user.ipInfo.device.osName}</span>
+                      <span className="col-span-2 text-foreground">{ipInfo.device.osName}</span>
                     </>
                   )}
                 </div>
@@ -898,6 +906,7 @@ export function AdminUsersPanel() {
         user={detailTarget}
         open={!!detailTarget}
         onClose={() => setDetailTarget(null)}
+        adminUserId={user?._id}
       />
       <BanModal
         user={banTarget}
