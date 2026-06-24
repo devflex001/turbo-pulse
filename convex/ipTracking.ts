@@ -399,7 +399,7 @@ export const getTodayVisitorCount = query({
 
     return {
       count: visitors.length,
-      totalVisits: visitors.reduce((sum, v) => sum + v.visitCount, 0),
+      totalVisits: visitors.reduce((sum, v) => sum + (v.visitCount || 1), 0),
       timestamp: now,
     }
   },
@@ -434,7 +434,7 @@ export const getVisitorStats = query({
     let totalVisits = 0
 
     visitors.forEach((v) => {
-      totalVisits += v.visitCount
+      totalVisits += v.visitCount || 1
       byCountry[v.location.country] = (byCountry[v.location.country] || 0) + 1
       const device = v.device.deviceType || "unknown"
       byDevice[device] = (byDevice[device] || 0) + 1
