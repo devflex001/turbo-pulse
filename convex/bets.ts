@@ -19,20 +19,9 @@ function getBetLabel(selections: { matchName: string }[]) {
 }
 
 export const getWalletBalance = query({
-  args: {
-    userId: v.optional(v.id("users")),
-  },
-  handler: async (ctx, args) => {
-    // If userId provided, fetch that user's wallet
-    if (args.userId) {
-      const wallet = await ctx.db
-        .query("wallets")
-        .filter((q) => q.eq(q.field("userId"), args.userId.toString()))
-        .first();
-      return wallet ? wallet.balance : 0;
-    }
-
-    // Fallback: get first wallet (deprecated behavior for backward compatibility)
+  args: {},
+  handler: async (ctx) => {
+    // Get first wallet (deprecated - ideally pass userId from client)
     const wallet = await ctx.db
       .query("wallets")
       .first();

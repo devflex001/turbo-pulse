@@ -10,20 +10,42 @@ const REFERRAL_REWARD = 1000; // KES
 /**
  * Generate a unique referral code
  */
-function generateReferralCode(): string {
-  // Generate a random 8-character alphanumeric code
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let code = "";
-  for (let i = 0; i < 8; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+async function generateUniqueReferralCode(ctx: QueryCtx | MutationCtx): Promise<string> {
+  let referralCode: string;
+  let attempts = 0;
+  const maxAttempts = 10;
+
+  do {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    referralCode = "";
+    for (let i = 0; i < 8; i++) {
+      referralCode += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_referralCode", (q) => q.eq("referralCode", referralCode))
+      .first();
+
+    if (!existing) {
+      break;
+    }
+
+    attempts++;
+  } while (attempts < maxAttempts);
+
+  if (attempts >= maxAttempts) {
+    throw new Error("Failed to generate unique referral code");
   }
-  return code;
+
+  return referralCode;
 }
 
 /**
- * Get or create referral code for a user
+ * Ensure user has a referral code (generate if missing)
+ * Should be called on referrals page load
  */
-export const getReferralCode = query({
+export const ensureReferralCode = mutation({
   args: {
     userId: v.id("users"),
   },
@@ -39,14 +61,24 @@ export const getReferralCode = query({
     if (user.referralCode) {
       return {
         referralCode: user.referralCode,
-        totalReferrals: user.totalReferrals ?? 0,
-        totalReferralEarnings: user.totalReferralEarnings ?? 0,
+        isNew: false,
       };
     }
 
-    // This shouldn't happen in normal flow (code is created at signup)
-    // but return null if it does
-    return null;
+    // Generate unique referral code
+    const referralCode = await generateUniqueReferralCode(ctx);
+
+    // Update user with new referral code and initialize stats
+    await ctx.db.patch(args.userId, {
+      referralCode,
+      totalReferrals: 0,
+      totalReferralEarnings: 0,
+    });
+
+    return {
+      referralCode,
+      isNew: true,
+    };
   },
 });
 
@@ -68,28 +100,7 @@ export const generateUserReferralCode = mutation({
       return user.referralCode;
     }
 
-    let referralCode: string;
-    let attempts = 0;
-    const maxAttempts = 10;
-
-    // Generate unique referral code
-    do {
-      referralCode = generateReferralCode();
-      const existing = await ctx.db
-        .query("users")
-        .withIndex("by_referralCode", (q) => q.eq("referralCode", referralCode))
-        .first();
-
-      if (!existing) {
-        break;
-      }
-
-      attempts++;
-    } while (attempts < maxAttempts);
-
-    if (attempts >= maxAttempts) {
-      throw new Error("Failed to generate unique referral code");
-    }
+    const referralCode = await generateUniqueReferralCode(ctx);
 
     // Update user with referral code
     await ctx.db.patch(args.userId, {
@@ -117,6 +128,7 @@ export const getReferralStats = query({
       throw new Error("User not found");
     }
 
+    // Return stats as-is. If no code, client should call ensureReferralCode mutation
     const completedReferrals = await ctx.db
       .query("referrals")
       .withIndex("by_referrerId_and_status", (q) =>
@@ -345,7 +357,7 @@ export const getReferralLink = query({
 
     const user = await ctx.db.get(args.userId);
     if (!user || !user.referralCode) {
-      throw new Error("User referral code not found");
+      return null;
     }
 
     // Build the referral link - when clicked, adds ?ref=CODE to homepage

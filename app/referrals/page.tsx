@@ -8,7 +8,7 @@ import { Sidebar } from "@/components/sidebar"
 import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { LoginModal } from "@/components/modals"
-import { useQuery } from "convex/react"
+import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import {
   ArrowLeft,
@@ -28,6 +28,9 @@ export default function ReferralsPage() {
   const [mounted, setMounted] = React.useState(false)
   const [copied, setCopied] = React.useState(false)
 
+  // Mutations
+  const ensureReferralCodeMutation = useMutation(api.referrals.ensureReferralCode)
+
   // Convex queries
   const referralStats = useQuery(
     api.referrals.getReferralStats,
@@ -36,13 +39,22 @@ export default function ReferralsPage() {
 
   const referralLink = useQuery(
     api.referrals.getReferralLink,
-    user?._id ? { userId: user._id } : "skip"
+    user?._id && referralStats?.referralCode ? { userId: user._id } : "skip"
   )
 
   // Only render after hydration
   React.useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Ensure user has referral code on load
+  React.useEffect(() => {
+    if (mounted && user?._id) {
+      ensureReferralCodeMutation({ userId: user._id }).catch((error) => {
+        console.error("Failed to ensure referral code:", error)
+      })
+    }
+  }, [mounted, user?._id, ensureReferralCodeMutation])
 
   const handleCopyLink = (link: string) => {
     navigator.clipboard.writeText(link)

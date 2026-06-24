@@ -91,10 +91,7 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
   const [localTransactions, setLocalTransactions] = React.useState<Transaction[]>([])
 
   // Convex reactive queries - use undefined to skip
-  const dbBalance = useQuery(
-    api.bets.getWalletBalance,
-    authUser?._id ? { userId: authUser._id } : undefined
-  )
+  const dbBalance = useQuery(api.bets.getWalletBalance)
   const dbBets = useQuery(api.bets.getMyBets)
   const dbTransactions = useQuery(api.bets.getTransactions)
   const dbAdminStats = useQuery(api.bets.getAdminStats)
