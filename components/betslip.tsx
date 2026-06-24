@@ -113,35 +113,37 @@ export function Betslip({ onClose }: BetslipProps) {
         </Button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-1.5 sm:px-4">
-        <div className="space-y-1.5 pb-2">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-3 py-1 sm:px-4">
+        <div className="divide-y divide-border/40 pb-2">
           {betslip.map((item) => (
             <div
               key={item.id}
-              className="relative flex flex-col gap-0.5 rounded-md border border-border bg-muted/30 p-2 text-xs"
+              className="relative flex flex-col gap-1 py-3 text-xs"
             >
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute top-1 right-1 size-5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground"
+                className="absolute top-2 right-0 size-5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground"
                 onClick={() => removeFromBetslip(item.id)}
                 aria-label="Remove selection"
               >
                 <X className="size-2.5" />
               </Button>
 
-              <span className="font-semibold text-foreground pr-6 break-words leading-tight text-[11px]">
-                {item.matchName}
-              </span>
-              <span className="text-[9px] text-muted-foreground">{item.market}</span>
-
-              <div className="flex flex-wrap items-center justify-between gap-1 mt-0.5">
-                <span className="font-bold text-foreground break-words text-[10px]">
-                  {item.selectionName}
-                </span>
-                <span className="font-bold text-primary font-mono text-[9px] bg-primary/10 px-1 py-0.25 rounded shrink-0">
-                  {item.odds.toFixed(2)}
-                </span>
+              <div className="flex items-start justify-between gap-3 pr-6">
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <span className="font-semibold text-foreground break-words leading-tight text-[11px] block pr-1">
+                    {item.matchName}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground block">
+                    {item.market} • <span className="font-bold text-foreground">{item.selectionName}</span>
+                  </span>
+                </div>
+                <div className="shrink-0 pt-0.5">
+                  <span className="font-bold text-primary font-mono text-[10px] bg-primary/10 px-1.5 py-0.5 rounded">
+                    {item.odds.toFixed(2)}
+                  </span>
+                </div>
               </div>
             </div>
           ))}
@@ -190,28 +192,28 @@ export function Betslip({ onClose }: BetslipProps) {
           </div>
         </div>
 
-        <div className="rounded-lg border border-border bg-card p-3 space-y-2 text-xs">
+        <div className="space-y-1.5 text-xs pt-1">
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Selections</span>
-            <span className="font-bold text-foreground">
+            <span className="font-semibold text-foreground">
               {betslip.length}
             </span>
           </div>
           {betslip.length > 1 && (
-            <div className="flex justify-between items-center pt-1 border-t border-border">
+            <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Stake (per selection)</span>
-              <span className="font-bold font-mono">
+              <span className="font-semibold font-mono">
                 KES {parsedStake.toLocaleString()}
               </span>
             </div>
           )}
-          <div className="flex justify-between items-center pt-1 border-t border-border">
+          <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Total Stake</span>
-            <span className="font-bold font-mono text-foreground">
+            <span className="font-semibold font-mono text-foreground">
               KES {totalStake.toLocaleString()}
             </span>
           </div>
-          <div className="flex justify-between items-center pt-1 border-t border-border">
+          <div className="flex justify-between items-center pt-2 border-t border-border">
             <span className="font-bold text-sm">Total potential return</span>
             <span className="font-extrabold font-mono text-sm text-primary">
               KES {totalPotentialReturn.toLocaleString(undefined, { minimumFractionDigits: 2 })}
