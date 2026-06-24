@@ -152,15 +152,15 @@ export function PublishedCustomEventsSection() {
 
         {/* Main content - TIGHT SPACING */}
         <div className="px-3 py-2.5 space-y-1.5">
-          {/* Countdown - CENTERED */}
+          {/* Countdown / Score - CENTERED */}
           <div className="space-y-0.5 text-center">
             <p className="text-[8px] text-muted-foreground font-semibold uppercase tracking-wider">
-              Starts In
+              {timer.lifecycle === "not_started" ? "Starts In" : "Score"}
             </p>
             <p className="text-2xl font-black text-primary tabular-nums leading-tight">
               {timer.lifecycle === "not_started"
                 ? formatCountdownToStart(timer.remainingMs)
-                : formatTimerDisplay(timer.remainingMs)}
+                : `${event.homeScore ?? 0} - ${event.awayScore ?? 0}`}
             </p>
           </div>
 
