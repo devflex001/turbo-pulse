@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useMutation, usePaginatedQuery } from "convex/react"
+import { useMutation, useQuery, usePaginatedQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
 import { useAuthClient } from "@/lib/auth-client"
@@ -386,8 +386,8 @@ function UserDetailsModal({ user, open, onClose }: UserDetailsModalProps) {
         {user.ipInfo && (
           <>
             <Separator />
-            <div className="space-y-2.5 rounded-lg border border-primary/20 bg-primary/5 p-3">
-              <h3 className="font-bold text-primary flex items-center gap-1.5">
+            <div className="space-y-3.5">
+              <h3 className="font-bold text-foreground flex items-center gap-1.5">
                 <Globe className="size-3.5" />
                 IP & Location Information
               </h3>
@@ -428,10 +428,8 @@ function UserDetailsModal({ user, open, onClose }: UserDetailsModalProps) {
                 </span>
               </div>
 
-              <Separator className="my-2" />
-
-              <div className="space-y-2">
-                <h4 className="font-semibold text-muted-foreground text-[10px]">Device</h4>
+              <div className="space-y-2 pt-1 border-t border-border/50">
+                <h4 className="font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Device</h4>
                 <div className="grid grid-cols-3 gap-y-1.5 gap-x-2 text-[10px]">
                   {user.ipInfo.device.deviceType && (
                     <>
@@ -507,6 +505,7 @@ const PAGE_SIZE = 10
 
 export function AdminUsersPanel() {
   const { user } = useAuthClient()
+  const userStats = useQuery(api.adminUsers.getUserStats, { userId: user?._id })
   const [search, setSearch] = React.useState("")
   const [debouncedSearch, setDebouncedSearch] = React.useState("")
 
@@ -577,6 +576,59 @@ export function AdminUsersPanel() {
       </div>
 
       <Separator />
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="border border-border rounded-lg p-3.5 space-y-1 bg-card">
+          <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5">
+            <Users className="size-3.5 text-primary" /> Total Users
+          </span>
+          {userStats === undefined ? (
+            <Skeleton className="h-6 w-16" />
+          ) : (
+            <p className="text-lg font-bold tracking-tight font-mono">{userStats.totalUsers}</p>
+          )}
+        </div>
+
+        <div className="border border-border rounded-lg p-3.5 space-y-1 bg-card">
+          <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5">
+            <ShieldCheck className="size-3.5 text-blue-500" /> Admin Users
+          </span>
+          {userStats === undefined ? (
+            <Skeleton className="h-6 w-16" />
+          ) : (
+            <p className="text-lg font-bold tracking-tight font-mono text-blue-600 dark:text-blue-400">
+              {userStats.adminUsers}
+            </p>
+          )}
+        </div>
+
+        <div className="border border-border rounded-lg p-3.5 space-y-1 bg-card">
+          <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5">
+            <Ban className="size-3.5 text-rose-500" /> Banned Users
+          </span>
+          {userStats === undefined ? (
+            <Skeleton className="h-6 w-16" />
+          ) : (
+            <p className="text-lg font-bold tracking-tight font-mono text-rose-600 dark:text-rose-400">
+              {userStats.activeBans}
+            </p>
+          )}
+        </div>
+
+        <div className="border border-border rounded-lg p-3.5 space-y-1 bg-card">
+          <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5">
+            <AlertTriangle className="size-3.5 text-amber-500" /> Pending Appeals
+          </span>
+          {userStats === undefined ? (
+            <Skeleton className="h-6 w-16" />
+          ) : (
+            <p className="text-lg font-bold tracking-tight font-mono text-amber-600 dark:text-amber-400">
+              {userStats.pendingAppeals}
+            </p>
+          )}
+        </div>
+      </div>
 
       {/* ── Mobile Card List (< sm) ── */}
       <div className="sm:hidden space-y-2">

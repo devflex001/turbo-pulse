@@ -302,8 +302,6 @@ export default function BetsPage() {
           </div>
         </div>
 
-        <Separator />
-
         {/* Stats Overview */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="border border-border rounded-lg p-3.5 space-y-1 bg-card">

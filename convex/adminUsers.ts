@@ -318,3 +318,39 @@ export const submitAppeal = mutation({
     };
   },
 });
+
+/**
+ * Get aggregated stats for the user administration overview.
+ * Admin-only query.
+ */
+export const getUserStats = query({
+  args: {
+    userId: v.optional(v.id("users")), // Admin ID checking
+  },
+  handler: async (ctx, args) => {
+    // Require admin authentication
+    await requireAdmin(ctx, args.userId);
+
+    const allUsers = await ctx.db.query("users").collect();
+    const totalUsers = allUsers.length;
+    const adminUsers = allUsers.filter((u) => u.role === "admin").length;
+
+    const activeBans = await ctx.db
+      .query("users_bans")
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .collect();
+
+    const pendingAppeals = await ctx.db
+      .query("ban_appeals")
+      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .collect();
+
+    return {
+      totalUsers,
+      adminUsers,
+      activeBans: activeBans.length,
+      pendingAppeals: pendingAppeals.length,
+    };
+  },
+});
+
