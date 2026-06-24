@@ -17,7 +17,9 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   Loader2,
+  Bug,
 } from "lucide-react"
+import { Card } from "@/components/ui/card"
 
 export default function AccountPage() {
   const router = useRouter()
@@ -28,11 +30,16 @@ export default function AccountPage() {
   // Only render after hydration
   React.useEffect(() => {
     setMounted(true)
+    console.log('[AccountPage] Mounted, auth state:', { isLoading, user })
   }, [])
 
   const handleLogout = async () => {
     logout()
     router.push("/")
+  }
+
+  const goToDebug = () => {
+    router.push("/debug-auth")
   }
 
   // Don't render anything until mounted
@@ -59,7 +66,22 @@ export default function AccountPage() {
       <>
         <div className="flex flex-col h-screen overflow-hidden bg-background">
           <Header />
-          <div className="flex flex-1" />
+          <div className="flex flex-1 items-center justify-center">
+            <Card className="p-8 max-w-md w-full text-center space-y-4">
+              <User className="size-12 mx-auto text-muted-foreground" />
+              <h2 className="text-lg font-bold text-foreground">Authentication Required</h2>
+              <p className="text-sm text-muted-foreground">Please log in to view your account</p>
+              <div className="flex gap-3 justify-center">
+                <Button onClick={() => router.push("/")}>
+                  Go Home
+                </Button>
+                <Button variant="outline" onClick={goToDebug}>
+                  <Bug className="size-4 mr-2" />
+                  Debug Auth
+                </Button>
+              </div>
+            </Card>
+          </div>
           <BottomNav liveCount={0} />
         </div>
         <LoginModal open={true} onOpenChange={() => { }} />
@@ -79,16 +101,27 @@ export default function AccountPage() {
           <main className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
             <div className="max-w-md w-full mx-auto space-y-6">
               {/* Back Button & Title */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => router.back()}
+                    className="size-8 rounded-full border border-border hover:bg-muted/50 shrink-0 hidden sm:inline-flex"
+                  >
+                    <ArrowLeft className="size-4" />
+                  </Button>
+                  <h1 className="text-xl font-bold text-foreground">My Profile</h1>
+                </div>
                 <Button
                   variant="ghost"
-                  size="icon"
-                  onClick={() => router.back()}
-                  className="size-8 rounded-full border border-border hover:bg-muted/50 shrink-0 hidden sm:inline-flex"
+                  size="sm"
+                  onClick={goToDebug}
+                  className="gap-2"
                 >
-                  <ArrowLeft className="size-4" />
+                  <Bug className="size-3.5" />
+                  Debug
                 </Button>
-                <h1 className="text-xl font-bold text-foreground">My Profile</h1>
               </div>
 
               {/* Profile Header */}
