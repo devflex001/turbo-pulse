@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import { ArrowUpRight, Copy, Check, Loader, Lock } from "lucide-react"
+import { ArrowDownToLine, Copy, Check, Loader, Lock } from "lucide-react"
+import { useAuth } from "@/lib/auth/AuthContext"
 import { MPesaLiveStatus, MPesaFeedback } from "@/components/mpesa-feedback"
 
 const QUICK_AMOUNTS = [100, 250, 500, 1000, 2500, 5000]

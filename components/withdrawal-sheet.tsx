@@ -11,6 +11,7 @@ import { Id } from "@/convex/_generated/dataModel"
 import {
   Loader2,
   ArrowDownLeft,
+  ArrowUpFromLine,
   AlertCircle,
   CheckCircle2,
   Zap,
@@ -43,6 +44,12 @@ export function WithdrawalSheet({ onSuccess }: { onSuccess?: () => void }) {
   const [step, setStep] = React.useState<Step>("form")
   const [amount, setAmount] = React.useState("")
   const [phone, setPhone] = React.useState("")
+
+  React.useEffect(() => {
+    if (user?.phone) {
+      setPhone(user.phone)
+    }
+  }, [user?.phone])
   const [error, setError] = React.useState<string | null>(null)
   const [requestId, setRequestId] = React.useState<Id<"withdrawal_requests"> | null>(null)
   const [paystackPublicKey, setPaystackPublicKey] = React.useState("")
@@ -321,7 +328,7 @@ export function WithdrawalSheet({ onSuccess }: { onSuccess?: () => void }) {
           <label className="text-xs font-semibold text-muted-foreground">
             Available Balance
           </label>
-          <p className="text-lg font-bold font-mono">
+          <p className="text-lg font-bold  text-emerald-500">
             KES{" "}
             {wallet?.balance.toLocaleString(undefined, { minimumFractionDigits: 2 }) ?? "0.00"}
           </p>
@@ -397,7 +404,7 @@ export function WithdrawalSheet({ onSuccess }: { onSuccess?: () => void }) {
             </>
           ) : (
             <>
-              <ArrowDownLeft className="h-4 w-4" />
+              <ArrowUpFromLine className="h-4 w-4" />
               Withdraw
             </>
           )}
