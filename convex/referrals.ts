@@ -345,11 +345,13 @@ export const getReferralLink = query({
 
     const user = await ctx.db.get(args.userId);
     if (!user || !user.referralCode) {
-      return null;
+      throw new Error("User referral code not found");
     }
 
+    // Build the referral link - when clicked, adds ?ref=CODE to homepage
+    // The RegisterModal will detect this and auto-fill the referral code
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-    const referralLink = `${baseUrl}/signup?ref=${user.referralCode}`;
+    const referralLink = `${baseUrl}?ref=${user.referralCode}`;
 
     return {
       referralCode: user.referralCode,
