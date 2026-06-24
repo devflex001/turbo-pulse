@@ -129,6 +129,7 @@ export const getIPLocationAndDevice = action({
 /**
  * Track a visitor to the homepage
  * Called from middleware or client-side on page load
+ * Upserts visitor record to avoid duplicates - increments visit count
  */
 export const trackVisitor = mutation({
   args: {
@@ -161,43 +162,39 @@ export const trackVisitor = mutation({
     }
 
     try {
-      const visitId = await ctx.db.insert("visitors", {
-        ip: args.ip,
-        userId: args.userId,
-        location: args.location,
-        device: args.device,
-        visitedAt: Date.now(),
-        isBot: args.isBot,
-      })
+      // Check if this IP already exists
+      const existingVisitor = await ctx.db
+        .query("visitors")
+        .withIndex("by_ip", (q) => q.eq("ip", args.ip))
+        .first()
 
-      // Update or create IP tracking record for registered users
-      if (args.userId) {
-        const existingTracking = await ctx.db
-          .query("ip_tracking")
-          .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-          .first()
+      if (existingVisitor) {
+        // Update existing visitor - increment visit count
+        await ctx.db.patch(existingVisitor._id, {
+          visitCount: existingVisitor.visitCount + 1,
+          lastVisitedAt: Date.now(),
+          // Update device info in case they switched device/browser
+          device: args.device,
+          location: args.location,
+          userId: args.userId || existingVisitor.userId,
+        })
 
-        if (existingTracking) {
-          await ctx.db.patch(existingTracking._id, {
-            ip: args.ip,
-            location: args.location,
-            device: args.device,
-            lastSeen: Date.now(),
-          })
-        } else {
-          await ctx.db.insert("ip_tracking", {
-            ip: args.ip,
-            userId: args.userId,
-            location: args.location,
-            device: args.device,
-            lastSeen: Date.now(),
-            createdAt: Date.now(),
-            isBot: false,
-          })
-        }
+        return { success: true, visitId: existingVisitor._id, isNew: false }
+      } else {
+        // Create new visitor record
+        const visitId = await ctx.db.insert("visitors", {
+          ip: args.ip,
+          userId: args.userId,
+          location: args.location,
+          device: args.device,
+          visitCount: 1,
+          firstVisitedAt: Date.now(),
+          lastVisitedAt: Date.now(),
+          isBot: args.isBot,
+        })
+
+        return { success: true, visitId, isNew: true }
       }
-
-      return { success: true, visitId }
     } catch (error) {
       console.error("Error tracking visitor:", error)
       return { success: false, reason: "tracking_failed" }
@@ -304,7 +301,7 @@ export const listVisitors = query({
 
     const paginatedVisitors = await ctx.db
       .query("visitors")
-      .withIndex("by_visitedAt", (q) => q.gte("visitedAt", 0))
+      .withIndex("by_lastVisitedAt", (q) => q.gte("lastVisitedAt", 0))
       .order("desc")
       .paginate(args.paginationOpts)
 
@@ -332,8 +329,8 @@ export const getVisitorsByDateRange = query({
 
     const visitors = await ctx.db
       .query("visitors")
-      .withIndex("by_visitedAt", (q) =>
-        q.gte("visitedAt", args.startTime).lte("visitedAt", args.endTime)
+      .withIndex("by_lastVisitedAt", (q) =>
+        q.gte("lastVisitedAt", args.startTime).lte("lastVisitedAt", args.endTime)
       )
       .order("desc")
       .take(1000) // Limit to prevent huge responses
@@ -389,13 +386,14 @@ export const getTodayVisitorCount = query({
 
     const visitors = await ctx.db
       .query("visitors")
-      .withIndex("by_visitedAt", (q) =>
-        q.gte("visitedAt", todayStart.getTime())
+      .withIndex("by_lastVisitedAt", (q) =>
+        q.gte("lastVisitedAt", todayStart.getTime())
       )
       .take(1000) // This is approximate, real implementation would use a counter table
 
     return {
       count: visitors.length,
+      totalVisits: visitors.reduce((sum, v) => sum + v.visitCount, 0),
       timestamp: now,
     }
   },

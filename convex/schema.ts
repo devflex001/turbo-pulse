@@ -375,12 +375,14 @@ const schema = defineSchema({
       osVersion: v.optional(v.string()),
       deviceType: v.optional(v.string()),
     }),
-    visitedAt: v.number(),
+    visitCount: v.number(), // Total number of visits from this IP
+    firstVisitedAt: v.number(),
+    lastVisitedAt: v.number(),
     isBot: v.boolean(),
   })
-    .index("by_visitedAt", ["visitedAt"])
     .index("by_ip", ["ip"])
-    .index("by_userId", ["userId"]),
+    .index("by_userId", ["userId"])
+    .index("by_lastVisitedAt", ["lastVisitedAt"]),
 })
 
 export default schema
