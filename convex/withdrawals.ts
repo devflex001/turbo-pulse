@@ -3,6 +3,7 @@ import { query, mutation } from "./_generated/server";
 import { Doc } from "./_generated/dataModel";
 import { requireAdmin, requireAuth } from "./auth/authorization";
 import { updateWalletBalance } from "./mpesa";
+import { notifyAdmins, notifyUser } from "./notifications";
 
 const CONFIG_KEY = "main";
 
@@ -10,6 +11,13 @@ const CONFIG_DEFAULTS = {
   minWithdrawal: 500,
   withdrawalFeePercent: 2.5,
 };
+
+function formatKes(amount: number) {
+  return `KES ${amount.toLocaleString("en-KE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // QUERIES
@@ -190,6 +198,31 @@ export const submitWithdrawalRequest = mutation({
       requestedAt: Date.now(),
     });
 
+    await notifyUser(ctx, {
+      recipientUserId: user._id,
+      type: "withdrawal",
+      title: "Withdrawal requested",
+      message: `Your ${formatKes(args.amount)} withdrawal request is pending admin review.`,
+      href: "/withdraw",
+      dedupeKey: `withdrawal-request:user:${requestId}`,
+      metadata: {
+        withdrawalId: requestId,
+        amount: args.amount,
+      },
+    });
+
+    await notifyAdmins(ctx, {
+      type: "withdrawal",
+      title: "New withdrawal request",
+      message: `${user.phone} requested a ${formatKes(args.amount)} withdrawal.`,
+      href: "/admin/withdrawals",
+      dedupeKey: `withdrawal-request:${requestId}`,
+      metadata: {
+        withdrawalId: requestId,
+        amount: args.amount,
+      },
+    });
+
     return { success: true, requestId };
   },
 });
@@ -225,6 +258,18 @@ export const payInstantFee = mutation({
       instantFeeTxReference: args.instantFeeTxReference,
     });
 
+    await notifyAdmins(ctx, {
+      type: "withdrawal",
+      title: "Instant withdrawal requested",
+      message: `${user.phone} paid for instant processing on a ${formatKes(request.amount)} withdrawal.`,
+      href: "/admin/withdrawals",
+      dedupeKey: `withdrawal-instant:${args.requestId}`,
+      metadata: {
+        withdrawalId: args.requestId,
+        amount: request.amount,
+      },
+    });
+
     return { success: true };
   },
 });
@@ -253,6 +298,31 @@ export const approveWithdrawal = mutation({
       status: "approved",
       processedAt: Date.now(),
       processedBy: admin.phone ?? admin._id.toString(),
+    });
+
+    await notifyUser(ctx, {
+      recipientUserId: request.userId,
+      type: "withdrawal",
+      title: "Withdrawal approved",
+      message: `Your ${formatKes(request.amount)} withdrawal request was approved.`,
+      href: "/withdraw",
+      dedupeKey: `withdrawal-approved:user:${args.requestId}`,
+      metadata: {
+        withdrawalId: args.requestId,
+        amount: request.amount,
+      },
+    });
+
+    await notifyAdmins(ctx, {
+      type: "withdrawal",
+      title: "Withdrawal approved",
+      message: `${formatKes(request.amount)} withdrawal was approved by ${admin.phone ?? "an admin"}.`,
+      href: "/admin/withdrawals",
+      dedupeKey: `withdrawal-approved:${args.requestId}`,
+      metadata: {
+        withdrawalId: args.requestId,
+        amount: request.amount,
+      },
     });
 
     return { success: true };
@@ -289,6 +359,31 @@ export const rejectWithdrawal = mutation({
       processedAt: Date.now(),
       processedBy: admin.phone ?? admin._id.toString(),
       rejectionReason: args.rejectionReason,
+    });
+
+    await notifyUser(ctx, {
+      recipientUserId: request.userId,
+      type: "withdrawal",
+      title: "Withdrawal rejected",
+      message: `Your ${formatKes(request.amount)} withdrawal request was rejected. ${args.rejectionReason}`,
+      href: "/withdraw",
+      dedupeKey: `withdrawal-rejected:user:${args.requestId}`,
+      metadata: {
+        withdrawalId: args.requestId,
+        amount: request.amount,
+      },
+    });
+
+    await notifyAdmins(ctx, {
+      type: "withdrawal",
+      title: "Withdrawal rejected",
+      message: `${formatKes(request.amount)} withdrawal was rejected by ${admin.phone ?? "an admin"}.`,
+      href: "/admin/withdrawals",
+      dedupeKey: `withdrawal-rejected:${args.requestId}`,
+      metadata: {
+        withdrawalId: args.requestId,
+        amount: request.amount,
+      },
     });
 
     return { success: true };

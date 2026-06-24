@@ -1,5 +1,22 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+import { notifyAdmins, notifyUser } from "./notifications";
+
+function formatKes(amount: number) {
+  return `KES ${amount.toLocaleString("en-KE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function getBetLabel(selections: { matchName: string }[]) {
+  if (selections.length === 1) {
+    return selections[0]?.matchName ?? "your selection";
+  }
+
+  return `${selections.length} selections`;
+}
 
 export const getWalletBalance = query({
   args: {},
@@ -64,6 +81,7 @@ export const getTransactions = query({
 
 export const placeBet = mutation({
   args: {
+    userId: v.optional(v.id("users")),
     selections: v.array(
       v.object({
         id: v.string(),
@@ -102,6 +120,7 @@ export const placeBet = mutation({
     }
 
     const betId = await ctx.db.insert("bets", {
+      userId: args.userId,
       selections: args.selections,
       totalOdds: args.totalOdds,
       stake: args.stake,
@@ -110,12 +129,41 @@ export const placeBet = mutation({
       placedAt: Date.now(),
     });
 
+    const betLabel = getBetLabel(args.selections);
+    if (args.userId) {
+      await notifyUser(ctx, {
+        recipientUserId: args.userId,
+        type: "bet",
+        title: "Bet placed",
+        message: `Your ${formatKes(args.stake)} bet on ${betLabel} was placed successfully.`,
+        href: "/my-bets",
+        dedupeKey: `bet-placed:user:${betId}`,
+        metadata: {
+          betId,
+          amount: args.stake,
+        },
+      });
+    }
+
+    await notifyAdmins(ctx, {
+      type: "bet",
+      title: "New bet placed",
+      message: `A ${formatKes(args.stake)} bet was placed on ${betLabel}.`,
+      href: "/admin/bets",
+      dedupeKey: `bet-placed:${betId}`,
+      metadata: {
+        betId,
+        amount: args.stake,
+      },
+    });
+
     return { success: true, betId };
   },
 });
 
 export const createTransaction = mutation({
   args: {
+    userId: v.optional(v.id("users")),
     type: v.union(v.literal("deposit"), v.literal("withdrawal")),
     amount: v.number(),
     phone: v.optional(v.string()),
@@ -130,8 +178,9 @@ export const createTransaction = mutation({
     const txId =
       "TX-" + Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    await ctx.db.insert("transactions", {
+    const transactionId = await ctx.db.insert("transactions", {
       txId,
+      userId: args.userId,
       type: args.type,
       amount: args.amount,
       phone: args.phone,
@@ -151,6 +200,35 @@ export const createTransaction = mutation({
         await ctx.db.patch(wallet._id, { balance: currentBalance + change });
       } else {
         await ctx.db.insert("wallets", { balance: 0 + change });
+      }
+
+      if (args.userId && args.type === "deposit") {
+        await notifyUser(ctx, {
+          recipientUserId: args.userId,
+          type: "payment",
+          title: "Deposit successful",
+          message: `${formatKes(args.amount)} has been added to your wallet.`,
+          href: "/account",
+          dedupeKey: `transaction-success:user:${transactionId}`,
+          metadata: {
+            transactionId,
+            amount: args.amount,
+          },
+        });
+      }
+
+      if (args.type === "deposit") {
+        await notifyAdmins(ctx, {
+          type: "payment",
+          title: "New deposit",
+          message: `A ${formatKes(args.amount)} deposit was completed.`,
+          href: "/admin/payments",
+          dedupeKey: `transaction-success:${transactionId}`,
+          metadata: {
+            transactionId,
+            amount: args.amount,
+          },
+        });
       }
     }
 
@@ -200,6 +278,35 @@ export const updateTransactionStatus = mutation({
           balance: 0 + change,
         });
       }
+
+      if (transaction.userId && transaction.type === "deposit") {
+        await notifyUser(ctx, {
+          recipientUserId: transaction.userId,
+          type: "payment",
+          title: "Deposit successful",
+          message: `${formatKes(transaction.amount)} has been added to your wallet.`,
+          href: "/account",
+          dedupeKey: `transaction-success:user:${transaction._id}`,
+          metadata: {
+            transactionId: transaction._id,
+            amount: transaction.amount,
+          },
+        });
+      }
+
+      if (transaction.type === "deposit") {
+        await notifyAdmins(ctx, {
+          type: "payment",
+          title: "New deposit",
+          message: `A ${formatKes(transaction.amount)} deposit was completed.`,
+          href: "/admin/payments",
+          dedupeKey: `transaction-success:${transaction._id}`,
+          metadata: {
+            transactionId: transaction._id,
+            amount: transaction.amount,
+          },
+        });
+      }
     } else if (args.status !== "success" && oldStatus === "success") {
       let wallet = await ctx.db
         .query("wallets")
@@ -244,6 +351,37 @@ export const settleSingleBet = mutation({
         });
       }
     }
+
+    if (bet.userId) {
+      const recipientUserId = bet.userId as Id<"users">;
+      await notifyUser(ctx, {
+        recipientUserId,
+        type: "bet",
+        title: args.status === "won" ? "Bet won" : "Bet lost",
+        message:
+          args.status === "won"
+            ? `Your bet on ${getBetLabel(bet.selections)} won. ${formatKes(bet.potentialReturn)} has been credited.`
+            : `Your bet on ${getBetLabel(bet.selections)} did not win.`,
+        href: "/my-bets",
+        dedupeKey: `bet-settled:user:${args.betId}:${args.status}`,
+        metadata: {
+          betId: args.betId,
+          amount: args.status === "won" ? bet.potentialReturn : bet.stake,
+        },
+      });
+    }
+
+    await notifyAdmins(ctx, {
+      type: "bet",
+      title: args.status === "won" ? "Bet settled as won" : "Bet settled as lost",
+      message: `A bet on ${getBetLabel(bet.selections)} was settled as ${args.status}.`,
+      href: "/admin/bets",
+      dedupeKey: `bet-settled:${args.betId}:${args.status}`,
+      metadata: {
+        betId: args.betId,
+        amount: args.status === "won" ? bet.potentialReturn : bet.stake,
+      },
+    });
     return { success: true };
   },
 });
@@ -285,6 +423,33 @@ export const cancelBet = mutation({
       await ctx.db.insert("wallets", { balance: 0 + bet.stake });
     }
 
+    if (bet.userId) {
+      await notifyUser(ctx, {
+        recipientUserId: bet.userId as Id<"users">,
+        type: "bet",
+        title: "Bet cancelled",
+        message: `Your bet on ${getBetLabel(bet.selections)} was cancelled and ${formatKes(bet.stake)} was returned.`,
+        href: "/my-bets",
+        dedupeKey: `bet-cancelled:user:${args.betId}`,
+        metadata: {
+          betId: args.betId,
+          amount: bet.stake,
+        },
+      });
+    }
+
+    await notifyAdmins(ctx, {
+      type: "bet",
+      title: "Bet cancelled",
+      message: `A ${formatKes(bet.stake)} bet on ${getBetLabel(bet.selections)} was cancelled.`,
+      href: "/admin/bets",
+      dedupeKey: `bet-cancelled:${args.betId}`,
+      metadata: {
+        betId: args.betId,
+        amount: bet.stake,
+      },
+    });
+
     return { success: true };
   },
 });
@@ -318,6 +483,35 @@ export const settleAllBets = mutation({
           });
         }
       }
+
+      if (bet.userId) {
+        await notifyUser(ctx, {
+          recipientUserId: bet.userId as Id<"users">,
+          type: "bet",
+          title: won ? "Bet won" : "Bet lost",
+          message: won
+            ? `Your bet on ${getBetLabel(bet.selections)} won. ${formatKes(bet.potentialReturn)} has been credited.`
+            : `Your bet on ${getBetLabel(bet.selections)} did not win.`,
+          href: "/my-bets",
+          dedupeKey: `bet-settled:user:${bet._id}:${status}`,
+          metadata: {
+            betId: bet._id,
+            amount: won ? bet.potentialReturn : bet.stake,
+          },
+        });
+      }
+
+      await notifyAdmins(ctx, {
+        type: "bet",
+        title: won ? "Bet settled as won" : "Bet settled as lost",
+        message: `A bet on ${getBetLabel(bet.selections)} was settled as ${status}.`,
+        href: "/admin/bets",
+        dedupeKey: `bet-settled:${bet._id}:${status}`,
+        metadata: {
+          betId: bet._id,
+          amount: won ? bet.potentialReturn : bet.stake,
+        },
+      });
     }
 
     return { success: true };

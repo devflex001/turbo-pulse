@@ -1,6 +1,23 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { requireAdmin } from "./auth/authorization";
+import { notifyAdmins, notifyUser } from "./notifications";
+
+function formatKes(amount: number) {
+  return `KES ${amount.toLocaleString("en-KE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function getBetLabel(selections: { matchName: string }[]) {
+  if (selections.length === 1) {
+    return selections[0]?.matchName ?? "your selection";
+  }
+
+  return `${selections.length} selections`;
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // QUERIES
@@ -197,6 +214,53 @@ export const updateBetStatus = mutation({
         });
       }
     }
+
+    if (bet.userId && (newStatus === "won" || newStatus === "lost" || newStatus === "void" || newStatus === "cancelled")) {
+      const title =
+        newStatus === "won"
+          ? "Bet won"
+          : newStatus === "lost"
+            ? "Bet lost"
+            : newStatus === "void"
+              ? "Bet voided"
+              : "Bet cancelled";
+      const amount =
+        newStatus === "won"
+          ? bet.potentialReturn
+          : newStatus === "void" || newStatus === "cancelled"
+            ? bet.stake
+            : bet.stake;
+
+      await notifyUser(ctx, {
+        recipientUserId: bet.userId as Id<"users">,
+        type: "bet",
+        title,
+        message:
+          newStatus === "won"
+            ? `Your bet on ${getBetLabel(bet.selections)} won. ${formatKes(bet.potentialReturn)} has been credited.`
+            : newStatus === "lost"
+              ? `Your bet on ${getBetLabel(bet.selections)} did not win.`
+              : `Your bet on ${getBetLabel(bet.selections)} was ${newStatus} and ${formatKes(bet.stake)} was returned.`,
+        href: "/my-bets",
+        dedupeKey: `admin-bet-status:user:${args.betId}:${oldStatus}:${newStatus}`,
+        metadata: {
+          betId: args.betId,
+          amount,
+        },
+      });
+    }
+
+    await notifyAdmins(ctx, {
+      type: "bet",
+      title: "Bet status updated",
+      message: `A bet on ${getBetLabel(bet.selections)} changed from ${oldStatus} to ${newStatus}.`,
+      href: "/admin/bets",
+      dedupeKey: `admin-bet-status:${args.betId}:${oldStatus}:${newStatus}`,
+      metadata: {
+        betId: args.betId,
+        amount: Math.abs(adjustment),
+      },
+    });
 
     return {
       success: true,

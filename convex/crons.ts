@@ -2,6 +2,7 @@ import { cronJobs } from "convex/server";
 
 const crons = cronJobs();
 
-// Cron jobs disabled - scraper now runs on-demand via button click
+// No notification cron jobs. Match-start notifications are triggered by the
+// user-facing custom event countdown reaching zero.
 
 export default crons;
