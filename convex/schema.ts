@@ -201,13 +201,13 @@ const schema = defineSchema({
     sport: v.string(),
     competition: v.string(),
     status: v.union(v.literal("draft"), v.literal("published")), // draft or published
-    eventStatus: v.union(
+    eventStatus: v.optional(v.union(
       v.literal("not_started"),
       v.literal("first_half"),
       v.literal("halftime"),
       v.literal("second_half"),
       v.literal("finished")
-    ), // match lifecycle stage
+    )), // match lifecycle stage
     totalMarkets: v.number(),
     createdBy: v.string(),
     createdAt: v.number(),
