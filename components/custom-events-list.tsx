@@ -27,7 +27,16 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { CustomEventDetail } from "@/components/custom-event-detail"
+import { calculateEventTimer } from "@/lib/event-timer"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Pagination } from "@/components/pagination"
 import { usePagination } from "@/hooks/use-pagination"
@@ -77,6 +86,27 @@ export function CustomEventsList({
   const [detailOpen, setDetailOpen] = React.useState(false)
   const [selectedEvent, setSelectedEvent] = React.useState<any>(null)
 
+  // Timer for checking live matches & Dialog score update state
+  const [now, setNow] = React.useState(() => Date.now())
+  const [scoreDialogOpen, setScoreDialogOpen] = React.useState(false)
+  const [dialogHomeScore, setDialogHomeScore] = React.useState<string>("")
+  const [dialogAwayScore, setDialogAwayScore] = React.useState<string>("")
+  const [savingScore, setSavingScore] = React.useState(false)
+
+  // Update timer every second
+  React.useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Pre-fill score inputs when selectedEvent changes
+  React.useEffect(() => {
+    if (selectedEvent) {
+      setDialogHomeScore(String(selectedEvent.homeScore ?? 0))
+      setDialogAwayScore(String(selectedEvent.awayScore ?? 0))
+    }
+  }, [selectedEvent])
+
   const pagination = usePagination({ pageSize: 15 })
 
   // Reset to page 1 when filters change
@@ -94,6 +124,7 @@ export function CustomEventsList({
   const deleteEvent = useMutation(api.customEvents.deleteCustomEvent)
   const publishEvent = useMutation(api.customEvents.publishCustomEvent)
   const unpublishEvent = useMutation(api.customEvents.unpublishCustomEvent)
+  const updateScore = useMutation(api.customEvents.updateCustomEventScore)
 
   const handleDelete = async (eventId: string, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -126,6 +157,26 @@ export function CustomEventsList({
       toast.error(
         error instanceof Error ? error.message : "Failed to unpublish"
       )
+    }
+  }
+
+  const handleScoreSave = async () => {
+    if (!selectedEvent) return
+    const h = Number(dialogHomeScore)
+    const a = Number(dialogAwayScore)
+    if (!Number.isInteger(h) || !Number.isInteger(a) || h < 0 || a < 0) {
+      toast.error("Invalid scores")
+      return
+    }
+    setSavingScore(true)
+    try {
+      await updateScore({ eventId: selectedEvent._id, homeScore: h, awayScore: a })
+      toast.success("Score updated successfully")
+      setScoreDialogOpen(false)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update score")
+    } finally {
+      setSavingScore(false)
     }
   }
 
@@ -304,17 +355,47 @@ export function CustomEventsList({
                         {event.totalMarkets}
                       </button>
                     </TableCell>
-                    <TableCell className="py-2">
-                      <Badge
-                        className={cn(
-                          "text-[9px] font-bold",
-                          event.status === "draft"
-                            ? "bg-yellow-500/15 text-yellow-600 border border-yellow-500/20"
-                            : "bg-emerald-500/15 text-emerald-600 border border-emerald-500/20"
-                        )}
-                      >
-                        {event.status}
-                      </Badge>
+                     <TableCell className="py-2">
+                      {(() => {
+                        const timer = calculateEventTimer(event.startTime, now)
+                        const isLive = event.status === "published" && timer.isLive
+                        const isFinished = event.status === "published" && timer.isFinished
+
+                        if (event.status === "draft") {
+                          return (
+                            <Badge className="bg-yellow-500/15 text-yellow-600 border border-yellow-500/20 text-[9px] font-bold">
+                              draft
+                            </Badge>
+                          )
+                        }
+                        if (isLive) {
+                          return (
+                            <Badge
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedEvent(event)
+                                setScoreDialogOpen(true)
+                              }}
+                              className="bg-red-500/15 text-red-600 border border-red-500/20 text-[9px] font-bold animate-pulse cursor-pointer hover:bg-red-500/25 transition-all"
+                              title="Click to update score"
+                            >
+                              live
+                            </Badge>
+                          )
+                        }
+                        if (isFinished) {
+                          return (
+                            <Badge className="bg-gray-500/15 text-gray-600 border border-gray-500/20 text-[9px] font-bold">
+                              finished
+                            </Badge>
+                          )
+                        }
+                        return (
+                          <Badge className="bg-emerald-500/15 text-emerald-600 border border-emerald-500/20 text-[9px] font-bold">
+                            published
+                          </Badge>
+                        )
+                      })()}
                     </TableCell>
                     <TableCell className="py-2 text-right">
                       <DropdownMenu>
@@ -338,6 +419,26 @@ export function CustomEventsList({
                             <Eye className="size-3" />
                             View Markets
                           </DropdownMenuItem>
+                          {(() => {
+                            const timer = calculateEventTimer(event.startTime, now)
+                            const isLive = event.status === "published" && timer.isLive
+                            if (isLive) {
+                              return (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setSelectedEvent(event)
+                                    setScoreDialogOpen(true)
+                                  }}
+                                  className="cursor-pointer gap-2 text-[9px] text-primary"
+                                >
+                                  <Edit2 className="size-3" />
+                                  Update Score
+                                </DropdownMenuItem>
+                              )
+                            }
+                            return null
+                          })()}
                           {event.status === "draft" && (
                             <>
                               <DropdownMenuItem
@@ -433,6 +534,65 @@ export function CustomEventsList({
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Score Update Dialog */}
+      <Dialog open={scoreDialogOpen} onOpenChange={setScoreDialogOpen}>
+        <DialogContent className="max-w-md bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold">Update Live Score</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              {selectedEvent ? `${selectedEvent.homeTeam} vs ${selectedEvent.awayTeam}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                {selectedEvent?.homeTeam || "Home Score"}
+              </label>
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                value={dialogHomeScore}
+                onChange={(e) => setDialogHomeScore(e.target.value)}
+                className="h-9 text-xs focus-visible:ring-primary"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                {selectedEvent?.awayTeam || "Away Score"}
+              </label>
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                value={dialogAwayScore}
+                onChange={(e) => setDialogAwayScore(e.target.value)}
+                className="h-9 text-xs focus-visible:ring-primary"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-8 border-border"
+              onClick={() => setScoreDialogOpen(false)}
+              disabled={savingScore}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="text-xs h-8 font-semibold"
+              onClick={handleScoreSave}
+              disabled={savingScore}
+            >
+              {savingScore ? "Saving..." : "Save Score"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
