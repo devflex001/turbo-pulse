@@ -165,10 +165,13 @@ const schema = defineSchema({
     potentialReturn: v.number(),
     status: v.string(), // "active" | "won" | "lost"
     placedAt: v.number(),
-  }),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_status", ["status"]),
 
   transactions: defineTable({
     txId: v.string(),
+    userId: v.optional(v.id("users")),
     type: v.string(), // "deposit" | "withdrawal"
     amount: v.number(),
     phone: v.optional(v.string()),
@@ -187,7 +190,38 @@ const schema = defineSchema({
     updatedAt: v.optional(v.number()),
   })
     .index("by_txId", ["txId"])
+    .index("by_userId", ["userId"])
     .index("by_checkoutRequestID", ["checkoutRequestID"]),
+
+  notifications: defineTable({
+    recipientUserId: v.id("users"),
+    recipientRole: v.union(v.literal("user"), v.literal("admin")),
+    type: v.union(
+      v.literal("payment"),
+      v.literal("bet"),
+      v.literal("match"),
+      v.literal("withdrawal"),
+      v.literal("system")
+    ),
+    title: v.string(),
+    message: v.string(),
+    href: v.optional(v.string()),
+    readAt: v.union(v.number(), v.null()),
+    createdAt: v.number(),
+    dedupeKey: v.optional(v.string()),
+    metadata: v.optional(
+      v.object({
+        betId: v.optional(v.id("bets")),
+        transactionId: v.optional(v.id("transactions")),
+        withdrawalId: v.optional(v.id("withdrawal_requests")),
+        sourceMatchId: v.optional(v.string()),
+        amount: v.optional(v.number()),
+      })
+    ),
+  })
+    .index("by_recipientUserId_and_createdAt", ["recipientUserId", "createdAt"])
+    .index("by_recipientUserId_and_readAt", ["recipientUserId", "readAt"])
+    .index("by_dedupeKey", ["dedupeKey"]),
 
   customEvents: defineTable({
     title: v.string(),
