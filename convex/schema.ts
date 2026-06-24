@@ -218,7 +218,6 @@ const schema = defineSchema({
     .index("by_startTime", ["startTime"])
     .index("by_status_and_startTime", ["status", "startTime"])
     .index("by_createdBy", ["createdBy"]),
-
   customMarkets: defineTable({
     eventId: v.id("customEvents"),
     marketKey: v.string(),
@@ -326,6 +325,66 @@ const schema = defineSchema({
     .index("by_userId", ["userId"])
     .index("by_banId", ["banId"])
     .index("by_status", ["status"]),
+
+  ip_tracking: defineTable({
+    ip: v.string(),
+    userId: v.optional(v.id("users")), // null if visitor not logged in
+    location: v.object({
+      country: v.string(),
+      countryCode: v.string(),
+      state: v.optional(v.string()),
+      city: v.optional(v.string()),
+      timezone: v.optional(v.string()),
+      latitude: v.optional(v.number()),
+      longitude: v.optional(v.number()),
+    }),
+    device: v.object({
+      userAgent: v.string(),
+      browserName: v.optional(v.string()),
+      browserVersion: v.optional(v.string()),
+      osName: v.optional(v.string()),
+      osVersion: v.optional(v.string()),
+      deviceType: v.optional(v.string()), // mobile, desktop, tablet
+    }),
+    lastSeen: v.number(),
+    createdAt: v.number(),
+    isBot: v.boolean(),
+  })
+    .index("by_ip", ["ip"])
+    .index("by_userId", ["userId"])
+    .index("by_lastSeen", ["lastSeen"])
+    .index("by_createdAt", ["createdAt"]),
+
+  visitors: defineTable({
+    ip: v.string(),
+    userId: v.optional(v.id("users")), // null if visitor not logged in
+    location: v.object({
+      country: v.string(),
+      countryCode: v.string(),
+      state: v.optional(v.string()),
+      city: v.optional(v.string()),
+      timezone: v.optional(v.string()),
+      latitude: v.optional(v.number()),
+      longitude: v.optional(v.number()),
+    }),
+    device: v.object({
+      userAgent: v.string(),
+      browserName: v.optional(v.string()),
+      browserVersion: v.optional(v.string()),
+      osName: v.optional(v.string()),
+      osVersion: v.optional(v.string()),
+      deviceType: v.optional(v.string()),
+    }),
+    visitCount: v.optional(v.number()), // Total number of visits from this IP
+    firstVisitedAt: v.optional(v.number()),
+    lastVisitedAt: v.optional(v.number()),
+    // Legacy fields for backward compatibility
+    visitedAt: v.optional(v.number()),
+    isBot: v.boolean(),
+  })
+    .index("by_ip", ["ip"])
+    .index("by_userId", ["userId"])
+    .index("by_lastVisitedAt", ["lastVisitedAt"]),
 })
 
 export default schema

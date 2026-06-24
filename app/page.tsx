@@ -5,6 +5,7 @@ import Image from "next/image"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useBetStore } from "@/hooks/use-bet-store"
+import { useVisitorTracking } from "@/hooks/use-visitor-tracking"
 import { Header } from "@/components/header"
 import { Sidebar } from "@/components/sidebar"
 import { MatchCard } from "@/components/match-card"
@@ -145,6 +146,9 @@ export default function Page() {
     selectedLeague,
     setSelectedLeague,
   } = useBetStore()
+
+  // Track visitor on page load
+  useVisitorTracking()
 
   const matchStatus =
     activeTab === "live" ? "live" : activeTab === "home" || activeTab === "featured" ? "upcoming" : undefined
