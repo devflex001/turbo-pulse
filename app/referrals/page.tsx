@@ -11,15 +11,11 @@ import { LoginModal } from "@/components/modals"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import {
-  ArrowLeft,
-  Users,
   Copy,
   Check,
   Loader2,
-  Gift,
   Share2,
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
 import { toast } from "sonner"
 
 export default function ReferralsPage() {
@@ -28,10 +24,8 @@ export default function ReferralsPage() {
   const [mounted, setMounted] = React.useState(false)
   const [copied, setCopied] = React.useState(false)
 
-  // Mutations
   const ensureReferralCodeMutation = useMutation(api.referrals.ensureReferralCode)
 
-  // Convex queries
   const referralStats = useQuery(
     api.referrals.getReferralStats,
     user?._id ? { userId: user._id } : "skip"
@@ -42,12 +36,10 @@ export default function ReferralsPage() {
     user?._id && referralStats?.referralCode ? { userId: user._id } : "skip"
   )
 
-  // Only render after hydration
   React.useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Ensure user has referral code on load
   React.useEffect(() => {
     if (mounted && user?._id) {
       ensureReferralCodeMutation({ userId: user._id }).catch((error) => {
@@ -59,7 +51,7 @@ export default function ReferralsPage() {
   const handleCopyLink = (link: string) => {
     navigator.clipboard.writeText(link)
     setCopied(true)
-    toast.success("Referral link copied!")
+    toast.success("Link copied!")
     setTimeout(() => setCopied(false), 2000)
   }
 
@@ -68,7 +60,7 @@ export default function ReferralsPage() {
       try {
         await navigator.share({
           title: "Bet Flow - Referral",
-          text: "Sign up and earn 1000 KES with my referral link!",
+          text: "Join me and earn 1000 KES!",
           url: link,
         })
       } catch (error) {
@@ -105,15 +97,20 @@ export default function ReferralsPage() {
       <>
         <div className="flex flex-col h-screen overflow-hidden bg-background">
           <Header />
-          <div className="flex flex-1 items-center justify-center">
-            <Card className="p-8 max-w-md w-full text-center space-y-4">
-              <Users className="size-12 mx-auto text-muted-foreground" />
-              <h2 className="text-lg font-bold text-foreground">Authentication Required</h2>
-              <p className="text-sm text-muted-foreground">Please log in to view referrals</p>
-              <Button onClick={() => router.push("/")}>
+          <div className="flex flex-1 items-center justify-center px-4">
+            <div className="text-center max-w-md">
+              <div className="text-4xl mb-4">🔒</div>
+              <h2 className="text-xl font-bold text-foreground">Sign in to access referrals</h2>
+              <p className="text-sm text-muted-foreground mt-2">
+                Log in to get your personalized referral link and start earning.
+              </p>
+              <Button
+                onClick={() => router.push("/")}
+                className="mt-6 w-full bg-[#4b9f71] hover:bg-[#3e865f]"
+              >
                 Go Home
               </Button>
-            </Card>
+            </div>
           </div>
           <BottomNav liveCount={0} />
         </div>
@@ -124,170 +121,131 @@ export default function ReferralsPage() {
 
   // Logged in - render full page
   return (
-    <>
-      <style>{`
-        @keyframes slideInUp {
-          from { opacity: 0; transform: translateY(12px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-slide-in-up { animation: slideInUp 0.5s ease-out forwards; }
-        .animate-slide-in-up-1 { animation: slideInUp 0.5s ease-out 0.1s forwards; opacity: 0; }
-        .animate-slide-in-up-2 { animation: slideInUp 0.5s ease-out 0.2s forwards; opacity: 0; }
-        .animate-slide-in-up-3 { animation: slideInUp 0.5s ease-out 0.3s forwards; opacity: 0; }
-        .hover-scale { transition: transform 0.2s ease-out, box-shadow 0.2s ease-out; }
-        .hover-scale:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(75, 159, 113, 0.1); }
-        .stat-card { background: linear-gradient(135deg, rgba(75, 159, 113, 0.05) 0%, transparent 100%); }
-      `}</style>
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
+      <Header />
 
-      <div className="flex flex-col h-screen overflow-hidden bg-background">
-        <Header />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar className="hidden lg:flex w-60 shrink-0 overflow-y-auto border-r border-border" />
 
-        <div className="flex flex-1 overflow-hidden">
-          <Sidebar className="hidden lg:flex w-60 shrink-0 overflow-y-auto border-r border-border" />
-
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 scrollbar-thin">
-            <div className="max-w-2xl w-full mx-auto space-y-8">
-              {/* Header */}
-              <div className="flex items-center gap-3 animate-slide-in-up">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => router.back()}
-                  className="size-8 rounded-full border border-border hover:bg-muted/50 shrink-0"
-                >
-                  <ArrowLeft className="size-4" />
-                </Button>
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">Referrals</h1>
-                  <p className="text-xs text-muted-foreground mt-0.5">Earn by inviting friends</p>
+        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 md:px-8">
+          <div className="max-w-2xl mx-auto h-full flex flex-col justify-center">
+            {/* Main Content */}
+            <div className="space-y-8">
+              {/* Hero Section */}
+              <div className="text-center space-y-3">
+                <div className="text-5xl sm:text-6xl font-bold bg-gradient-to-r from-[#4b9f71] to-[#4b9f71]/70 bg-clip-text text-transparent">
+                  Invite & Earn
                 </div>
+                <p className="text-base sm:text-lg text-muted-foreground max-w-sm mx-auto">
+                  Share your link with friends. When they join, you both get <span className="font-semibold text-foreground">1000 KES</span>.
+                </p>
               </div>
 
-              {/* Stats Cards - 2 Column Grid */}
+              {/* Stats - Horizontal Layout */}
               {referralStats && (
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  {/* Total Referrals */}
-                  <div className="animate-slide-in-up-1">
-                    <Card className="stat-card border-border overflow-hidden hover-scale h-full">
-                      <div className="p-5 sm:p-6 flex flex-col justify-between h-full">
-                        <div className="space-y-3">
-                          <div className="inline-flex items-center justify-center size-10 rounded-lg bg-[#4b9f71]/20">
-                            <Users className="size-5 text-[#4b9f71]" />
-                          </div>
-                          <div>
-                            <p className="text-xs sm:text-sm text-muted-foreground font-medium">Total Referrals</p>
-                            <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">
-                              {referralStats.totalReferrals}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  </div>
-
-                  {/* Total Earnings */}
-                  <div className="animate-slide-in-up-2">
-                    <Card className="stat-card border-border overflow-hidden hover-scale h-full">
-                      <div className="p-5 sm:p-6 flex flex-col justify-between h-full">
-                        <div className="space-y-3">
-                          <div className="inline-flex items-center justify-center size-10 rounded-lg bg-[#4b9f71]/20">
-                            <Gift className="size-5 text-[#4b9f71]" />
-                          </div>
-                          <div>
-                            <p className="text-xs sm:text-sm text-muted-foreground font-medium">Total Earnings</p>
-                            <p className="text-2xl sm:text-3xl font-bold text-foreground mt-1">
-                              KES {referralStats.totalReferralEarnings.toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  </div>
-                </div>
-              )}
-
-              {/* Share Section */}
-              {referralStats?.referralCode && referralLink && (
-                <div className="animate-slide-in-up-3">
-                  <Card className="border-border overflow-hidden">
-                    <div className="p-6 sm:p-8 space-y-6">
-                      <div>
-                        <h2 className="text-lg sm:text-xl font-bold text-foreground">Share & Earn</h2>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Send your link to friends. When they sign up, you both get rewarded.
-                        </p>
-                      </div>
-
-                      {/* Referral Link Display */}
-                      <div className="space-y-3">
-                        <label className="text-sm font-semibold text-foreground">Your Referral Link</label>
-                        <div className="flex gap-2 group">
-                          <div className="flex-1 px-4 py-3 bg-muted/60 rounded-lg border border-border text-xs sm:text-sm text-muted-foreground font-mono break-all overflow-hidden transition-colors group-hover:bg-muted/80">
-                            {referralLink.referralLink}
-                          </div>
-                          <div className="flex gap-2 shrink-0">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleCopyLink(referralLink.referralLink)}
-                              className="h-10 w-10 p-0 transition-all hover:bg-muted hover:border-[#4b9f71]/30"
-                            >
-                              {copied ? (
-                                <Check className="size-4 text-[#4b9f71]" />
-                              ) : (
-                                <Copy className="size-4" />
-                              )}
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="h-10 bg-[#4b9f71] text-white hover:bg-[#3e865f] transition-all font-medium gap-2"
-                              onClick={() => handleShare(referralLink.referralLink)}
-                            >
-                              <Share2 className="size-4" />
-                              <span className="hidden sm:inline">Share</span>
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Referral Code Display */}
-                      <div className="space-y-3 pt-2 border-t border-border">
-                        <label className="text-sm font-semibold text-foreground">Referral Code</label>
-                        <div className="flex gap-2">
-                          <div className="flex-1 px-4 py-3 bg-muted/60 rounded-lg border border-border font-mono text-sm sm:text-base font-bold text-foreground tracking-wide overflow-hidden transition-colors hover:bg-muted/80">
-                            {referralStats.referralCode}
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleCopyLink(referralStats.referralCode)}
-                            className="h-10 w-10 p-0 transition-all hover:bg-muted hover:border-[#4b9f71]/30 shrink-0"
-                          >
-                            {copied ? (
-                              <Check className="size-4 text-[#4b9f71]" />
-                            ) : (
-                              <Copy className="size-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-
-                      {/* Info Banner */}
-                      <div className="p-4 bg-[#4b9f71]/8 rounded-lg border border-[#4b9f71]/25">
-                        <p className="text-sm text-foreground">
-                          <span className="font-semibold text-[#4b9f71]">Earn 1000 KES</span> for each friend who signs up
-                        </p>
-                      </div>
+                <div className="grid grid-cols-2 gap-4 sm:gap-6">
+                  <div className="text-center p-4 rounded-lg bg-muted/30 border border-border/50">
+                    <div className="text-2xl sm:text-3xl font-bold text-foreground">
+                      {referralStats.totalReferrals}
                     </div>
-                  </Card>
+                    <div className="text-xs sm:text-sm text-muted-foreground mt-1">
+                      Friends Invited
+                    </div>
+                  </div>
+                  <div className="text-center p-4 rounded-lg bg-muted/30 border border-border/50">
+                    <div className="text-2xl sm:text-3xl font-bold text-[#4b9f71]">
+                      KES {referralStats.totalReferralEarnings.toLocaleString()}
+                    </div>
+                    <div className="text-xs sm:text-sm text-muted-foreground mt-1">
+                      You've Earned
+                    </div>
+                  </div>
                 </div>
               )}
-            </div>
-          </main>
-        </div>
 
-        <BottomNav liveCount={0} />
+              {/* Link Section */}
+              {referralStats?.referralCode && referralLink && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-foreground block">
+                      Your Referral Link
+                    </label>
+                    <div className="flex gap-2">
+                      <div className="flex-1 px-4 py-3 bg-muted/50 rounded-lg border border-border/50 text-sm text-muted-foreground font-mono truncate hover:bg-muted/70 transition-colors">
+                        {referralLink.referralLink}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCopyLink(referralLink.referralLink)}
+                        className="shrink-0 h-auto px-3 hover:border-[#4b9f71]/50 hover:bg-muted/50"
+                      >
+                        {copied ? (
+                          <Check className="size-4 text-[#4b9f71]" />
+                        ) : (
+                          <Copy className="size-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => handleCopyLink(referralLink.referralLink)}
+                      variant="outline"
+                      className="flex-1 h-11 hover:bg-muted/50 hover:border-[#4b9f71]/50"
+                    >
+                      <Copy className="size-4 mr-2" />
+                      Copy Link
+                    </Button>
+                    <Button
+                      onClick={() => handleShare(referralLink.referralLink)}
+                      className="flex-1 h-11 bg-[#4b9f71] hover:bg-[#3e865f] text-white font-medium"
+                    >
+                      <Share2 className="size-4 mr-2" />
+                      Share
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* How It Works */}
+              <div className="space-y-3 pt-6 border-t border-border/50">
+                <h3 className="font-semibold text-foreground">How it works</h3>
+                <div className="space-y-3">
+                  <div className="flex gap-3">
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#4b9f71]/20 flex items-center justify-center text-xs font-bold text-[#4b9f71]">
+                      1
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Share your link with friends
+                    </p>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#4b9f71]/20 flex items-center justify-center text-xs font-bold text-[#4b9f71]">
+                      2
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      They sign up with your link
+                    </p>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#4b9f71]/20 flex items-center justify-center text-xs font-bold text-[#4b9f71]">
+                      3
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      You both get 1000 KES
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
-    </>
+
+      <BottomNav liveCount={0} />
+    </div>
   )
 }
