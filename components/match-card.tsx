@@ -9,7 +9,7 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 import { compareFormattedOdds, formatOddOutcome } from "@/lib/odds-format"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Share2, Radio, ListPlus } from "lucide-react"
+import { Share2, Radio } from "lucide-react"
 import { ShareModal } from "./modals"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { MarketsPanel, type SportsMatch, type SportsMatchWithOdds } from "./markets-panel"
@@ -131,57 +131,33 @@ export function MatchCard({ match }: MatchCardProps) {
         </div>
 
         <div className="flex flex-col gap-3.5 p-4 flex-1 justify-between">
-          <div className="flex justify-between items-center gap-4 py-0.5">
-            <div className="flex flex-col gap-2 font-semibold text-sm flex-1 min-w-0">
-              <div className="flex justify-between items-center gap-2">
-                <span className="truncate">{match.homeTeam}</span>
-                {match.isLive && scores && (
-                  <span className="text-primary font-extrabold font-mono text-sm">{scores[0]}</span>
-                )}
-              </div>
-              <div className="flex justify-between items-center gap-2">
-                <span className="truncate">{match.awayTeam}</span>
-                {match.isLive && scores && (
-                  <span className="text-primary font-extrabold font-mono text-sm">{scores[1]}</span>
-                )}
-              </div>
+          <div className="flex items-center justify-between gap-4 py-0.5">
+            <div className="flex items-center justify-center gap-2 flex-1 min-w-0">
+              <p className="font-semibold text-sm truncate text-center flex-1">{match.homeTeam}</p>
+              {match.isLive && scores ? (
+                <p className="text-primary font-extrabold font-mono text-sm shrink-0">{scores[0]} - {scores[1]}</p>
+              ) : (
+                <p className="text-xs font-medium text-muted-foreground shrink-0">vs</p>
+              )}
+              <p className="font-semibold text-sm truncate text-center flex-1">{match.awayTeam}</p>
             </div>
 
-            <div className="flex items-center gap-1">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8 text-muted-foreground hover:text-foreground shrink-0 border border-transparent hover:border-border"
-                    onClick={openMarkets}
-                    aria-label="Open markets"
-                  >
-                    <ListPlus className="size-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-[10px]">Open Markets</p>
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8 text-muted-foreground hover:text-foreground shrink-0 border border-transparent hover:border-border"
-                    onClick={() => setShareOpen(true)}
-                    aria-label="Share match odds"
-                  >
-                    <Share2 className="size-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-[10px]">Share Match Odds</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-8 text-muted-foreground hover:text-foreground shrink-0 border border-transparent hover:border-border"
+                  onClick={() => setShareOpen(true)}
+                  aria-label="Share match odds"
+                >
+                  <Share2 className="size-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-[10px]">Share Match Odds</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
 
           <div
