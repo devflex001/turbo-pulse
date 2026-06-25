@@ -39,6 +39,13 @@ export default function CustomEventDetailPage() {
   const [selectedMarketId, setSelectedMarketId] = React.useState<string | null>(null)
   const [selectedOutcomeId, setSelectedOutcomeId] = React.useState<string | null>(null)
   const [isSettling, setIsSettling] = React.useState(false)
+  const [now, setNow] = React.useState(() => Date.now())
+
+  // Update timer every second
+  React.useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   const event = useQuery(api.customEvents.getCustomEvent, {
     eventId: eventId as Id<"customEvents">,
@@ -243,10 +250,11 @@ export default function CustomEventDetailPage() {
     {} as Record<string, any[]>
   )
 
-  // Use ONLY eventStatus from database
+  // Check if match is finished by time (105 minutes elapsed) like the list view does
+  const timerState = event ? calculateEventTimer(event.startTime, now) : null
+  const isTimeFinished = timerState?.isFinished || false
   const isSettled = event.winningOutcomeId ? true : false
-  const isFinished = event.eventStatus === "finished"
-  const canResolve = isFinished && !isSettled
+  const canResolve = isTimeFinished && !isSettled
 
   return (
     <AdminLayout pageTitle="Edit Event">
