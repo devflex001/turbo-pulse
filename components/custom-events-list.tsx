@@ -492,7 +492,7 @@ export function CustomEventsList({
                                 Update Score
                               </DropdownMenuItem>
                             )}
-                            {isFinished && !event.winningOutcomeId && event.status === "published" && (
+                            {isFinished && event.status === "published" && (
                               <DropdownMenuItem
                                 onClick={(e) => {
                                   e.stopPropagation()
@@ -642,7 +642,7 @@ export function CustomEventsList({
                             Update Score
                           </DropdownMenuItem>
                         )}
-                        {isFinished && !event.winningOutcomeId && event.status === "published" && (
+                        {isFinished && event.status === "published" && (
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation()

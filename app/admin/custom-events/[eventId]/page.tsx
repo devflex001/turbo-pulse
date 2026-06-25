@@ -194,10 +194,15 @@ export default function CustomEventDetailPage() {
 
     setIsSettling(true)
     try {
+      // Build market outcomes array
+      const marketOutcomes = selectedMarketId && selectedOutcomeId ? [{
+        marketId: selectedMarketId as Id<"customMarkets">,
+        winningOutcomeIds: [selectedOutcomeId],
+      }] : []
+
       await settleEvent({
         eventId: eventId as Id<"customEvents">,
-        winningOutcomeId: selectedOutcomeId,
-        marketId: selectedMarketId as Id<"customMarkets">,
+        marketOutcomes,
       })
       toast.success("Event resolved and bets settled! Users have been notified.")
       setResolutionDialogOpen(false)
