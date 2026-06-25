@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import React, { useEffect, useState, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useQuery } from "convex/react"
 import { ArrowLeft, Share2 } from "lucide-react"
@@ -92,9 +92,16 @@ export default function MatchMarketsPage() {
   const liveMatches = useQuery(api.sportsData.listMatches, {
     status: "live",
     limit: 80,
-  }) as SportsMatch[] | undefined
+  }) as SportsMatch[] | { items: SportsMatch[] } | undefined
 
-  const liveCount = liveMatches ? liveMatches.filter((m) => m.isLive).length : 0
+  const liveCount = useMemo(() => {
+    if (!liveMatches) return 0
+    if (Array.isArray(liveMatches)) return liveMatches.filter((m) => m.isLive).length
+    if (liveMatches && typeof liveMatches === "object" && Array.isArray((liveMatches as { items?: unknown }).items)) {
+      return (liveMatches as { items: SportsMatch[] }).items.filter((m) => m.isLive).length
+    }
+    return 0
+  }, [liveMatches])
 
   useEffect(() => {
     if (match) {

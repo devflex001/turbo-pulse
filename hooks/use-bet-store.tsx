@@ -261,8 +261,13 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
       for (const sel of betslip) {
         const totalOdds = sel.odds
         const potentialReturn = parseFloat((stake * totalOdds).toFixed(2))
+
+        if (!authUser?._id) {
+          throw new Error("User not authenticated")
+        }
+
         const result = await placeBetMutation({
-          userId: authUser?._id,
+          userId: authUser._id,
           selections: [
             {
               id: sel.id,

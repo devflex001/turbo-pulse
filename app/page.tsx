@@ -196,8 +196,8 @@ export default function Page() {
       return matches
     }
 
-    if (matches && typeof matches === "object" && Array.isArray((matches as { page?: unknown }).page)) {
-      return (matches as { page: (SportsMatch & { firstMarket?: any })[] }).page
+    if (matches && typeof matches === "object" && Array.isArray((matches as { items?: unknown }).items)) {
+      return (matches as { items: (SportsMatch & { firstMarket?: any })[] }).items
     }
 
     return []
@@ -208,8 +208,8 @@ export default function Page() {
       return allMatches
     }
 
-    if (allMatches && typeof allMatches === "object" && Array.isArray((allMatches as { page?: unknown }).page)) {
-      return (allMatches as { page: SportsMatch[] }).page
+    if (allMatches && typeof allMatches === "object" && Array.isArray((allMatches as { items?: unknown }).items)) {
+      return (allMatches as { items: SportsMatch[] }).items
     }
 
     return []
