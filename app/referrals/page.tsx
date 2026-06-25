@@ -73,12 +73,13 @@ export default function ReferralsPage() {
     setTimeout(() => setCopied(false), 2500)
   }
 
+  // Share function
   const handleShare = async (link: string) => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Join BetFlexx — Earn KES ${referralReward.toLocaleString()}`,
-          text: `Sign up on BetFlexx using my link and I earn KES ${referralReward.toLocaleString()}. Join now!`,
+          title: `Earn KES ${referralReward.toLocaleString()} with BetFlexx`,
+          text: `Join BetFlexx today using my referral link. Once you're in, you can invite your friends and earn KES ${referralReward.toLocaleString()} for every successful referral. Start building your rewards today.`,
           url: link,
         })
       } catch (error) {
@@ -90,7 +91,6 @@ export default function ReferralsPage() {
       handleCopyLink(link)
     }
   }
-
   if (!mounted) return null
 
   if (isLoading) {

@@ -25,11 +25,19 @@ export function ReferralSignupModal({
   onOpenChange,
   referredByPhone,
 }: ReferralSignupModalProps) {
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const platformConfig = useQuery(api.platformConfig.getConfig, {
-    userId: "skip" as any, // Admin check is optional for this query
+    userId: "skip" as any,
   })
 
   const referralReward = platformConfig?.referralReward ?? 1000
+
+  if (!mounted) return null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
