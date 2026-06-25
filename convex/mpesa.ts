@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import type { MutationCtx } from "./_generated/server";
+import type { MutationCtx, Id } from "./_generated/server";
 import { notifyAdmins, notifyUser } from "./notifications";
 
 function formatKes(amount: number) {
@@ -196,10 +196,13 @@ export const updateTransactionStatus = mutation({
  * Get user's wallet
  */
 export const getWallet = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
     const wallet = await ctx.db
       .query("wallets")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .unique();
 
     if (!wallet) {
@@ -295,16 +298,19 @@ export const getTransaction = query({
  */
 export async function updateWalletBalance(
   ctx: MutationCtx,
+  userId: Id<"users">,
   amount: number,
   operation: "add" | "subtract"
 ): Promise<void> {
   const wallet = await ctx.db
     .query("wallets")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
     .unique();
 
   if (!wallet) {
     // Create wallet if doesn't exist
     await ctx.db.insert("wallets", {
+      userId,
       balance: operation === "add" ? amount : 0,
     });
     return;
