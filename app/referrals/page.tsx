@@ -48,6 +48,12 @@ export default function ReferralsPage() {
     user?._id ? { userId: user._id, limit: 20 } : "skip"
   )
 
+  // Get configurable reward amount
+  const platformConfig = useQuery(api.platformConfig.getConfig, {
+    userId: user?._id,
+  })
+  const referralReward = platformConfig?.referralReward ?? 1000
+
   React.useEffect(() => {
     setMounted(true)
   }, [])
@@ -71,8 +77,8 @@ export default function ReferralsPage() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Join BetFlexx — Earn KES 1,000",
-          text: "Sign up on BetFlexx using my link and I earn KES 1,000. Join now!",
+          title: `Join BetFlexx — Earn KES ${referralReward.toLocaleString()}`,
+          text: `Sign up on BetFlexx using my link and I earn KES ${referralReward.toLocaleString()}. Join now!`,
           url: link,
         })
       } catch (error) {
