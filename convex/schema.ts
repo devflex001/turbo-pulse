@@ -414,6 +414,7 @@ const schema = defineSchema({
       timezone: v.optional(v.string()),
       latitude: v.optional(v.number()),
       longitude: v.optional(v.number()),
+      org: v.optional(v.string()), // ISP / organization name
     }),
     device: v.object({
       userAgent: v.string(),

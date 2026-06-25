@@ -15,6 +15,7 @@ export type IPLocation = {
   timezone?: string
   latitude?: number
   longitude?: number
+  org?: string // ISP / organization
 }
 
 export type DeviceInfo = {
@@ -96,6 +97,7 @@ export const getIPLocationAndDevice = action({
           timezone: geoData.timezone || undefined,
           latitude: geoData.latitude || undefined,
           longitude: geoData.longitude || undefined,
+          org: geoData.org || undefined,
         },
         device: {
           userAgent: args.userAgent,
@@ -144,6 +146,7 @@ export const trackVisitor = mutation({
       timezone: v.optional(v.string()),
       latitude: v.optional(v.number()),
       longitude: v.optional(v.number()),
+      org: v.optional(v.string()),
     }),
     device: v.object({
       userAgent: v.string(),
