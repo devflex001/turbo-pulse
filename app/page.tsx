@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { RegisterModal } from "@/components/modals"
+import { ReferralSignupModal } from "@/components/referral-signup-modal"
 import { useAuth } from "@/lib/auth/AuthContext"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -682,7 +683,7 @@ export default function Page() {
           }}
         />
       )}
- 
+
     </>
   )
 }

@@ -1,15 +1,20 @@
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
-import { requireAuth } from "./auth/authorization";
+import { v } from "convex/values"
+import { mutation, query } from "./_generated/server"
+import type { MutationCtx, QueryCtx } from "./_generated/server"
+import type { Id } from "./_generated/dataModel"
+import { requireAuth } from "./auth/authorization"
 
-// Constants
-const REFERRAL_REWARD = 1000; // KES
+// This is the default - actual value comes from platform_config
+const DEFAULT_REFERRAL_REWARD = 1000; // KES
 
-/**
- * Generate a unique referral code
- */
+// Helper to get referral reward from config
+async function getReferralReward(ctx: QueryCtx | MutationCtx): Promise<number> {
+  const config = await ctx.db
+    .query("platform_config")
+    .withIndex("by_key", (q) => q.eq("key", "main"))
+    .first()
+  return config?.referralReward ?? DEFAULT_REFERRAL_REWARD
+}
 async function generateUniqueReferralCode(ctx: QueryCtx | MutationCtx): Promise<string> {
   let referralCode: string;
   let attempts = 0;
@@ -220,6 +225,9 @@ export const trackReferralSignup = mutation({
     if (newUser.referredBy) {
       throw new Error("User already has a referrer");
     }
+
+    // Get configurable reward
+    const REFERRAL_REWARD = await getReferralReward(ctx);
 
     // Find or create the referral record
     let referralRecord = await ctx.db
@@ -647,6 +655,34 @@ export const getReferrerPerformance = query({
       totalEarnings: completed.reduce((sum, r) => sum + (r.amountEarned || 0), 0),
       conversionRate: parseFloat(conversionRate.toFixed(2)),
       referralDetails: referralDetails.sort((a, b) => b.createdAt - a.createdAt),
+    };
+  },
+});
+
+
+/**
+ * Verify referral code is valid and return reward info
+ */
+export const verifyReferralCode = query({
+  args: {
+    referralCode: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const referrer = await ctx.db
+      .query("users")
+      .withIndex("by_referralCode", (q) => q.eq("referralCode", args.referralCode))
+      .first();
+
+    if (!referrer) {
+      return { valid: false };
+    }
+
+    const rewardAmount = await getReferralReward(ctx);
+
+    return {
+      valid: true,
+      referrerPhone: referrer.phone,
+      rewardAmount,
     };
   },
 });

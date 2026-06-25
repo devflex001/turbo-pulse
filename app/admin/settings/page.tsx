@@ -86,7 +86,7 @@ export default function SettingsPage() {
   const savePlatformConfig = useMutation(api.platformConfig.saveConfig)
 
   const [limitsForm, setLimitsForm] = useState({ minDeposit: "100", minWithdrawal: "500" })
-  const [feesForm, setFeesForm] = useState({ withdrawalFeePercent: "2.5", instantProcessingFee: "150" })
+  const [feesForm, setFeesForm] = useState({ withdrawalFeePercent: "2.5", instantProcessingFee: "150", referralReward: "1000" })
   const [limitsLoading, setLimitsLoading] = useState(false)
   const [feesLoading, setFeesLoading] = useState(false)
 
@@ -100,6 +100,7 @@ export default function SettingsPage() {
       setFeesForm({
         withdrawalFeePercent: platformConfig.withdrawalFeePercent.toString(),
         instantProcessingFee: platformConfig.instantProcessingFee.toString(),
+        referralReward: (platformConfig.referralReward ?? 1000).toString(),
       })
     }
   }, [platformConfig])
@@ -560,6 +561,61 @@ export default function SettingsPage() {
               >
                 {feesLoading ? <Loader className="size-3 animate-spin mr-1" /> : null}
                 Save Fees
+              </Button>
+            </CardFooter>
+          </Card>
+
+          {/* Referral Reward Card */}
+          <Card className="flex flex-col border border-border hover:shadow-sm transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <Wallet className="size-4 text-primary" />
+                <CardTitle className="text-sm">Referral Rewards</CardTitle>
+              </div>
+              <CardDescription className="text-xs">Set cash prize for successful referrals.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Referral Reward (KES)</Label>
+                <Input
+                  type="number"
+                  value={feesForm.referralReward || "1000"}
+                  onChange={(e) => setFeesForm((prev) => ({ ...prev, referralReward: e.target.value }))}
+                  className="h-8 text-xs"
+                  min={0}
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Amount users earn when someone signs up using their referral code.
+                </p>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button
+                size="sm"
+                className="w-full"
+                disabled={feesLoading}
+                onClick={async () => {
+                  const reward = parseFloat(feesForm.referralReward || "1000")
+                  if (isNaN(reward) || reward < 0) {
+                    toast.error("Referral reward must be 0 or more")
+                    return
+                  }
+                  try {
+                    setFeesLoading(true)
+                    await savePlatformConfig({
+                      userId: user?._id,
+                      referralReward: reward,
+                    })
+                    toast.success("Referral reward saved")
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "Failed to save reward")
+                  } finally {
+                    setFeesLoading(false)
+                  }
+                }}
+              >
+                {feesLoading ? <Loader className="size-3 animate-spin mr-1" /> : null}
+                Save Reward
               </Button>
             </CardFooter>
           </Card>
