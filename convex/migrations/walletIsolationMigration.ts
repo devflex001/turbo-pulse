@@ -82,7 +82,7 @@ export const cleanupOrphanedWallets = mutation({
 
     for (const wallet of allWallets) {
       // If wallet userId is not in user list, delete it
-      if (!userIds.has(wallet.userId)) {
+      if (wallet.userId && !userIds.has(wallet.userId)) {
         await ctx.db.delete(wallet._id);
         deletedCount++;
       }
@@ -124,7 +124,7 @@ export const validateWalletIsolation = mutation({
 
     // Check 2: No orphaned wallets
     for (const wallet of allWallets) {
-      if (!userIds.has(wallet.userId)) {
+      if (wallet.userId && !userIds.has(wallet.userId)) {
         issues.push(`Orphaned wallet ${wallet._id} with userId ${wallet.userId}`);
       }
     }
