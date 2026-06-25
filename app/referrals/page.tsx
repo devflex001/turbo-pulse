@@ -127,81 +127,66 @@ export default function ReferralsPage() {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar className="hidden lg:flex w-60 shrink-0 overflow-y-auto border-r border-border" />
 
-        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 md:px-8">
-          <div className="max-w-2xl mx-auto h-full flex flex-col justify-center">
-            {/* Main Content */}
-            <div className="space-y-8">
+        <main className="flex-1 overflow-y-auto">
+          <div className="min-h-full flex flex-col justify-center px-4 py-12 sm:px-6 md:px-8 lg:py-16">
+            <div className="max-w-xl mx-auto w-full">
               {/* Hero Section */}
-              <div className="text-center space-y-3">
-                <div className="text-5xl sm:text-6xl font-bold bg-gradient-to-r from-[#4b9f71] to-[#4b9f71]/70 bg-clip-text text-transparent">
+              <div className="text-center mb-20 sm:mb-24 md:mb-28">
+                <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-6 sm:mb-8">
                   Invite & Earn
-                </div>
-                <p className="text-base sm:text-lg text-muted-foreground max-w-sm mx-auto">
-                  Share your link with friends. When they join, you both get <span className="font-semibold text-foreground">1000 KES</span>.
+                </h1>
+                <p className="text-base sm:text-lg text-muted-foreground">
+                  Share your link with friends and <span className="font-semibold text-[#4b9f71]">earn 1000 KES</span> when they join
                 </p>
               </div>
 
-              {/* Stats - Horizontal Layout */}
+              {/* Stats Cards */}
               {referralStats && (
-                <div className="grid grid-cols-2 gap-4 sm:gap-6">
-                  <div className="text-center p-4 rounded-lg bg-muted/30 border border-border/50">
-                    <div className="text-2xl sm:text-3xl font-bold text-foreground">
+                <div className="grid grid-cols-2 gap-4 sm:gap-6 mb-20 sm:mb-24 md:mb-28">
+                  <div className="p-6 sm:p-8 rounded-xl border border-border/50 bg-muted/40 text-center">
+                    <p className="text-3xl sm:text-4xl font-bold text-foreground mb-3">
                       {referralStats.totalReferrals}
-                    </div>
-                    <div className="text-xs sm:text-sm text-muted-foreground mt-1">
+                    </p>
+                    <p className="text-xs sm:text-sm text-muted-foreground font-medium">
                       Friends Invited
-                    </div>
+                    </p>
                   </div>
-                  <div className="text-center p-4 rounded-lg bg-muted/30 border border-border/50">
-                    <div className="text-2xl sm:text-3xl font-bold text-[#4b9f71]">
-                      KES {referralStats.totalReferralEarnings.toLocaleString()}
-                    </div>
-                    <div className="text-xs sm:text-sm text-muted-foreground mt-1">
-                      You've Earned
-                    </div>
+                  <div className="p-6 sm:p-8 rounded-xl border border-border/50 bg-muted/40 text-center">
+                    <p className="text-3xl sm:text-4xl font-bold text-[#4b9f71] mb-3">
+                      {referralStats.totalReferralEarnings.toLocaleString()}
+                    </p>
+                    <p className="text-xs sm:text-sm text-muted-foreground font-medium">
+                      KES Earned
+                    </p>
                   </div>
                 </div>
               )}
 
-              {/* Link Section */}
+              {/* Referral Link Section */}
               {referralStats?.referralCode && referralLink && (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-semibold text-foreground block">
-                      Your Referral Link
-                    </label>
-                    <div className="flex gap-2">
-                      <div className="flex-1 px-4 py-3 bg-muted/50 rounded-lg border border-border/50 text-sm text-muted-foreground font-mono truncate hover:bg-muted/70 transition-colors">
-                        {referralLink.referralLink}
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleCopyLink(referralLink.referralLink)}
-                        className="shrink-0 h-auto px-3 hover:border-[#4b9f71]/50 hover:bg-muted/50"
-                      >
-                        {copied ? (
-                          <Check className="size-4 text-[#4b9f71]" />
-                        ) : (
-                          <Copy className="size-4" />
-                        )}
-                      </Button>
-                    </div>
+                <div className="mb-20 sm:mb-24 md:mb-28">
+                  <label className="block text-sm font-semibold text-foreground mb-4 sm:mb-5">
+                    Your Referral Link
+                  </label>
+                  <div className="p-5 sm:p-6 rounded-xl border border-border/50 bg-muted/40 mb-6 sm:mb-8">
+                    <p className="text-xs sm:text-sm text-muted-foreground font-mono break-all">
+                      {referralLink.referralLink}
+                    </p>
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-3">
+                  {/* Action Buttons - Full Width Stack on Mobile */}
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                     <Button
                       onClick={() => handleCopyLink(referralLink.referralLink)}
                       variant="outline"
-                      className="flex-1 h-11 hover:bg-muted/50 hover:border-[#4b9f71]/50"
+                      className="h-12 sm:h-12 flex-1 font-medium text-sm hover:border-[#4b9f71]/50 hover:bg-muted/50"
                     >
                       <Copy className="size-4 mr-2" />
                       Copy Link
                     </Button>
                     <Button
                       onClick={() => handleShare(referralLink.referralLink)}
-                      className="flex-1 h-11 bg-[#4b9f71] hover:bg-[#3e865f] text-white font-medium"
+                      className="h-12 sm:h-12 flex-1 bg-[#4b9f71] hover:bg-[#3e865f] text-white font-medium text-sm transition-colors"
                     >
                       <Share2 className="size-4 mr-2" />
                       Share
@@ -211,31 +196,33 @@ export default function ReferralsPage() {
               )}
 
               {/* How It Works */}
-              <div className="space-y-3 pt-6 border-t border-border/50">
-                <h3 className="font-semibold text-foreground">How it works</h3>
-                <div className="space-y-3">
-                  <div className="flex gap-3">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#4b9f71]/20 flex items-center justify-center text-xs font-bold text-[#4b9f71]">
+              <div className="border-t border-border/50 pt-16 sm:pt-20 md:pt-24">
+                <h2 className="text-lg sm:text-xl font-bold text-foreground mb-8 sm:mb-10">
+                  How it works
+                </h2>
+                <div className="space-y-6 sm:space-y-8">
+                  <div className="flex gap-5 sm:gap-6">
+                    <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#4b9f71] text-white flex items-center justify-center text-sm font-bold">
                       1
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm sm:text-base text-muted-foreground pt-1 sm:pt-2">
                       Share your link with friends
                     </p>
                   </div>
-                  <div className="flex gap-3">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#4b9f71]/20 flex items-center justify-center text-xs font-bold text-[#4b9f71]">
+                  <div className="flex gap-5 sm:gap-6">
+                    <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#4b9f71] text-white flex items-center justify-center text-sm font-bold">
                       2
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm sm:text-base text-muted-foreground pt-1 sm:pt-2">
                       They sign up with your link
                     </p>
                   </div>
-                  <div className="flex gap-3">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#4b9f71]/20 flex items-center justify-center text-xs font-bold text-[#4b9f71]">
+                  <div className="flex gap-5 sm:gap-6">
+                    <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#4b9f71] text-white flex items-center justify-center text-sm font-bold">
                       3
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      You both get 1000 KES
+                    <p className="text-sm sm:text-base text-muted-foreground pt-1 sm:pt-2">
+                      You both get 1000 KES instantly
                     </p>
                   </div>
                 </div>
