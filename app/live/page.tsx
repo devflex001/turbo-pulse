@@ -36,7 +36,7 @@ export default function LivePage() {
     status: "live",
     limit: 100,
     includeFirstMarket: true,
-  }) as (SportsMatch & { firstMarket?: any })[] | undefined
+  }) as (SportsMatch & { firstMarket?: any })[] | { items: (SportsMatch & { firstMarket?: any })[] } | undefined
 
   const customEvents = useQuery(api.customEvents.listCustomEvents, {
     status: "published",
@@ -48,8 +48,8 @@ export default function LivePage() {
       return matches
     }
 
-    if (matches && typeof matches === "object" && Array.isArray((matches as { page?: unknown }).page)) {
-      return (matches as { page: (SportsMatch & { firstMarket?: any })[] }).page
+    if (matches && typeof matches === "object" && Array.isArray((matches as { items?: unknown }).items)) {
+      return (matches as { items: (SportsMatch & { firstMarket?: any })[] }).items
     }
 
     return []

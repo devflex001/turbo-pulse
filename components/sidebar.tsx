@@ -66,6 +66,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
 
   const allMatches = useQuery(api.sportsData.listMatches, { limit: 300 }) as
     | MatchRecord[]
+    | { items: MatchRecord[] }
     | undefined
   const competitions = useQuery(api.sportsData.listCompetitions, {
     sport: selectedSport,
@@ -76,8 +77,8 @@ export function Sidebar({ className, onClose }: SidebarProps) {
       return allMatches
     }
 
-    if (allMatches && typeof allMatches === "object" && Array.isArray((allMatches as { page?: unknown }).page)) {
-      return (allMatches as { page: MatchRecord[] }).page
+    if (allMatches && typeof allMatches === "object" && Array.isArray((allMatches as { items?: unknown }).items)) {
+      return (allMatches as { items: MatchRecord[] }).items
     }
 
     return []
