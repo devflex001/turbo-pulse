@@ -268,13 +268,13 @@ export const trackReferralSignup = mutation({
     // Award the referrer their bonus in the wallet
     let wallet = await ctx.db
       .query("wallets")
-      .filter((q) => q.eq(q.field("userId"), referrer._id.toString()))
+      .withIndex("by_userId", (q) => q.eq("userId", referrer._id))
       .first();
 
     if (!wallet) {
       // Create wallet if it doesn't exist
       await ctx.db.insert("wallets", {
-        userId: referrer._id.toString(),
+        userId: referrer._id,
         balance: REFERRAL_REWARD,
       });
     } else {

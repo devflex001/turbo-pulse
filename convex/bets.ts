@@ -274,9 +274,10 @@ export const updateTransactionStatus = mutation({
     });
 
     if (args.status === "success" && oldStatus !== "success" && transaction.userId) {
+      const userId = transaction.userId as Id<"users">;
       let wallet = await ctx.db
         .query("wallets")
-        .withIndex("by_userId", (q) => q.eq("userId", transaction.userId))
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
         .unique();
       const currentBalance = wallet ? wallet.balance : 0;
       const change =
@@ -288,14 +289,14 @@ export const updateTransactionStatus = mutation({
         await ctx.db.patch(wallet._id, { balance: currentBalance + change });
       } else {
         await ctx.db.insert("wallets", {
-          userId: transaction.userId,
+          userId: userId,
           balance: 0 + change,
         });
       }
 
       if (transaction.type === "deposit") {
         await notifyUser(ctx, {
-          recipientUserId: transaction.userId,
+          recipientUserId: userId,
           type: "payment",
           title: "Deposit successful",
           message: `${formatKes(transaction.amount)} has been added to your wallet.`,
@@ -322,9 +323,10 @@ export const updateTransactionStatus = mutation({
         });
       }
     } else if (args.status !== "success" && oldStatus === "success" && transaction.userId) {
+      const userId = transaction.userId as Id<"users">;
       let wallet = await ctx.db
         .query("wallets")
-        .withIndex("by_userId", (q) => q.eq("userId", transaction.userId))
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
         .unique();
       if (wallet) {
         const change =
@@ -352,9 +354,10 @@ export const settleSingleBet = mutation({
     await ctx.db.patch(args.betId, { status: args.status });
 
     if (args.status === "won" && bet.userId) {
+      const userId = bet.userId as Id<"users">;
       let wallet = await ctx.db
         .query("wallets")
-        .withIndex("by_userId", (q) => q.eq("userId", bet.userId))
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
         .unique();
       const currentBalance = wallet ? wallet.balance : 0;
       if (wallet) {
@@ -363,7 +366,7 @@ export const settleSingleBet = mutation({
         });
       } else {
         await ctx.db.insert("wallets", {
-          userId: bet.userId,
+          userId: userId,
           balance: 0 + bet.potentialReturn,
         });
       }
@@ -430,20 +433,21 @@ export const cancelBet = mutation({
     await ctx.db.patch(args.betId, { status: "cancelled" });
 
     if (bet.userId) {
+      const userId = bet.userId as Id<"users">;
       let wallet = await ctx.db
         .query("wallets")
-        .withIndex("by_userId", (q) => q.eq("userId", bet.userId))
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
         .unique();
       const currentBalance = wallet ? wallet.balance : 0;
 
       if (wallet) {
         await ctx.db.patch(wallet._id, { balance: currentBalance + bet.stake });
       } else {
-        await ctx.db.insert("wallets", { userId: bet.userId, balance: 0 + bet.stake });
+        await ctx.db.insert("wallets", { userId: userId, balance: 0 + bet.stake });
       }
 
       await notifyUser(ctx, {
-        recipientUserId: bet.userId as Id<"users">,
+        recipientUserId: userId,
         type: "bet",
         title: "Bet cancelled",
         message: `Your bet on ${getBetLabel(bet.selections)} was cancelled and ${formatKes(bet.stake)} was returned.`,
@@ -487,9 +491,10 @@ export const settleAllBets = mutation({
       await ctx.db.patch(bet._id, { status });
 
       if (won && bet.userId) {
+        const userId = bet.userId as Id<"users">;
         let wallet = await ctx.db
           .query("wallets")
-          .withIndex("by_userId", (q) => q.eq("userId", bet.userId))
+          .withIndex("by_userId", (q) => q.eq("userId", userId))
           .unique();
         const currentBalance = wallet ? wallet.balance : 0;
         if (wallet) {
@@ -498,7 +503,7 @@ export const settleAllBets = mutation({
           });
         } else {
           await ctx.db.insert("wallets", {
-            userId: bet.userId,
+            userId: userId,
             balance: 0 + bet.potentialReturn,
           });
         }

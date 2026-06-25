@@ -178,13 +178,16 @@ export const submitWithdrawalRequest = mutation({
     }
 
     // Check wallet balance
-    const wallet = await ctx.db.query("wallets").unique();
+    const wallet = await ctx.db
+      .query("wallets")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .unique();
     if (!wallet || wallet.balance < args.amount) {
       throw new Error("Insufficient wallet balance");
     }
 
     // Deduct from wallet (reserve funds)
-    await updateWalletBalance(ctx, args.amount, "subtract");
+    await updateWalletBalance(ctx, user._id, args.amount, "subtract");
 
     // Create withdrawal request
     const requestId = await ctx.db.insert("withdrawal_requests", {
@@ -352,7 +355,7 @@ export const rejectWithdrawal = mutation({
     }
 
     // Restore the wallet balance (the amount was deducted on submit)
-    await updateWalletBalance(ctx, request.amount, "add");
+    await updateWalletBalance(ctx, request.userId, request.amount, "add");
 
     await ctx.db.patch(args.requestId, {
       status: "rejected",

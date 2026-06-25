@@ -52,13 +52,13 @@ export const listBets = query({
       if (statusFilter !== "all") {
         baseQuery = baseQuery.filter((q) => q.eq(q.field("status"), statusFilter));
       }
-      
+
       const allBets = await baseQuery.take(1000);
 
       const filteredBets = allBets.filter((bet) => {
         // Match bet ID
         if (bet._id.toString().toLowerCase().includes(search)) return true;
-        
+
         // Match selections
         for (const sel of bet.selections) {
           if (sel.matchName?.toLowerCase().includes(search)) return true;
@@ -74,7 +74,7 @@ export const listBets = query({
       const numItems = args.paginationOpts.numItems;
       const cursor = args.paginationOpts.cursor;
       const startIndex = cursor ? parseInt(cursor, 10) : 0;
-      
+
       if (isNaN(startIndex)) {
         return { page: [], isDone: true, continueCursor: "" };
       }
@@ -202,14 +202,19 @@ export const updateBetStatus = mutation({
     await ctx.db.patch(args.betId, { status: newStatus });
 
     // 5. Update wallet balance if there is any adjustment
-    if (adjustment !== 0) {
-      const wallet = await ctx.db.query("wallets").first();
+    if (adjustment !== 0 && bet.userId) {
+      const userId = bet.userId as Id<"users">;
+      const wallet = await ctx.db
+        .query("wallets")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .first();
       if (wallet) {
         await ctx.db.patch(wallet._id, {
           balance: Math.max(0, wallet.balance + adjustment),
         });
       } else {
         await ctx.db.insert("wallets", {
+          userId: userId,
           balance: Math.max(0, adjustment),
         });
       }

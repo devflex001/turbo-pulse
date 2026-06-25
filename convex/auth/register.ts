@@ -158,7 +158,7 @@ export const registerUser = mutation({
         if (!wallet) {
           // Create wallet if it doesn't exist
           await ctx.db.insert("wallets", {
-            userId: referrerId.toString(),
+            userId: referrerId,
             balance: REFERRAL_REWARD,
           });
         } else {

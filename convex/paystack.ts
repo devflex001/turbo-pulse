@@ -1,6 +1,7 @@
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
 import type { MutationCtx } from "./_generated/server"
+import { Id } from "./_generated/dataModel"
 import { notifyAdmins, notifyUser } from "./notifications"
 
 function formatKes(amount: number) {
@@ -251,8 +252,9 @@ export const updateTransactionStatus = mutation({
     )
 
     // If successful, update wallet balance
-    if (args.status === "success" && oldStatus !== "success" && args.amount) {
-      await updateWalletBalance(ctx, args.amount, "add")
+    if (args.status === "success" && oldStatus !== "success" && args.amount && transaction.userId) {
+      const userId = transaction.userId as Id<"users">;
+      await updateWalletBalance(ctx, userId, args.amount, "add")
       console.log(`[Wallet] Credited with KES ${args.amount}`)
 
       if (transaction.userId && transaction.type === "deposit") {
@@ -352,14 +354,19 @@ function formatTransaction(transaction: any) {
  */
 export async function updateWalletBalance(
   ctx: MutationCtx,
+  userId: Id<"users">,
   amount: number,
   operation: "add" | "subtract"
 ): Promise<void> {
-  const wallet = await ctx.db.query("wallets").unique()
+  const wallet = await ctx.db
+    .query("wallets")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .unique()
 
   if (!wallet) {
     // Create wallet if doesn't exist
     await ctx.db.insert("wallets", {
+      userId,
       balance: operation === "add" ? amount : 0,
     })
     return
