@@ -150,8 +150,6 @@ export function Sidebar({ className, onClose }: SidebarProps) {
       )}
     >
       <div className="pt-4 px-4">
-
-
         <div className="space-y-1 w-full">
           {mainNavItems.map((item) => {
             const Icon = item.icon
@@ -183,71 +181,55 @@ export function Sidebar({ className, onClose }: SidebarProps) {
         </div>
       </div>
 
-      <div className={cn(isCollapsed ? "px-2" : "px-4")}>
-        {!isCollapsed && (
-          <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Services
-          </h2>
-        )}
+      <div className="px-4">
+        <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Services
+        </h2>
         <div className="space-y-1 w-full">
           {user && (
             <>
               <Button
                 variant="ghost"
-                title={isCollapsed ? "Deposit" : undefined}
-                className={cn(
-                  "h-9 w-full text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-                  isCollapsed ? "justify-center px-0" : "justify-start gap-2.5 px-3"
-                )}
+                className="h-9 w-full text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground justify-start gap-2.5 px-3"
                 onClick={() => {
                   onClose?.()
                   router.push("/deposit")
                 }}
               >
                 <ArrowDownToLine className="size-4 shrink-0 text-emerald-500" />
-                {!isCollapsed && <span>Deposit</span>}
+                <span>Deposit</span>
               </Button>
               <Button
                 variant="ghost"
-                title={isCollapsed ? "Withdraw" : undefined}
-                className={cn(
-                  "h-9 w-full text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-                  isCollapsed ? "justify-center px-0" : "justify-start gap-2.5 px-3"
-                )}
+                className="h-9 w-full text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground justify-start gap-2.5 px-3"
                 onClick={() => {
                   onClose?.()
                   router.push("/withdraw")
                 }}
               >
                 <ArrowUpFromLine className="size-4 shrink-0 text-amber-500" />
-                {!isCollapsed && <span>Withdraw</span>}
+                <span>Withdraw</span>
               </Button>
               <Button
                 variant="ghost"
-                title={isCollapsed ? "Referrals" : undefined}
-                className={cn(
-                  "h-9 w-full text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-                  isCollapsed ? "justify-center px-0" : "justify-start gap-2.5 px-3"
-                )}
+                className="h-9 w-full text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground justify-start gap-2.5 px-3"
                 onClick={() => {
                   onClose?.()
                   router.push("/referrals")
                 }}
               >
                 <Users className="size-4 shrink-0 text-cyan-500" />
-                {!isCollapsed && <span>Referrals</span>}
+                <span>Referrals</span>
               </Button>
             </>
           )}
         </div>
       </div>
 
-      <div className={cn(isCollapsed ? "px-2" : "px-4")}>
-        {!isCollapsed && (
-          <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Sports
-          </h2>
-        )}
+      <div className="px-4">
+        <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Sports
+        </h2>
         <div className="space-y-1 w-full">
           {!allMatches ? (
             <>
@@ -264,10 +246,8 @@ export function Sidebar({ className, onClose }: SidebarProps) {
                 <Button
                   key={sport.id}
                   variant="ghost"
-                  title={isCollapsed ? `${sport.label} (${sport.count})` : undefined}
                   className={cn(
-                    "h-9 w-full text-sm font-normal",
-                    isCollapsed ? "justify-center px-0" : "justify-between px-3",
+                    "h-9 w-full text-sm font-normal justify-between px-3",
                     isActive
                       ? "bg-[#4b9f71]/10 font-semibold text-[#4b9f71] hover:bg-[#4b9f71]/15 hover:text-[#4b9f71]"
                       : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
@@ -282,15 +262,13 @@ export function Sidebar({ className, onClose }: SidebarProps) {
                     }
                   }}
                 >
-                  <span className={cn("flex items-center", isCollapsed ? "justify-center" : "gap-2.5")}>
+                  <span className="flex items-center gap-2.5">
                     <SportIcon className={cn("size-4 shrink-0", isActive ? "text-[#4b9f71]" : "text-muted-foreground")} />
-                    {!isCollapsed && <span className="truncate">{sport.label}</span>}
+                    <span className="truncate">{sport.label}</span>
                   </span>
-                  {!isCollapsed && (
-                    <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                      {sport.count}
-                    </span>
-                  )}
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                    {sport.count}
+                  </span>
                 </Button>
               )
             })
@@ -298,12 +276,10 @@ export function Sidebar({ className, onClose }: SidebarProps) {
         </div>
       </div>
 
-      <div className={cn("pb-6", isCollapsed ? "px-2" : "px-4")}>
-        {!isCollapsed && (
-          <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Competitions
-          </h2>
-        )}
+      <div className="pb-6 px-4">
+        <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Competitions
+        </h2>
         <div className="space-y-1 w-full">
           {!competitions ? (
             <>
@@ -313,17 +289,14 @@ export function Sidebar({ className, onClose }: SidebarProps) {
           ) : (
             competitions.map((competition) => {
               const isActive = selectedLeague === competition
-              // If collapsed, use a generic trophy for competitions to save space
               const isAllLeagues = competition === "All Leagues"
 
               return (
                 <Button
                   key={competition}
                   variant="ghost"
-                  title={isCollapsed ? competition : undefined}
                   className={cn(
-                    "h-9 w-full text-sm font-normal",
-                    isCollapsed ? "justify-center px-0" : "justify-between px-3 text-left",
+                    "h-9 w-full text-sm font-normal justify-between px-3 text-left",
                     isActive
                       ? "bg-[#4b9f71]/10 font-semibold text-[#4b9f71] hover:bg-[#4b9f71]/15 hover:text-[#4b9f71]"
                       : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
@@ -337,15 +310,9 @@ export function Sidebar({ className, onClose }: SidebarProps) {
                     }
                   }}
                 >
-                  {isCollapsed ? (
+                  <span className="min-w-0 truncate">{competition}</span>
+                  {isAllLeagues && (
                     <Trophy className={cn("size-4 shrink-0", isActive ? "text-[#4b9f71]" : "text-muted-foreground")} />
-                  ) : (
-                    <>
-                      <span className="min-w-0 truncate">{competition}</span>
-                      {isAllLeagues && (
-                        <Trophy className={cn("size-4 shrink-0", isActive ? "text-[#4b9f71]" : "text-muted-foreground")} />
-                      )}
-                    </>
                   )}
                 </Button>
               )
