@@ -9,9 +9,7 @@ import { useMediaQuery } from "@/hooks/use-media-query"
 import { compareFormattedOdds, formatOddOutcome } from "@/lib/odds-format"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Share2, Radio } from "lucide-react"
-import { ShareModal } from "./modals"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Radio } from "lucide-react"
 import { MarketsPanel, type SportsMatch, type SportsMatchWithOdds } from "./markets-panel"
 import { calculateEventTimer } from "@/lib/event-timer"
 import { cn } from "@/lib/utils"
@@ -40,7 +38,6 @@ export function MatchCard({ match }: MatchCardProps) {
   const router = useRouter()
   const isMobile = useMediaQuery("(max-width: 767px)")
   const { betslip, addToBetslip } = useBetStore()
-  const [shareOpen, setShareOpen] = React.useState(false)
   const [marketsOpen, setMarketsOpen] = React.useState(false)
   const [showMainOdds, setShowMainOdds] = React.useState(false)
   const [now, setNow] = React.useState(() => Date.now())
@@ -131,33 +128,14 @@ export function MatchCard({ match }: MatchCardProps) {
         </div>
 
         <div className="flex flex-col gap-3.5 p-4 flex-1 justify-between">
-          <div className="flex items-center justify-between gap-4 py-0.5">
-            <div className="flex items-center justify-center gap-2 flex-1 min-w-0">
-              <p className="font-semibold text-sm truncate text-center flex-1">{match.homeTeam}</p>
-              {match.isLive && scores ? (
-                <p className="text-primary font-extrabold font-mono text-sm shrink-0">{scores[0]} - {scores[1]}</p>
-              ) : (
-                <p className="text-xs font-medium text-muted-foreground shrink-0">vs</p>
-              )}
-              <p className="font-semibold text-sm truncate text-center flex-1">{match.awayTeam}</p>
-            </div>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8 text-muted-foreground hover:text-foreground shrink-0 border border-transparent hover:border-border"
-                  onClick={() => setShareOpen(true)}
-                  aria-label="Share match odds"
-                >
-                  <Share2 className="size-3.5" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-[10px]">Share Match Odds</p>
-              </TooltipContent>
-            </Tooltip>
+          <div className="flex items-center justify-center gap-2 py-0.5 min-w-0">
+            <p className="font-semibold text-sm truncate text-center flex-1">{match.homeTeam}</p>
+            {match.isLive && scores ? (
+              <p className="text-primary font-extrabold font-mono text-sm shrink-0">{scores[0]} - {scores[1]}</p>
+            ) : (
+              <p className="text-xs font-medium text-muted-foreground shrink-0">vs</p>
+            )}
+            <p className="font-semibold text-sm truncate text-center flex-1">{match.awayTeam}</p>
           </div>
 
           <div
@@ -215,7 +193,6 @@ export function MatchCard({ match }: MatchCardProps) {
         </div>
       </div>
 
-      <ShareModal open={shareOpen} onOpenChange={setShareOpen} matchName={matchTitle} />
       <MarketsPanel
         open={marketsOpen}
         onOpenChange={setMarketsOpen}
