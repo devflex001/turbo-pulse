@@ -465,11 +465,6 @@ export function VisitorsPanel() {
         {(status === "CanLoadMore" || status === "LoadingMore") && (
           <div className="pt-1">{loadMoreBtn}</div>
         )}
-        {status === "Exhausted" && visitors.length > 0 && (
-          <p className="text-center text-[11px] text-muted-foreground py-2">
-            All {visitors.length} loaded
-          </p>
-        )}
       </div>
 
       {/* ── Desktop: Table ── */}
@@ -606,14 +601,6 @@ export function VisitorsPanel() {
               Showing {visitors.length} visitor{visitors.length !== 1 ? "s" : ""}
             </span>
             {loadMoreBtn}
-          </div>
-        )}
-
-        {status === "Exhausted" && visitors.length > 0 && (
-          <div className="px-4 py-2.5 border-t border-border bg-muted/10">
-            <span className="text-[11px] text-muted-foreground">
-              All {visitors.length} visitor{visitors.length !== 1 ? "s" : ""} loaded
-            </span>
           </div>
         )}
       </div>
