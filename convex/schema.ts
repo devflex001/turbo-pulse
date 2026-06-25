@@ -440,7 +440,7 @@ const schema = defineSchema({
     minWithdrawal: v.number(),
     withdrawalFeePercent: v.number(),
     instantProcessingFee: v.number(), // KES 150 by default
-    referralReward: v.number(), // KES amount for each successful referral
+    referralReward: v.optional(v.number()), // KES amount for each successful referral
     updatedAt: v.number(),
     updatedBy: v.string(),
   }).index("by_key", ["key"]),
