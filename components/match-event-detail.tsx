@@ -193,14 +193,14 @@ export function MatchEventDetail({
                             "group flex flex-col items-center justify-center gap-0.5 h-10 py-1 px-1.5 rounded border transition-all w-full text-center min-w-0",
                             isEventFinished && "opacity-50 cursor-not-allowed",
                             isSelected
-                              ? "bg-[#4b9f71] border-[#4b9f71] text-white hover:bg-[#3e865f]"
-                              : "border-border/50 bg-muted/30 hover:bg-[#4b9f71]/10 hover:border-[#4b9f71]/40 text-foreground"
+                              ? "bg-primary border-primary text-primary-foreground hover:bg-primary/90"
+                              : "border-border/50 bg-muted/30 hover:bg-primary/10 hover:border-primary/40 text-foreground"
                           )}
                         >
                           <span
                             className={cn(
                               "text-[9px] font-semibold truncate min-w-0 w-full",
-                              isSelected ? "text-white/90" : "text-muted-foreground group-hover:text-foreground"
+                              isSelected ? "text-primary-foreground/90" : "text-muted-foreground group-hover:text-foreground"
                             )}
                           >
                             {outcome.code}
@@ -208,7 +208,7 @@ export function MatchEventDetail({
                           <span
                             className={cn(
                               "font-bold text-[11px] font-mono",
-                              isSelected ? "text-white" : "text-foreground group-hover:text-[#4b9f71]"
+                              isSelected ? "text-primary-foreground" : "text-foreground group-hover:text-primary"
                             )}
                           >
                             {odd.oddValue.toFixed(2)}

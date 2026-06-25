@@ -337,14 +337,14 @@ export function CustomEventDetail({
                             "group flex flex-col items-center justify-center gap-0.5 h-10 py-1 px-1.5 rounded border transition-all w-full text-center min-w-0",
                             isEventFinished && "opacity-50 cursor-not-allowed",
                             isSelected
-                              ? "bg-primary border-primary text-primary-foreground hover:bg-primary/95"
-                              : "border-border/50 bg-muted/30 hover:bg-primary/10 hover:border-primary/40 text-foreground"
+                              ? "bg-[#d4a574] border-[#d4a574] text-white hover:bg-[#c29660]"
+                              : "border-border/50 bg-muted/30 hover:bg-[#d4a574]/10 hover:border-[#d4a574]/40 text-foreground"
                           )}
                         >
                           <span
                             className={cn(
                               "text-[9px] font-semibold truncate min-w-0 w-full",
-                              isSelected ? "text-primary-foreground/90" : "text-muted-foreground group-hover:text-foreground"
+                              isSelected ? "text-white/90" : "text-muted-foreground group-hover:text-foreground"
                             )}
                           >
                             {outcome.code}
@@ -352,7 +352,7 @@ export function CustomEventDetail({
                           <span
                             className={cn(
                               "font-bold text-[11px] font-mono",
-                              isSelected ? "text-primary-foreground" : "text-foreground group-hover:text-primary"
+                              isSelected ? "text-white" : "text-foreground group-hover:text-[#d4a574]"
                             )}
                           >
                             {odd.oddValue.toFixed(2)}

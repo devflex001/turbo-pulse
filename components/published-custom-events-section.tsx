@@ -220,12 +220,12 @@ export function PublishedCustomEventsSection() {
                 disabled={isEventFinished}
                 onClick={() => !isEventFinished && handleAddToSlip(event, odd)}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-0.5 p-1.5 rounded border border-border/40 bg-muted/30 hover:bg-primary/10 hover:border-primary/40 transition-all group/odd",
+                  "flex flex-col items-center justify-center gap-0.5 p-1.5 rounded border border-border/40 bg-muted/30 hover:bg-[#d4a574]/10 hover:border-[#d4a574]/40 transition-all group/odd",
                   isEventFinished && "opacity-50 cursor-not-allowed"
                 )}
               >
                 <span className="text-[9px] font-bold text-foreground">{odd.label}</span>
-                <span className="text-xs font-semibold text-primary">{odd.odds.toFixed(2)}</span>
+                <span className="text-xs font-semibold text-[#d4a574]">{odd.odds.toFixed(2)}</span>
               </button>
             ))}
           </div>
