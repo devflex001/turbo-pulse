@@ -224,42 +224,9 @@ export function PublishedCustomEventsSection() {
                   isEventFinished && "opacity-50 cursor-not-allowed"
                 )}
               >
-                {/* Signature Green accent line */}
-                <div className="absolute top-0 left-0 right-0 h-1 bg-[#4b9f71]" />
-
-                <div className="space-y-2">
-                  {/* Event Title and Status */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-bold text-sm text-foreground group-hover:text-[#4b9f71] transition-colors">
-                        {event.homeTeam} vs {event.awayTeam}
-                      </h3>
-                      <p className="text-xs text-muted-foreground mt-1">{event.title}</p>
-                    </div>
-                    <Badge className="bg-[#4b9f71]/15 text-[#4b9f71] hover:bg-[#4b9f71]/25 border border-[#4b9f71]/40 text-[9px] font-bold shrink-0 uppercase">
-                      FEATURED
-                    </Badge>
-                  </div>
-
-                  {/* Event Meta */}
-                  <div className="flex items-center gap-3 text-[10px] text-muted-foreground pt-2 border-t border-[#4b9f71]/20">
-                    <span>{event.competition}</span>
-                    <span>•</span>
-                    <span>{event.totalMarkets} markets</span>
-                  </div>
-
-                  {/* View Button */}
-                  <div className="pt-2 flex justify-end">
-                    <Button
-                      size="sm"
-                      className="h-7 text-xs bg-[#4b9f71] text-white hover:bg-[#3e865f] font-semibold border-none"
-                      onClick={() => handleOpenDetail(event)}
-                    >
-                      View Markets
-                    </Button>
-                  </div>
-                </div>
-              </div>
+                <span className="text-[9px] font-bold text-foreground">{odd.label}</span>
+                <span className="text-xs font-semibold text-primary">{odd.odds.toFixed(2)}</span>
+              </button>
             ))}
           </div>
         </div>
@@ -309,48 +276,7 @@ export function PublishedCustomEventsSection() {
 
         {/* Signature Green Styled Event Cards (Desktop) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {sortedByStartTime.map((event) => (
-            <div
-              key={event._id}
-              className="group relative overflow-hidden rounded-lg border-2 border-[#4b9f71]/40 bg-[#4b9f71]/5 hover:bg-[#4b9f71]/10 transition-all p-4"
-            >
-              {/* Signature Green accent line */}
-              <div className="absolute top-0 left-0 right-0 h-1 bg-[#4b9f71]" />
-
-              <div className="space-y-2">
-                {/* Event Title and Status */}
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="font-bold text-sm text-foreground group-hover:text-[#4b9f71] transition-colors">
-                      {event.homeTeam} vs {event.awayTeam}
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-1">{event.title}</p>
-                  </div>
-                  <Badge className="bg-[#4b9f71]/15 text-[#4b9f71] hover:bg-[#4b9f71]/25 border border-[#4b9f71]/40 text-[9px] font-bold shrink-0 uppercase">
-                    FEATURED
-                  </Badge>
-                </div>
-
-                {/* Event Meta */}
-                <div className="flex items-center gap-3 text-[10px] text-muted-foreground pt-2 border-t border-[#4b9f71]/20">
-                  <span>{event.competition}</span>
-                  <span>•</span>
-                  <span>{event.totalMarkets} markets</span>
-                </div>
-
-                {/* View Button */}
-                <div className="pt-2 flex justify-end">
-                  <Button
-                    size="sm"
-                    className="h-7 text-xs bg-[#4b9f71] text-white hover:bg-[#3e865f] font-semibold border-none shadow-sm"
-                    onClick={() => handleOpenDetail(event)}
-                  >
-                    View Markets
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ))}
+          {sortedByStartTime.map(renderEventCard)}
         </div>
       </div>
 

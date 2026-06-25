@@ -159,6 +159,7 @@ const schema = defineSchema({
         outcomeName: v.optional(v.string()),
         specifiers: v.optional(v.string()),
         matchStartTime: v.optional(v.number()),
+        outcomeId: v.optional(v.string()),
       })
     ),
     totalOdds: v.number(),
@@ -166,6 +167,9 @@ const schema = defineSchema({
     potentialReturn: v.number(),
     status: v.string(), // "active" | "won" | "lost"
     placedAt: v.number(),
+    // Settlement fields
+    settledAt: v.optional(v.number()),
+    settledEventId: v.optional(v.string()), // custom event ID it was settled on
   })
     .index("by_userId", ["userId"])
     .index("by_status", ["status"]),
@@ -248,6 +252,10 @@ const schema = defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
     publishedAt: v.optional(v.number()),
+    // Settlement fields
+    settledAt: v.optional(v.number()),
+    winningMarketId: v.optional(v.id("customMarkets")),
+    winningOutcomeId: v.optional(v.string()),
   })
     .index("by_status", ["status"])
     .index("by_startTime", ["startTime"])

@@ -1,6 +1,14 @@
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
 import { Id } from "./_generated/dataModel"
+import { notifyAdmins, notifyUser } from "./notifications"
+
+function formatKes(amount: number) {
+  return `KES ${amount.toLocaleString("en-KE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`
+}
 
 type CustomMarketTemplate = {
   name: string
@@ -518,6 +526,49 @@ export const updateCustomEventScore = mutation({
   },
 })
 
+export const markEventAsFinished = mutation({
+  args: {
+    eventId: v.id("customEvents"),
+  },
+  handler: async (ctx, args) => {
+    const event = await ctx.db.get(args.eventId)
+    if (!event) throw new Error("Event not found")
+    if (event.eventStatus === "finished") throw new Error("Event already finished")
+
+    const now = Date.now()
+    await ctx.db.patch(args.eventId, {
+      eventStatus: "finished",
+      updatedAt: now,
+    })
+
+    return args.eventId
+  },
+})
+
+export const autoUpdateFinishedEvents = mutation({
+  args: {
+    eventIds: v.array(v.id("customEvents")),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now()
+    const MATCH_DURATION = 105 * 60 * 1000 // 105 minutes
+
+    for (const eventId of args.eventIds) {
+      const event = await ctx.db.get(eventId)
+      if (!event) continue
+      if (event.eventStatus === "finished") continue // Already finished
+
+      const timeElapsed = now - event.startTime
+      if (timeElapsed >= MATCH_DURATION) {
+        await ctx.db.patch(eventId, {
+          eventStatus: "finished",
+          updatedAt: now,
+        })
+      }
+    }
+  },
+})
+
 export const updateCustomMarket = mutation({
   args: {
     marketId: v.id("customMarkets"),
@@ -806,5 +857,173 @@ export const getCustomEventWithMarkets = query({
       .take(500)
 
     return { ...event, markets }
+  },
+})
+
+// Get bets for a custom event to settle
+export const getEventBets = query({
+  args: {
+    eventId: v.id("customEvents"),
+  },
+  handler: async (ctx, args) => {
+    const bets = await ctx.db
+      .query("bets")
+      .collect()
+
+    // Filter bets that have selections matching this custom event
+    return bets.filter((bet) =>
+      bet.selections.some((sel: any) => sel.matchId === args.eventId)
+    )
+  },
+})
+
+// Settle event: mark which market outcomes won
+// This will automatically settle all related bets
+export const settleCustomEvent = mutation({
+  args: {
+    eventId: v.id("customEvents"),
+    marketOutcomes: v.array(v.object({
+      marketId: v.id("customMarkets"),
+      winningOutcomeIds: v.array(v.string()), // Multiple outcomes can win in same market
+    })),
+  },
+  handler: async (ctx, args) => {
+    const event = await ctx.db.get(args.eventId)
+    if (!event) throw new Error("Event not found")
+    if (event.eventStatus === "finished") throw new Error("Event already settled")
+
+    // Validate all markets and outcomes exist
+    for (const resolution of args.marketOutcomes) {
+      const market = await ctx.db.get(resolution.marketId)
+      if (!market || market.eventId !== args.eventId) {
+        throw new Error(`Market not found for this event`)
+      }
+
+      for (const outcomeId of resolution.winningOutcomeIds) {
+        const outcome = await ctx.db
+          .query("customOdds")
+          .withIndex("by_eventId", (q) => q.eq("eventId", args.eventId))
+          .filter((q) =>
+            q.and(
+              q.eq(q.field("outcomeId"), outcomeId),
+              q.eq(q.field("marketId"), resolution.marketId)
+            )
+          )
+          .first()
+
+        if (!outcome) throw new Error(`Outcome ${outcomeId} not found in market`)
+      }
+    }
+
+    // Update event status to finished
+    await ctx.db.patch(args.eventId, {
+      eventStatus: "finished",
+      settledAt: Date.now(),
+    })
+
+    // Get all active bets for this event
+    const allBets = await ctx.db.query("bets").collect()
+    const eventBets = allBets.filter((bet) =>
+      bet.selections.some((sel: any) => sel.matchId === args.eventId && bet.status === "active")
+    )
+
+    // Flatten all winning outcomeIds across markets
+    const winningOutcomeIds = new Set<string>()
+    for (const resolution of args.marketOutcomes) {
+      for (const outcomeId of resolution.winningOutcomeIds) {
+        winningOutcomeIds.add(outcomeId)
+      }
+    }
+
+    // Settle each bet
+    for (const bet of eventBets) {
+      // A bet wins only if ALL its selections for this event are in the winning outcomes
+      const eventSelections = bet.selections.filter((sel: any) => sel.matchId === args.eventId)
+
+      const allSelectionsWon = eventSelections.length > 0 && eventSelections.every(
+        (sel: any) => winningOutcomeIds.has(sel.outcomeId)
+      )
+
+      const isWon = allSelectionsWon
+
+      // Update bet status
+      await ctx.db.patch(bet._id, {
+        status: isWon ? "won" : "lost",
+        settledAt: Date.now(),
+        settledEventId: args.eventId,
+      })
+
+      // If bet won, credit user's wallet with potential return
+      if (isWon && bet.userId) {
+        const userId = bet.userId as Id<"users">
+        let wallet = await ctx.db
+          .query("wallets")
+          .withIndex("by_userId", (q) => q.eq("userId", userId))
+          .unique()
+
+        const currentBalance = wallet ? wallet.balance : 0
+
+        if (wallet) {
+          await ctx.db.patch(wallet._id, {
+            balance: currentBalance + bet.potentialReturn,
+          })
+        } else {
+          await ctx.db.insert("wallets", {
+            userId: userId,
+            balance: 0 + bet.potentialReturn,
+          })
+        }
+
+        // Notify user they won
+        const betLabel = bet.selections.length === 1
+          ? bet.selections[0]?.matchName ?? "your selection"
+          : `${bet.selections.length} selections`
+
+        await notifyUser(ctx, {
+          recipientUserId: userId,
+          type: "bet",
+          title: "Bet won",
+          message: `Your bet on ${betLabel} won! ${formatKes(bet.potentialReturn)} has been credited to your wallet.`,
+          href: "/my-bets",
+          dedupeKey: `custom-event-won:${bet._id}:${args.eventId}`,
+          metadata: {
+            betId: bet._id,
+            amount: bet.potentialReturn,
+            sourceMatchId: args.eventId,
+          },
+        })
+      } else if (!isWon && bet.userId) {
+        // Notify user they lost
+        const userId = bet.userId as Id<"users">
+        const betLabel = bet.selections.length === 1
+          ? bet.selections[0]?.matchName ?? "your selection"
+          : `${bet.selections.length} selections`
+
+        await notifyUser(ctx, {
+          recipientUserId: userId,
+          type: "bet",
+          title: "Bet lost",
+          message: `Your bet on ${betLabel} did not win. Better luck next time!`,
+          href: "/my-bets",
+          dedupeKey: `custom-event-lost:${bet._id}:${args.eventId}`,
+          metadata: {
+            betId: bet._id,
+            amount: bet.stake,
+            sourceMatchId: args.eventId,
+          },
+        })
+      }
+    }
+
+    // Notify admins
+    await notifyAdmins(ctx, {
+      type: "match",
+      title: "Custom event settled",
+      message: `Event ${event.homeTeam} vs ${event.awayTeam} has been settled. ${eventBets.length} bets processed.`,
+      href: `/admin/custom-events/${args.eventId}`,
+      dedupeKey: `custom-event-settled:${args.eventId}`,
+    })
+
+    return args.eventId
   },
 })
