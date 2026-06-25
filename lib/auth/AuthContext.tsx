@@ -18,6 +18,7 @@ interface User {
   role: "user" | "admin";
   createdAt: number;
   updatedAt?: number;
+  referredBy?: Id<"users"> | null;
 }
 
 interface AuthContextType {

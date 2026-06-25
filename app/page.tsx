@@ -687,7 +687,7 @@ export default function Page() {
       {/* Referral program info modal (shown after signup if user has referral code) */}
       {user && !authLoading && (
         <ReferralSignupModal
-          open={user?.referredBy === undefined} // Show if user doesn't have a referrer yet
+          open={!user?.referredBy} // Show if user doesn't have a referrer yet
           onOpenChange={() => { }} // Auto-show once, then dismiss
         />
       )}

@@ -189,7 +189,7 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
   const platformConfig = useQuery(api.platformConfig.getConfig, {
     userId: "skip" as any, // Admin check not needed for config fetch
   })
-  const referralReward = platformConfig?.referralReward ?? 1000
+  const referralReward = (platformConfig as any)?.referralReward ?? 1000
 
   // Get referral code from URL on mount
   React.useEffect(() => {
