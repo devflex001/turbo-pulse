@@ -185,8 +185,8 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [referralCode, setReferralCode] = React.useState<string | undefined>()
 
-  // Get configurable referral reward
-  const platformConfig = useQuery(api.platformConfig.getConfig, {})
+  // Get configurable referral reward (using public query, no auth required)
+  const platformConfig = useQuery(api.platformConfig.getUserFacingConfig, {})
   const referralReward = platformConfig?.referralReward ?? 1000
 
   // Get referral code from URL on mount

@@ -31,7 +31,7 @@ export function ReferralSignupModal({
     setMounted(true)
   }, [])
 
-  const platformConfig = useQuery(api.platformConfig.getConfig, {})
+  const platformConfig = useQuery(api.platformConfig.getUserFacingConfig, {})
 
   const referralReward = platformConfig?.referralReward ?? 1000
 
@@ -89,16 +89,14 @@ export function ReferralSignupModal({
                 </div>
                 <div>
                   <p className="text-sm font-medium text-foreground">Earn instantly</p>
-                  <p className="text-xs text-muted-foreground">
-                    {platformConfig ? (
-                      <>
-                        Get <span className="font-semibold text-emerald-600">KES {referralReward.toLocaleString()}</span> when they
-                        sign up.
-                      </>
-                    ) : (
-                      <Skeleton className="h-4 w-32" />
-                    )}
-                  </p>
+                  {platformConfig ? (
+                    <p className="text-xs text-muted-foreground">
+                      Get <span className="font-semibold text-emerald-600">KES {referralReward.toLocaleString()}</span> when they
+                      sign up.
+                    </p>
+                  ) : (
+                    <Skeleton className="h-4 w-32" />
+                  )}
                 </div>
               </div>
             </div>
