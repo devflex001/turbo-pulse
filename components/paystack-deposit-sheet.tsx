@@ -29,7 +29,10 @@ interface TransactionResult {
 
 export function PaystackDepositSheet() {
   const { user } = useAuth()
-  const wallet = useQuery(api.mpesa.getWallet)
+  const wallet = useQuery(
+    api.mpesa.getWallet,
+    user?._id ? { userId: user._id } : "skip"
+  )
   const config = useQuery(api.platformConfig.getUserFacingConfig)
   const createPaystackTransaction = useMutation(api.paystack.createTransaction)
 
@@ -118,7 +121,7 @@ export function PaystackDepositSheet() {
     if (stage === "initiating") {
       const originalPointerEvents = document.body.style.pointerEvents
       document.body.style.pointerEvents = "auto"
-      
+
       const styleEl = document.createElement("style")
       styleEl.id = "paystack-deposit-pointer-override"
       styleEl.innerHTML = `

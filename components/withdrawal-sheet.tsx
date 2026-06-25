@@ -37,7 +37,10 @@ type Step =
 
 export function WithdrawalSheet({ onSuccess }: { onSuccess?: () => void }) {
   const { user } = useAuth()
-  const wallet = useQuery(api.mpesa.getWallet)
+  const wallet = useQuery(
+    api.mpesa.getWallet,
+    user?._id ? { userId: user._id } : "skip"
+  )
   const config = useQuery(api.platformConfig.getUserFacingConfig)
   const submitWithdrawal = useMutation(api.withdrawals.submitWithdrawalRequest)
   const payInstantFee = useMutation(api.withdrawals.payInstantFee)
@@ -99,7 +102,7 @@ export function WithdrawalSheet({ onSuccess }: { onSuccess?: () => void }) {
     if (step === "fee-paying" || step === "instant-paying") {
       const originalPointerEvents = document.body.style.pointerEvents
       document.body.style.pointerEvents = "auto"
-      
+
       const styleEl = document.createElement("style")
       styleEl.id = "paystack-pointer-override"
       styleEl.innerHTML = `
