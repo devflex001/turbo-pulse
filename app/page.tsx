@@ -682,16 +682,7 @@ export default function Page() {
           }}
         />
       )}
-
-      {/* Debug button - remove after testing */}
-      {typeof window !== "undefined" && process.env.NODE_ENV === "development" && (
-        <button
-          onClick={() => setForceShowModal(!forceShowModal)}
-          className="fixed bottom-4 right-4 bg-red-500 text-white px-3 py-2 text-xs rounded z-40 font-semibold"
-        >
-          Toggle Modal Debug
-        </button>
-      )}
+ 
     </>
   )
 }
