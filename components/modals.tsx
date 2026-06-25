@@ -2,6 +2,8 @@
 
 import * as React from "react"
 import { useAuth } from "@/lib/auth/AuthContext"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 import { ResponsiveModal } from "@/components/ui/responsive-modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -183,6 +185,10 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [referralCode, setReferralCode] = React.useState<string | undefined>()
 
+  // Get configurable referral reward (using public query, no auth required)
+  const platformConfig = useQuery(api.platformConfig.getUserFacingConfig, {})
+  const referralReward = platformConfig?.referralReward ?? 1000
+
   // Get referral code from URL on mount
   React.useEffect(() => {
     if (typeof window !== "undefined") {
@@ -219,7 +225,7 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
       const role = await register(phone, password, referralCode)
 
       toast.success(referralCode
-        ? "Account created successfully! Start inviting friends and earn 1000 KES for each successful referral. Welcome to BetFlexx!"
+        ? `Account created successfully! Start inviting friends and earn KES ${referralReward.toLocaleString()} for each successful referral. Welcome to BetFlexx!`
         : "Account created successfully! Welcome to BetFlexx.")
       onOpenChange(false)
       setPhone("")
@@ -243,14 +249,14 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
       onOpenChange={onOpenChange}
       title="Join BetFlexx"
       description={referralCode
-        ? "Create an account and start earning 1000 KES for each successful referral!"
+        ? `Create an account and start earning KES ${referralReward.toLocaleString()} for each successful referral!`
         : "Create an account to start tracking your bets and managing your insights."}
     >
       <form onSubmit={handleSubmit} className="space-y-4 py-2">
         {referralCode && (
           <div className="p-3 bg-[#4b9f71]/10 rounded-lg border border-[#4b9f71]/20">
             <p className="text-sm text-foreground font-medium">
-              🎉 You've been invited! Earn <span className="font-bold">1000 KES</span> for every friend you refer who signs up.
+              🎉 You've been invited! Earn <span className="font-bold">KES {referralReward.toLocaleString()}</span> for every friend you refer who signs up.
             </p>
           </div>
         )}

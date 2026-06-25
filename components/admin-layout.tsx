@@ -39,6 +39,7 @@ import {
   PlayCircle,
   PlusCircle,
   Settings,
+  Zap,
 } from "lucide-react"
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
@@ -47,6 +48,7 @@ const coreNavItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
   { id: "users", label: "Users", icon: Users, href: "/admin/users" },
   { id: "bets", label: "Bets", icon: Trophy, href: "/admin/bets" },
+  { id: "referrals", label: "Referrals", icon: Zap, href: "/admin/referrals" },
   { id: "payments", label: "Payments", icon: ArrowUpRight, href: "/admin/payments" },
   { id: "withdrawals", label: "Withdrawals", icon: ArrowDownLeft, href: "/admin/withdrawals" },
 ]

@@ -107,7 +107,12 @@ export const registerUser = mutation({
 
     // If user was referred, track the referral and award the referrer
     if (referralCode && referrerId) {
-      const REFERRAL_REWARD = 1000; // KES
+      // Get dynamic referral reward from config
+      const config = await ctx.db
+        .query("platform_config")
+        .withIndex("by_key", (q) => q.eq("key", "main"))
+        .first();
+      const REFERRAL_REWARD = config?.referralReward ?? 1000; // KES, default to 1000
       const now = Date.now();
 
       // Find or create referral record

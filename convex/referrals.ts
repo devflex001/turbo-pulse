@@ -1,15 +1,20 @@
-import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
-import { requireAuth } from "./auth/authorization";
+import { v } from "convex/values"
+import { mutation, query } from "./_generated/server"
+import type { MutationCtx, QueryCtx } from "./_generated/server"
+import type { Id } from "./_generated/dataModel"
+import { requireAuth } from "./auth/authorization"
 
-// Constants
-const REFERRAL_REWARD = 1000; // KES
+// This is the default - actual value comes from platform_config
+const DEFAULT_REFERRAL_REWARD = 1000; // KES
 
-/**
- * Generate a unique referral code
- */
+// Helper to get referral reward from config
+async function getReferralReward(ctx: QueryCtx | MutationCtx): Promise<number> {
+  const config = await ctx.db
+    .query("platform_config")
+    .withIndex("by_key", (q) => q.eq("key", "main"))
+    .first()
+  return config?.referralReward ?? DEFAULT_REFERRAL_REWARD
+}
 async function generateUniqueReferralCode(ctx: QueryCtx | MutationCtx): Promise<string> {
   let referralCode: string;
   let attempts = 0;
@@ -221,6 +226,9 @@ export const trackReferralSignup = mutation({
       throw new Error("User already has a referrer");
     }
 
+    // Get configurable reward
+    const REFERRAL_REWARD = await getReferralReward(ctx);
+
     // Find or create the referral record
     let referralRecord = await ctx.db
       .query("referrals")
@@ -389,10 +397,267 @@ export const verifyReferralCode = query({
       return { valid: false };
     }
 
+    const rewardAmount = await getReferralReward(ctx);
+
     return {
       valid: true,
       referrerPhone: referrer.phone,
-      rewardAmount: REFERRAL_REWARD,
+      rewardAmount,
     };
   },
 });
+
+
+/**
+ * Admin: Get all referrals with pagination and filtering
+ */
+export const getAllReferrals = query({
+  args: {
+    userId: v.id("users"),
+    status: v.optional(v.union(v.literal("pending"), v.literal("completed"), v.literal("all"))),
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    // Verify admin access
+    const user = await ctx.db.get(args.userId);
+    if (!user || user.role !== "admin") {
+      throw new Error("Admin access required");
+    }
+
+    const limit = Math.min(args.limit ?? 50, 500);
+    const offset = args.offset ?? 0;
+
+    // Get total count
+    const allReferrals = await ctx.db.query("referrals").collect();
+    const total = allReferrals.length;
+
+    // Filter by status if needed
+    let filtered = allReferrals;
+    if (args.status && args.status !== "all") {
+      filtered = allReferrals.filter((r) => r.status === args.status);
+    }
+
+    // Sort descending and apply pagination
+    const referrals = filtered
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(offset, offset + limit);
+
+    // Enrich with referrer and referred user details
+    const enriched = await Promise.all(
+      referrals.map(async (referral) => {
+        const referrer = await ctx.db.get(referral.referrerId);
+        const referredUser = referral.referredUserId
+          ? await ctx.db.get(referral.referredUserId)
+          : null;
+
+        const referrerPhone = referrer?.phone || "Unknown";
+        const referredUserPhone = referredUser?.phone || referral.phone || "Unknown";
+
+        return {
+          ...referral,
+          referrerPhone,
+          referrerName: `User-${referrerPhone.slice(-4)}`,
+          referredUserPhone,
+          referredUserName: `User-${referredUserPhone.slice(-4)}`,
+          referredUserRole: referredUser?.role || undefined,
+          createdDate: new Date(referral.createdAt).toLocaleDateString("en-KE"),
+          completedDate: referral.completedAt
+            ? new Date(referral.completedAt).toLocaleDateString("en-KE")
+            : null,
+        };
+      })
+    );
+
+    return {
+      referrals: enriched,
+      total,
+      limit,
+      offset,
+      hasMore: offset + limit < total,
+    };
+  },
+});
+
+/**
+ * Admin: Get referral summary statistics
+ */
+export const getReferralSummary = query({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user || user.role !== "admin") {
+      throw new Error("Admin access required");
+    }
+
+    const allReferrals = await ctx.db.query("referrals").collect();
+    const completedReferrals = allReferrals.filter((r) => r.status === "completed");
+    const pendingReferrals = allReferrals.filter((r) => r.status === "pending");
+
+    const totalEarnings = completedReferrals.reduce(
+      (sum, r) => sum + (r.amountEarned || 0),
+      0
+    );
+
+    // Get top referrers
+    const referrerStats: Record<string, { count: number; earnings: number }> = {};
+
+    allReferrals.forEach((referral) => {
+      const referrerId = referral.referrerId.toString();
+      if (!referrerStats[referrerId]) {
+        referrerStats[referrerId] = { count: 0, earnings: 0 };
+      }
+      if (referral.status === "completed") {
+        referrerStats[referrerId].count++;
+        referrerStats[referrerId].earnings += referral.amountEarned || 0;
+      }
+    });
+
+    // Get referrer details
+    const topReferrers = await Promise.all(
+      Object.entries(referrerStats)
+        .sort(([, a], [, b]) => b.earnings - a.earnings)
+        .slice(0, 10)
+        .map(async ([referrerId, stats]) => {
+          const referrer = await ctx.db.get(referrerId as Id<"users">);
+          const phone = referrer?.phone || "Unknown";
+          return {
+            referrerId,
+            phone,
+            name: `User-${phone.slice(-4)}`,
+            referralCount: stats.count,
+            totalEarnings: stats.earnings,
+          };
+        })
+    );
+
+    return {
+      totalReferrals: allReferrals.length,
+      completedReferrals: completedReferrals.length,
+      pendingReferrals: pendingReferrals.length,
+      totalEarningsAwarded: totalEarnings,
+      averageReward:
+        completedReferrals.length > 0
+          ? totalEarnings / completedReferrals.length
+          : 0,
+      topReferrers,
+    };
+  },
+});
+
+/**
+ * Admin: Get referral trends by date (last 30 days)
+ */
+export const getReferralTrends = query({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user || user.role !== "admin") {
+      throw new Error("Admin access required");
+    }
+
+    const allReferrals = await ctx.db.query("referrals").collect();
+
+    // Group by date (last 30 days)
+    const trends: Record<string, { created: number; completed: number }> = {};
+    const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+
+    allReferrals.forEach((referral) => {
+      if (referral.createdAt >= thirtyDaysAgo) {
+        const date = new Date(referral.createdAt).toLocaleDateString("en-KE");
+        if (!trends[date]) {
+          trends[date] = { created: 0, completed: 0 };
+        }
+        trends[date].created++;
+
+        if (referral.status === "completed" && referral.completedAt) {
+          const completedDate = new Date(referral.completedAt).toLocaleDateString(
+            "en-KE"
+          );
+          if (!trends[completedDate]) {
+            trends[completedDate] = { created: 0, completed: 0 };
+          }
+          trends[completedDate].completed++;
+        }
+      }
+    });
+
+    return Object.entries(trends)
+      .sort(
+        ([dateA], [dateB]) =>
+          new Date(dateA).getTime() - new Date(dateB).getTime()
+      )
+      .map(([date, data]) => ({
+        date,
+        created: data.created,
+        completed: data.completed,
+      }));
+  },
+});
+
+/**
+ * Admin: Get detailed referrer performance
+ */
+export const getReferrerPerformance = query({
+  args: {
+    userId: v.id("users"),
+    referrerId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user || user.role !== "admin") {
+      throw new Error("Admin access required");
+    }
+
+    const referrer = await ctx.db.get(args.referrerId);
+    if (!referrer) {
+      throw new Error("Referrer not found");
+    }
+
+    const referrals = await ctx.db
+      .query("referrals")
+      .withIndex("by_referrerId", (q) => q.eq("referrerId", args.referrerId))
+      .collect();
+
+    const completed = referrals.filter((r) => r.status === "completed");
+    const pending = referrals.filter((r) => r.status === "pending");
+
+    // Calculate conversion rate
+    const conversionRate =
+      referrals.length > 0 ? (completed.length / referrals.length) * 100 : 0;
+
+    // Get referral details
+    const referralDetails = await Promise.all(
+      referrals.map(async (referral) => {
+        const referredUser = referral.referredUserId
+          ? await ctx.db.get(referral.referredUserId)
+          : null;
+        const phone = referredUser?.phone || referral.phone || "Unknown";
+        return {
+          ...referral,
+          referredUserPhone: phone,
+          createdDate: new Date(referral.createdAt).toLocaleDateString("en-KE"),
+          completedDate: referral.completedAt
+            ? new Date(referral.completedAt).toLocaleDateString("en-KE")
+            : null,
+        };
+      })
+    );
+
+    return {
+      referrerPhone: referrer.phone,
+      referrerRole: referrer.role,
+      totalReferrals: referrals.length,
+      completedCount: completed.length,
+      pendingCount: pending.length,
+      totalEarnings: completed.reduce((sum, r) => sum + (r.amountEarned || 0), 0),
+      conversionRate: parseFloat(conversionRate.toFixed(2)),
+      referralDetails: referralDetails.sort((a, b) => b.createdAt - a.createdAt),
+    };
+  },
+});
+
