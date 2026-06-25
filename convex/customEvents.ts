@@ -558,7 +558,7 @@ export const autoUpdateFinishedEvents = mutation({
       if (event.eventStatus === "finished") continue // Already finished
 
       const timeElapsed = now - event.startTime
-      if (timeElapsed >= MATCH_DURATION && event.eventStatus !== "finished") {
+      if (timeElapsed >= MATCH_DURATION) {
         await ctx.db.patch(eventId, {
           eventStatus: "finished",
           updatedAt: now,
