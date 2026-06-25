@@ -35,11 +35,14 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CustomEventDetail } from "@/components/custom-event-detail"
 import { calculateEventTimer } from "@/lib/event-timer"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Pagination } from "@/components/pagination"
 import { usePagination } from "@/hooks/use-pagination"
+import { useMediaQuery } from "@/hooks/use-media-query"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import {
@@ -107,6 +110,14 @@ export function CustomEventsList({
   const [dialogAwayScore, setDialogAwayScore] = React.useState<string>("")
   const [savingScore, setSavingScore] = React.useState(false)
 
+  // Resolve modal state
+  const [resolveModalOpen, setResolveModalOpen] = React.useState(false)
+  const [eventToResolve, setEventToResolve] = React.useState<any>(null)
+  const [selectedMarketId, setSelectedMarketId] = React.useState<string | null>(null)
+  const [selectedOutcomeId, setSelectedOutcomeId] = React.useState<string | null>(null)
+  const [isResolving, setIsResolving] = React.useState(false)
+  const [marketSearch, setMarketSearch] = React.useState("")
+
   // Update timer every second
   React.useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000)
@@ -139,6 +150,33 @@ export function CustomEventsList({
   const publishEvent = useMutation(api.customEvents.publishCustomEvent)
   const unpublishEvent = useMutation(api.customEvents.unpublishCustomEvent)
   const updateScore = useMutation(api.customEvents.updateCustomEventScore)
+  const settleEvent = useMutation(api.customEvents.settleCustomEvent)
+
+  const handleResolveEvent = async () => {
+    if (!selectedMarketId || !selectedOutcomeId || !eventToResolve) {
+      toast.error("Please select a market and winning outcome")
+      return
+    }
+
+    setIsResolving(true)
+    try {
+      await settleEvent({
+        eventId: eventToResolve._id,
+        winningOutcomeId: selectedOutcomeId,
+        marketId: selectedMarketId as any,
+      })
+      toast.success("Event resolved! Bets settled and users notified.")
+      setResolveModalOpen(false)
+      setEventToResolve(null)
+      setSelectedMarketId(null)
+      setSelectedOutcomeId(null)
+      setMarketSearch("")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to resolve event")
+    } finally {
+      setIsResolving(false)
+    }
+  }
 
   const handleDelete = async (eventId: string, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -453,7 +491,8 @@ export function CustomEventsList({
                               <DropdownMenuItem
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  router.push(`/admin/custom-events/${event._id}`)
+                                  setEventToResolve(event)
+                                  setResolveModalOpen(true)
                                 }}
                                 className="cursor-pointer gap-2 text-sm text-blue-600"
                               >
@@ -602,7 +641,8 @@ export function CustomEventsList({
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation()
-                              router.push(`/admin/custom-events/${event._id}`)
+                              setEventToResolve(event)
+                              setResolveModalOpen(true)
                             }}
                             className="cursor-pointer gap-2 text-sm text-blue-600"
                           >
@@ -783,6 +823,268 @@ export function CustomEventsList({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Resolve Modal - Side panel on desktop, dialog on mobile */}
+      <ResolveModal
+        open={resolveModalOpen}
+        onOpenChange={setResolveModalOpen}
+        event={eventToResolve}
+        isResolving={isResolving}
+        selectedMarketId={selectedMarketId}
+        selectedOutcomeId={selectedOutcomeId}
+        marketSearch={marketSearch}
+        onMarketSearchChange={setMarketSearch}
+        onMarketSelect={setSelectedMarketId}
+        onOutcomeSelect={setSelectedOutcomeId}
+        onResolve={handleResolveEvent}
+      />
     </div>
+  )
+}
+
+// Resolve Modal Component
+interface ResolveModalProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  event: any | null
+  isResolving: boolean
+  selectedMarketId: string | null
+  selectedOutcomeId: string | null
+  marketSearch: string
+  onMarketSearchChange: (search: string) => void
+  onMarketSelect: (marketId: string) => void
+  onOutcomeSelect: (outcomeId: string) => void
+  onResolve: () => Promise<void>
+}
+
+function ResolveModal({
+  open,
+  onOpenChange,
+  event,
+  isResolving,
+  selectedMarketId,
+  selectedOutcomeId,
+  marketSearch,
+  onMarketSearchChange,
+  onMarketSelect,
+  onOutcomeSelect,
+  onResolve,
+}: ResolveModalProps) {
+  const isMobile = useMediaQuery("(max-width: 768px)")
+  const [activeCategory, setActiveCategory] = React.useState("All")
+
+  // Fetch markets and odds for the event
+  const markets = useQuery(
+    api.customEvents.listCustomMarkets,
+    event ? { eventId: event._id } : "skip"
+  )
+
+  const allOdds = useQuery(
+    api.customEvents.listCustomOddsByEvent,
+    event ? { eventId: event._id } : "skip"
+  )
+
+  // Group odds by market
+  const oddsByMarket = React.useMemo(() => {
+    const groups = new Map<string, any[]>()
+    if (allOdds) {
+      for (const odd of allOdds) {
+        const key = odd.marketId
+        const list = groups.get(key) ?? []
+        list.push(odd)
+        groups.set(key, list)
+      }
+      for (const list of groups.values()) {
+        list.sort((a, b) => a.priority - b.priority || a.outcomeName.localeCompare(b.outcomeName))
+      }
+    }
+    return groups
+  }, [allOdds])
+
+  // Filter markets based on search
+  const filteredMarkets = React.useMemo(() => {
+    if (!markets) return []
+    const query = marketSearch.trim().toLowerCase()
+    return markets
+      .filter((market: any) => {
+        if (!query) return true
+        return `${market.name} ${market.marketType}`.toLowerCase().includes(query)
+      })
+      .sort((a: any, b: any) => a.priority - b.priority || a.name.localeCompare(b.name))
+  }, [markets, marketSearch])
+
+  // Get selected market and outcomes
+  const selectedMarket = markets?.find((m: any) => m._id === selectedMarketId)
+  const selectedOutcomes = selectedMarketId ? oddsByMarket.get(selectedMarketId) || [] : []
+
+  const content = (
+    <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+      {/* Search & Title */}
+      <div className="shrink-0 space-y-3 border-b border-border p-4">
+        <h3 className="font-semibold text-sm">Select Market & Outcome</h3>
+        <div className="relative">
+          <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={marketSearch}
+            onChange={(e) => onMarketSearchChange(e.target.value)}
+            placeholder="Search markets..."
+            className="h-9 bg-muted/50 pl-8 text-xs focus-visible:ring-primary"
+          />
+        </div>
+      </div>
+
+      {/* Markets & Outcomes Grid */}
+      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)]">
+        {/* Markets List */}
+        <ScrollArea className="min-h-0 border-b border-border lg:h-full lg:border-b-0 lg:border-r">
+          {!markets && (
+            <div className="space-y-2 p-3">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          )}
+
+          {markets && filteredMarkets.length === 0 && (
+            <div className="p-4 text-center text-xs text-muted-foreground">
+              No markets found
+            </div>
+          )}
+
+          {filteredMarkets.map((market: any) => (
+            <button
+              key={market._id}
+              onClick={() => onMarketSelect(market._id)}
+              className={cn(
+                "w-full text-left border-b border-border/50 px-3 py-2.5 hover:bg-muted/50 transition-colors",
+                selectedMarketId === market._id && "bg-primary/10 border-primary"
+              )}
+            >
+              <div className="space-y-0.5">
+                <p className="text-xs font-semibold text-foreground line-clamp-2">
+                  {market.name}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {market.marketTypes?.join(", ") || market.marketType}
+                </p>
+              </div>
+            </button>
+          ))}
+        </ScrollArea>
+
+        {/* Outcomes Grid */}
+        <ScrollArea className="min-h-0 lg:h-full">
+          {!allOdds && (
+            <div className="space-y-2 p-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          )}
+
+          {selectedMarket && selectedOutcomes.length === 0 && (
+            <div className="p-4 text-center text-xs text-muted-foreground">
+              No outcomes available
+            </div>
+          )}
+
+          {selectedMarket && selectedOutcomes.length > 0 && (
+            <div className="space-y-3 p-4">
+              <div className="space-y-1">
+                <h4 className="text-xs font-semibold text-foreground">
+                  {selectedMarket.name}
+                </h4>
+                <p className="text-[10px] text-muted-foreground">
+                  {selectedMarket.marketTypes?.join(", ") || selectedMarket.marketType}
+                </p>
+              </div>
+
+              <div className={cn(
+                "grid gap-2",
+                selectedOutcomes.length === 2 || selectedOutcomes.length === 4 ? "grid-cols-2" : "grid-cols-3"
+              )}>
+                {selectedOutcomes.map((outcome: any) => (
+                  <button
+                    key={outcome._id}
+                    onClick={() => onOutcomeSelect(outcome.outcomeId)}
+                    className={cn(
+                      "flex flex-col items-center justify-center gap-1 h-12 py-1 px-2 rounded-md border transition-all text-center min-w-0",
+                      selectedOutcomeId === outcome.outcomeId
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-card border-border hover:border-muted-foreground/30 text-foreground"
+                    )}
+                  >
+                    <span className="truncate text-[9px] font-semibold leading-none">
+                      {outcome.outcomeName}
+                    </span>
+                    <span className="font-mono text-[10px] font-bold leading-none">
+                      {outcome.oddValue.toFixed(2)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </ScrollArea>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="shrink-0 border-t border-border bg-muted/30 p-4 flex gap-2 justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-xs h-8 border-border"
+          onClick={() => onOpenChange(false)}
+          disabled={isResolving}
+        >
+          Cancel
+        </Button>
+        <Button
+          size="sm"
+          className="text-xs h-8 font-semibold"
+          onClick={onResolve}
+          disabled={isResolving || !selectedMarketId || !selectedOutcomeId}
+        >
+          {isResolving ? "Resolving..." : "Resolve Event"}
+        </Button>
+      </div>
+    </div>
+  )
+
+  if (isMobile) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md bg-card flex flex-col h-[80vh] p-0 gap-0">
+          <DialogHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
+            <DialogTitle className="text-sm font-semibold">
+              {event ? `${event.homeTeam} vs ${event.awayTeam}` : "Resolve Event"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Select the winning market and outcome
+            </DialogDescription>
+          </DialogHeader>
+          {content}
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        className="!w-[min(50vw,720px)] !max-w-none flex h-dvh flex-col overflow-hidden bg-card p-0"
+      >
+        <SheetHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
+          <SheetTitle className="truncate text-sm font-semibold">
+            {event ? `Resolve: ${event.homeTeam} vs ${event.awayTeam}` : "Resolve Event"}
+          </SheetTitle>
+          <p className="truncate text-xs text-muted-foreground">
+            Select the winning market and outcome
+          </p>
+        </SheetHeader>
+        {content}
+      </SheetContent>
+    </Sheet>
   )
 }
