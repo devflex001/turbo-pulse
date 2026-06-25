@@ -598,6 +598,18 @@ export function CustomEventsList({
                             Update Score
                           </DropdownMenuItem>
                         )}
+                        {isFinished && !event.winningOutcomeId && event.status === "published" && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              router.push(`/admin/custom-events/${event._id}`)
+                            }}
+                            className="cursor-pointer gap-2 text-sm text-blue-600"
+                          >
+                            <CheckCircle className="size-4" />
+                            Resolve
+                          </DropdownMenuItem>
+                        )}
                         {event.status === "draft" && (
                           <>
                             <DropdownMenuItem
