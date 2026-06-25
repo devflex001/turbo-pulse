@@ -248,20 +248,10 @@ export default function AdminReferralsPage() {
       : "skip"
   )
 
-  // Filter displayed referrals based on search
+  // Display all referrals from the query
   const filteredReferrals = React.useMemo(() => {
-    if (!allReferrals?.referrals) return []
-    if (!debouncedSearch) return allReferrals.referrals
-
-    const query = debouncedSearch.toLowerCase()
-    return allReferrals.referrals.filter(
-      (r) =>
-        r.referrerPhone?.toLowerCase().includes(query) ||
-        r.referrerName?.toLowerCase().includes(query) ||
-        r.referredUserPhone?.toLowerCase().includes(query) ||
-        r.referredUserName?.toLowerCase().includes(query)
-    )
-  }, [allReferrals?.referrals, debouncedSearch])
+    return allReferrals?.referrals ?? []
+  }, [allReferrals?.referrals])
 
   const handleViewDetails = (referrer: ReferrerDetail) => {
     setSelectedReferrer(referrer)
