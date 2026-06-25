@@ -63,14 +63,15 @@ type Visitor = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function maskIp(ip: string): string {
-  const parts = ip.split(".")
-  if (parts.length === 4) {
-    return `${parts[0]}.${parts[1]}.***.***`
+  // IPv4
+  const v4 = ip.split(".")
+  if (v4.length === 4) {
+    return `${v4[0]}.${v4[1]}.***.***`
   }
-  // IPv6 — mask last two segments
+  // IPv6 — show first two groups only
   const v6 = ip.split(":")
-  if (v6.length > 4) {
-    return v6.slice(0, 4).join(":") + ":****:****"
+  if (v6.length >= 2) {
+    return `${v6[0]}:${v6[1]}:****:****`
   }
   return ip
 }
@@ -82,14 +83,6 @@ function formatDateTime(ts: number) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  })
-}
-
-function formatTime(ts: number) {
-  return new Date(ts).toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
   })
 }
 
@@ -114,7 +107,6 @@ function DeviceIcon({ deviceType }: { deviceType?: string }) {
 
 function BrowserIcon({ browserName }: { browserName?: string }) {
   const name = browserName?.toLowerCase()
-  // Use SVG-based emojis as inline icons — consistent across platforms
   if (name === "chrome") {
     return (
       <svg viewBox="0 0 24 24" className="size-3.5 shrink-0" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -163,7 +155,6 @@ function BrowserIcon({ browserName }: { browserName?: string }) {
       </svg>
     )
   }
-  // Generic globe for unknown
   return <Globe className="size-3.5 text-muted-foreground shrink-0" />
 }
 
@@ -188,10 +179,9 @@ function VisitorDetailsSheet({
 
   const content = (
     <div className="space-y-4 text-xs">
-      {/* Visit summary */}
       <div className="grid grid-cols-3 gap-y-3 gap-x-2">
         <span className="font-semibold text-muted-foreground">IP Address</span>
-        <span className="col-span-2 font-mono text-foreground select-all">{visitor.ip}</span>
+        <span className="col-span-2 font-mono text-foreground select-all break-all">{visitor.ip}</span>
 
         <span className="font-semibold text-muted-foreground">Status</span>
         <div className="col-span-2">
@@ -214,7 +204,6 @@ function VisitorDetailsSheet({
 
       <Separator />
 
-      {/* Location */}
       <div className="space-y-2.5 rounded-lg border border-primary/20 bg-primary/5 p-3">
         <h3 className="font-bold text-primary flex items-center gap-1.5 text-xs">
           <MapPin className="size-3.5" /> Location
@@ -262,7 +251,6 @@ function VisitorDetailsSheet({
         </div>
       </div>
 
-      {/* Device */}
       <div className="space-y-2.5 rounded-lg border border-blue-500/20 bg-blue-500/5 p-3">
         <h3 className="font-bold text-blue-600 flex items-center gap-1.5 text-xs">
           <Monitor className="size-3.5" /> Device
@@ -295,18 +283,97 @@ function VisitorDetailsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side={isDesktop ? "right" : "bottom"} className={isDesktop ? "w-96" : "rounded-t-lg max-h-[85vh]"}>
+      <SheetContent
+        side={isDesktop ? "right" : "bottom"}
+        className={isDesktop ? "w-96" : "rounded-t-lg max-h-[85vh]"}
+      >
         <SheetHeader className="mb-4">
           <SheetTitle className="text-base">Visitor Details</SheetTitle>
-          <SheetDescription className="text-xs">
-            {maskIp(visitor.ip)} — full visitor record
+          <SheetDescription className="text-xs font-mono">
+            {maskIp(visitor.ip)}
           </SheetDescription>
         </SheetHeader>
-        <div className="overflow-y-auto max-h-[calc(100vh-120px)] pr-1">
+        <div className="overflow-y-auto max-h-[calc(100vh-140px)] pr-1">
           {content}
         </div>
       </SheetContent>
     </Sheet>
+  )
+}
+
+// ─── Mobile Card ──────────────────────────────────────────────────────────────
+
+function VisitorCard({ v, onSelect }: { v: Visitor; onSelect: () => void }) {
+  const isReturning = (v.visitCount ?? 1) > 1
+  const org = cleanOrg(v.location.org)
+  const city = v.location.city || v.location.state
+  const firstVisit = v.firstVisitedAt || v.visitedAt || v._creationTime
+  const lastVisit = v.lastVisitedAt || v.visitedAt || v._creationTime
+
+  return (
+    <div
+      className="rounded-lg border border-border bg-card p-3.5 space-y-3 cursor-pointer hover:bg-muted/10 active:bg-muted/20 transition-colors"
+      onClick={onSelect}
+    >
+      {/* Row 1: IP + status */}
+      <div className="flex items-start justify-between gap-2">
+        <span className="font-mono font-semibold text-xs text-foreground truncate">
+          {maskIp(v.ip)}
+        </span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {isReturning ? (
+            <Badge variant="outline" className="text-[10px] font-semibold bg-blue-500/10 text-blue-600 border-blue-500/20">
+              Returning
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-[10px] font-semibold">
+              New User
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      {/* Row 2: location */}
+      <div>
+        <p className="text-xs font-semibold text-foreground">
+          {city ? `${city}, ${v.location.country}` : v.location.country}
+        </p>
+        {org && <p className="text-[11px] text-primary mt-0.5">{org}</p>}
+      </div>
+
+      {/* Row 3: stats */}
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/60">
+        <div className="flex items-center gap-3">
+          <span>
+            Visits:{" "}
+            <span className={`font-bold ${isReturning ? "text-emerald-500" : "text-foreground"}`}>
+              {v.visitCount ?? 1}
+            </span>
+          </span>
+          <div className="flex items-center gap-1">
+            <BrowserIcon browserName={v.device.browserName} />
+            <span>{v.device.browserName || "Unknown"}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <DeviceIcon deviceType={v.device.deviceType} />
+            <span className="capitalize">{v.device.deviceType || "Unknown"}</span>
+          </div>
+        </div>
+        <ChevronRight className="size-3.5 shrink-0" />
+      </div>
+
+      {/* Row 4: timestamps */}
+      <div className="grid grid-cols-2 gap-1 text-[10px] text-muted-foreground">
+        <div>
+          <span className="font-semibold block">First Visit</span>
+          {formatDateTime(firstVisit)}
+        </div>
+        <div>
+          <span className="font-semibold block">Last Visit</span>
+          {formatDateTime(lastVisit)}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -333,6 +400,22 @@ export function VisitorsPanel() {
     })
   }, [allVisitors, filterBot])
 
+  const loadMoreBtn = (
+    <Button
+      variant="outline"
+      size="sm"
+      className="h-8 text-xs gap-1.5"
+      onClick={() => loadMore(PAGE_SIZE)}
+      disabled={status === "LoadingMore"}
+    >
+      {status === "LoadingMore" ? (
+        <><Loader2 className="size-3 animate-spin" /> Loading...</>
+      ) : (
+        <><ChevronRight className="size-3.5" /> Load More</>
+      )}
+    </Button>
+  )
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -348,14 +431,14 @@ export function VisitorsPanel() {
 
       <Separator />
 
-      {/* Filter Buttons */}
+      {/* Filter */}
       <div className="flex gap-2">
         {(["visitors", "bots", "all"] as const).map((f) => (
           <Button
             key={f}
             variant={filterBot === f ? "default" : "outline"}
             size="sm"
-            className="text-xs capitalize"
+            className="text-xs"
             onClick={() => setFilterBot(f)}
           >
             {f === "visitors" ? "Real Visitors" : f === "bots" ? "Bots" : "All"}
@@ -363,67 +446,46 @@ export function VisitorsPanel() {
         ))}
       </div>
 
-      {/* ── Mobile Card List ── */}
-      <div className="sm:hidden space-y-2">
-        {isLoading && Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-20 w-full" />
+      {/* ── Mobile: Cards ── */}
+      <div className="lg:hidden space-y-2">
+        {isLoading && Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-28 w-full rounded-lg" />
         ))}
 
         {!isLoading && visitors.length === 0 && (
-          <div className="py-16 text-center text-muted-foreground text-xs">No visitors found.</div>
+          <div className="py-16 text-center text-muted-foreground text-xs border border-dashed border-border rounded-lg">
+            No visitors found.
+          </div>
         )}
 
-        {visitors.map((v) => {
-          const isReturning = (v.visitCount ?? 1) > 1
-          const org = cleanOrg(v.location.org)
-          const city = v.location.city || v.location.state
-          const locationLine = city ? `${city}, ${v.location.country}` : v.location.country
+        {visitors.map((v) => (
+          <VisitorCard key={v._id} v={v} onSelect={() => setDetailTarget(v)} />
+        ))}
 
-          return (
-            <div
-              key={v._id}
-              className="rounded-lg border border-border bg-card p-3 space-y-2 cursor-pointer hover:bg-muted/10 transition-colors"
-              onClick={() => setDetailTarget(v)}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold font-mono">{maskIp(v.ip)}</span>
-                <div className="flex items-center gap-1.5">
-                  {isReturning ? (
-                    <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-600 border-blue-500/30">Returning</Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-[10px]">New User</Badge>
-                  )}
-                  <ChevronRight className="size-3 text-muted-foreground" />
-                </div>
-              </div>
-              <div className="text-[11px] text-muted-foreground">{locationLine}</div>
-              {org && <div className="text-[10px] text-muted-foreground">{org}</div>}
-              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                <span className={isReturning ? "text-emerald-600 font-bold" : ""}>{v.visitCount ?? 1} visit{(v.visitCount ?? 1) !== 1 ? "s" : ""}</span>
-                <span className="flex items-center gap-1">
-                  <DeviceIcon deviceType={v.device.deviceType} />
-                  {v.device.browserName}
-                </span>
-              </div>
-            </div>
-          )
-        })}
+        {(status === "CanLoadMore" || status === "LoadingMore") && (
+          <div className="pt-1">{loadMoreBtn}</div>
+        )}
+        {status === "Exhausted" && visitors.length > 0 && (
+          <p className="text-center text-[11px] text-muted-foreground py-2">
+            All {visitors.length} loaded
+          </p>
+        )}
       </div>
 
-      {/* ── Desktop Table ── */}
-      <div className="hidden sm:block rounded-lg border border-border overflow-hidden">
+      {/* ── Desktop: Table ── */}
+      <div className="hidden lg:block rounded-lg border border-border overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse min-w-[900px]">
+          <table className="w-full text-left border-collapse text-[11px]" style={{ minWidth: 860 }}>
             <thead>
               <tr className="border-b border-border bg-muted/40 text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-                <th className="py-3 px-4">IP Address</th>
+                <th className="py-3 px-4 w-36">IP Address</th>
                 <th className="py-3 px-4">Location</th>
-                <th className="py-3 px-4 text-center">Visits</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4">First Visit</th>
-                <th className="py-3 px-4">Last Visit</th>
-                <th className="py-3 px-4">Browser</th>
-                <th className="py-3 px-4">Device</th>
+                <th className="py-3 px-4 w-16 text-center">Visits</th>
+                <th className="py-3 px-4 w-28">Status</th>
+                <th className="py-3 px-4 w-40">First Visit</th>
+                <th className="py-3 px-4 w-40">Last Visit</th>
+                <th className="py-3 px-4 w-28">Browser</th>
+                <th className="py-3 px-4 w-28">Device</th>
                 <th className="py-3 px-4 w-10"></th>
               </tr>
             </thead>
@@ -432,7 +494,7 @@ export function VisitorsPanel() {
                 <tr>
                   <td colSpan={9} className="py-8 px-4">
                     <div className="space-y-2">
-                      {Array.from({ length: 4 }).map((_, i) => (
+                      {Array.from({ length: 5 }).map((_, i) => (
                         <Skeleton key={i} className="h-10 w-full" />
                       ))}
                     </div>
@@ -457,69 +519,69 @@ export function VisitorsPanel() {
 
                 return (
                   <tr key={v._id} className="hover:bg-muted/30 transition-colors group">
-                    {/* IP — masked */}
-                    <td className="py-3 px-4 font-mono font-semibold text-foreground whitespace-nowrap">
+                    {/* IP — masked, no wrap */}
+                    <td className="py-2.5 px-4 font-mono font-semibold text-[11px] text-foreground whitespace-nowrap">
                       {maskIp(v.ip)}
                     </td>
 
-                    {/* Location: city + country on line 1, ISP on line 2 */}
-                    <td className="py-3 px-4">
-                      <div className="font-semibold text-foreground">
+                    {/* Location — city+country on one line, ISP below */}
+                    <td className="py-2.5 px-4 min-w-0">
+                      <p className="font-semibold text-[11px] text-foreground whitespace-nowrap">
                         {city ? `${city}, ${v.location.country}` : v.location.country}
-                      </div>
+                      </p>
                       {org && (
-                        <div className="text-[10px] text-primary mt-0.5">{org}</div>
+                        <p className="text-[10px] text-primary mt-0.5 whitespace-nowrap">{org}</p>
                       )}
                     </td>
 
-                    {/* Visits — green if returning */}
-                    <td className="py-3 px-4 text-center">
-                      <span className={`font-bold text-sm ${isReturning ? "text-emerald-500" : "text-foreground"}`}>
+                    {/* Visits */}
+                    <td className="py-2.5 px-4 text-center">
+                      <span className={`font-bold text-[11px] tabular-nums ${isReturning ? "text-emerald-500" : "text-foreground"}`}>
                         {v.visitCount ?? 1}
                       </span>
                     </td>
 
-                    {/* Status badge */}
-                    <td className="py-3 px-4">
+                    {/* Status */}
+                    <td className="py-2.5 px-4 whitespace-nowrap">
                       {isReturning ? (
-                        <Badge variant="outline" className="text-[10px] font-semibold bg-blue-500/10 text-blue-600 border-blue-500/20 whitespace-nowrap">
+                        <Badge variant="outline" className="text-[10px] font-semibold bg-blue-500/10 text-blue-600 border-blue-500/20">
                           Returning
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[10px] font-semibold bg-muted text-muted-foreground whitespace-nowrap">
+                        <Badge variant="outline" className="text-[10px] font-semibold bg-muted text-muted-foreground">
                           New User
                         </Badge>
                       )}
                     </td>
 
                     {/* First Visit */}
-                    <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">
+                    <td className="py-2.5 px-4 text-[11px] text-muted-foreground whitespace-nowrap">
                       {formatDateTime(firstVisit)}
                     </td>
 
                     {/* Last Visit */}
-                    <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">
+                    <td className="py-2.5 px-4 text-[11px] text-muted-foreground whitespace-nowrap">
                       {formatDateTime(lastVisit)}
                     </td>
 
-                    {/* Browser with icon */}
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                    {/* Browser */}
+                    <td className="py-2.5 px-4 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                         <BrowserIcon browserName={v.device.browserName} />
                         <span>{v.device.browserName || "Unknown"}</span>
                       </div>
                     </td>
 
-                    {/* Device with icon */}
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1.5 text-muted-foreground capitalize">
+                    {/* Device */}
+                    <td className="py-2.5 px-4 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground capitalize">
                         <DeviceIcon deviceType={v.device.deviceType} />
                         <span>{v.device.deviceType || "Unknown"}</span>
                       </div>
                     </td>
 
                     {/* Row action */}
-                    <td className="py-3 px-4">
+                    <td className="py-2.5 px-4">
                       <Button
                         variant="ghost"
                         size="icon"
@@ -537,25 +599,13 @@ export function VisitorsPanel() {
           </table>
         </div>
 
-        {/* Pagination footer */}
+        {/* Pagination */}
         {(status === "CanLoadMore" || status === "LoadingMore") && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/20">
             <span className="text-[11px] text-muted-foreground">
               Showing {visitors.length} visitor{visitors.length !== 1 ? "s" : ""}
             </span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs gap-1.5"
-              onClick={() => loadMore(PAGE_SIZE)}
-              disabled={status === "LoadingMore"}
-            >
-              {status === "LoadingMore" ? (
-                <><Loader2 className="size-3 animate-spin" /> Loading...</>
-              ) : (
-                <><ChevronRight className="size-3.5" /> Load More</>
-              )}
-            </Button>
+            {loadMoreBtn}
           </div>
         )}
 
@@ -565,29 +615,6 @@ export function VisitorsPanel() {
               All {visitors.length} visitor{visitors.length !== 1 ? "s" : ""} loaded
             </span>
           </div>
-        )}
-      </div>
-
-      {/* Mobile Load More */}
-      <div className="sm:hidden">
-        {(status === "CanLoadMore" || status === "LoadingMore") && (
-          <Button
-            variant="outline"
-            className="w-full h-9 text-xs gap-1.5"
-            onClick={() => loadMore(PAGE_SIZE)}
-            disabled={status === "LoadingMore"}
-          >
-            {status === "LoadingMore" ? (
-              <><Loader2 className="size-3.5 animate-spin" /> Loading...</>
-            ) : (
-              <><ChevronRight className="size-3.5" /> Load More</>
-            )}
-          </Button>
-        )}
-        {status === "Exhausted" && visitors.length > 0 && (
-          <p className="text-center text-[11px] text-muted-foreground py-2">
-            All {visitors.length} loaded
-          </p>
         )}
       </div>
 
