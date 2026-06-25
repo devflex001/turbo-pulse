@@ -223,19 +223,12 @@ const PAGE_SIZE = 15
 
 export default function AdminReferralsPage() {
   const { user } = useAuthClient()
-  const [search, setSearch] = React.useState("")
-  const [debouncedSearch, setDebouncedSearch] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState<"all" | "pending" | "completed">(
     "all"
   )
   const [currentPage, setCurrentPage] = React.useState(0)
   const [selectedReferrer, setSelectedReferrer] = React.useState<ReferrerDetail | null>(null)
   const [isDetailOpen, setIsDetailOpen] = React.useState(false)
-
-  React.useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 350)
-    return () => clearTimeout(t)
-  }, [search])
 
   // Queries
   const referralSummary = useQuery(
@@ -301,27 +294,10 @@ export default function AdminReferralsPage() {
               Track all referrals and referrer performance.
             </p>
           </div>
-
-          {/* Search */}
-          <div className="relative flex-1 sm:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-            <Input
-              id="referrals-search"
-              placeholder="Search by phone or name..."
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value)
-                setCurrentPage(0)
-              }}
-              className="pl-8 h-9 text-xs focus-visible:ring-primary"
-            />
-          </div>
         </div>
 
-        <Separator />
-
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           <div className="border border-border rounded-lg p-3.5 space-y-1 bg-card">
             <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5">
               <Users className="size-3.5 text-primary" /> Total Referrals
@@ -360,22 +336,7 @@ export default function AdminReferralsPage() {
               </p>
             )}
           </div>
-
-          <div className="border border-border rounded-lg p-3.5 space-y-1 bg-card">
-            <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5">
-              <TrendingUp className="size-3.5 text-amber-500" /> Avg Reward
-            </span>
-            {isLoading ? (
-              <Skeleton className="h-6 w-24" />
-            ) : (
-              <p className="text-lg font-bold tracking-tight font-mono text-amber-600">
-                KES {Math.round(referralSummary?.averageReward ?? 0).toLocaleString()}
-              </p>
-            )}
-          </div>
         </div>
-
-        <Separator />
 
         {/* All Referrals Section */}
         <div className="space-y-2.5">
@@ -480,7 +441,7 @@ export default function AdminReferralsPage() {
           </div>
 
           {/* Desktop Table (≥ sm) */}
-          <div className="hidden sm:block rounded-lg border border-border overflow-hidden">
+          <div className="hidden sm:block rounded-lg border border-border overflow-hidden bg-card">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse min-w-[640px]">
                 <thead>
