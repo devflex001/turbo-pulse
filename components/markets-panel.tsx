@@ -320,7 +320,7 @@ export function MarketsBrowser({
   )
 
   const pageContent = (
-    <div className="space-y-3 px-3 sm:px-4 pt-3">
+    <div className="space-y-3 px-3 sm:px-4 py-3 pb-32">
       {(!markets || !allOdds) && (
         <div className="space-y-2">
           <Skeleton className="h-10 w-full" />
@@ -364,7 +364,6 @@ export function MarketsBrowser({
           </section>
         )
       })}
-      <div className="h-24" />
     </div>
   )
 
@@ -412,7 +411,7 @@ export function MarketsBrowser({
           <ScrollArea className="min-h-0 lg:h-full">{oddsContent}</ScrollArea>
         </div>
       ) : (
-        <ScrollArea className="min-h-0 flex-1">{pageContent}</ScrollArea>
+        <div className="min-h-0 flex-1 overflow-y-auto">{pageContent}</div>
       )}
     </div>
   )
