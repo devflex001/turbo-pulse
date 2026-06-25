@@ -659,30 +659,3 @@ export const getReferrerPerformance = query({
   },
 });
 
-
-/**
- * Verify referral code is valid and return reward info
- */
-export const verifyReferralCode = query({
-  args: {
-    referralCode: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const referrer = await ctx.db
-      .query("users")
-      .withIndex("by_referralCode", (q) => q.eq("referralCode", args.referralCode))
-      .first();
-
-    if (!referrer) {
-      return { valid: false };
-    }
-
-    const rewardAmount = await getReferralReward(ctx);
-
-    return {
-      valid: true,
-      referrerPhone: referrer.phone,
-      rewardAmount,
-    };
-  },
-});
