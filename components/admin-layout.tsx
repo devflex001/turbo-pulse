@@ -41,6 +41,7 @@ import {
   Settings,
   Zap,
   Globe,
+  ServerCog,
 } from "lucide-react"
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
@@ -59,6 +60,7 @@ const operationsNavItems = [
   { id: "scraper", label: "Scraper", icon: Database, href: "/admin/scraper" },
   { id: "events", label: "Events", icon: PlayCircle, href: "/admin/events" },
   { id: "custom-events", label: "Custom Events", icon: PlusCircle, href: "/admin/custom-events" },
+  { id: "redis", label: "Redis", icon: ServerCog, href: "/admin/redis" },
 ]
 
 const settingsNavItems = [
