@@ -29,11 +29,7 @@ import {
   Key,
   Zap,
   Clock,
-  Database,
   ShieldAlert,
-  TrendingUp,
-  CircleCheck,
-  CircleX,
   Timer,
 } from "lucide-react"
 import type { RedisStats } from "@/app/api/admin/redis-stats/route"
@@ -107,19 +103,6 @@ function StatTile({
       {sub !== undefined && !loading && (
         <div className="text-[10px] text-muted-foreground">{sub}</div>
       )}
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Memory bar
-// ---------------------------------------------------------------------------
-
-function MemoryBar({ pct }: { pct: number }) {
-  const color = pct >= 85 ? "bg-rose-500" : pct >= 65 ? "bg-yellow-500" : "bg-emerald-500"
-  return (
-    <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden mt-0.5">
-      <div className={`h-full rounded-full transition-all duration-500 ${color}`} style={{ width: `${Math.min(pct, 100)}%` }} />
     </div>
   )
 }
@@ -272,7 +255,6 @@ export function AdminRedisPanel() {
   const isOnline = !error
   const namespaces = stats?.namespaces ?? []
   const totalNsKeys = namespaces.reduce((s, n) => s + n.count, 0)
-  const memAccent = (stats?.memoryUsedPct ?? 0) >= 85 ? "red" : (stats?.memoryUsedPct ?? 0) >= 65 ? "yellow" : "green"
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -333,59 +315,33 @@ export function AdminRedisPanel() {
           </div>
         )}
 
-        {/* ── Row 1: Keys · Latency · Memory · Ops ────────────────────────── */}
+        {/* ── Stats Row: Commands · Ops/sec · Expired · Evicted ────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           <StatTile
             label="Total Keys" icon={Key} loading={loading}
             value={fmtNum(stats?.totalKeys ?? 0)}
-            sub={`${stats?.dbExpires ?? 0} with TTL`}
-          />
-          <StatTile
-            label="Latency" icon={Activity} loading={loading}
-            value={`${stats?.latencyMs ?? 0} ms`}
-            sub="round-trip"
-            accent={(stats?.latencyMs ?? 0) > 200 ? "red" : (stats?.latencyMs ?? 0) > 100 ? "yellow" : "green"}
-          />
-          <StatTile
-            label="Memory" icon={Database} loading={loading}
-            value={stats?.memoryUsedHuman ?? "0B"}
-            accent={memAccent}
-            sub={
-              <span className="flex flex-col gap-1">
-                <span>of {stats?.maxMemoryHuman ?? "—"} · {stats?.memoryUsedPct ?? 0}%</span>
-                <MemoryBar pct={stats?.memoryUsedPct ?? 0} />
-              </span>
-            }
-          />
-          <StatTile
-            label="Ops / sec" icon={Zap} loading={loading}
-            value={fmtNum(stats?.opsPerSec ?? 0)}
-            sub={`max ${fmtNum(stats?.maxOpsPerSec ?? 0)}`}
-          />
-        </div>
-
-        {/* ── Row 2: Hit rate · Commands · Expired · Evicted ──────────────── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-          <StatTile
-            label="Hit Rate" icon={TrendingUp} loading={loading}
-            value={`${stats?.hitRate ?? 0}%`}
-            accent={(stats?.hitRate ?? 0) >= 80 ? "green" : (stats?.hitRate ?? 0) >= 50 ? "yellow" : "red"}
-            sub={
-              <span className="flex items-center gap-2">
-                <span className="flex items-center gap-0.5 text-emerald-600">
-                  <CircleCheck className="size-3" />{fmtNum(stats?.keyspaceHits ?? 0)}
-                </span>
-                <span className="flex items-center gap-0.5 text-rose-600">
-                  <CircleX className="size-3" />{fmtNum(stats?.keyspaceMisses ?? 0)}
-                </span>
-              </span>
-            }
+            sub={`in namespace`}
           />
           <StatTile
             label="Commands" icon={Zap} loading={loading}
             value={fmtNum(stats?.totalCommandsProcessed ?? 0)}
             sub="total processed"
           />
+          <StatTile
+            label="Ops / sec" icon={Activity} loading={loading}
+            value={fmtNum(stats?.opsPerSec ?? 0)}
+            sub={`max ${fmtNum(stats?.maxOpsPerSec ?? 0)}`}
+          />
+          <StatTile
+            label="Latency" icon={Clock} loading={loading}
+            value={`${stats?.latencyMs ?? 0} ms`}
+            accent={(stats?.latencyMs ?? 0) > 200 ? "red" : (stats?.latencyMs ?? 0) > 100 ? "yellow" : "green"}
+            sub="round-trip"
+          />
+        </div>
+
+        {/* ── Cache Efficiency: Expired · Evicted ──────────────────────────── */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 gap-2.5">
           <StatTile
             label="Expired Keys" icon={Clock} loading={loading}
             value={fmtNum(stats?.expiredKeys ?? 0)}
@@ -395,11 +351,11 @@ export function AdminRedisPanel() {
             label="Evicted Keys" icon={Trash2} loading={loading}
             value={fmtNum(stats?.evictedKeys ?? 0)}
             sub="memory pressure"
-            accent={(stats?.evictedKeys ?? 0) > 0 ? "yellow" : undefined}
+            accent={(stats?.evictedKeys ?? 0) > 0 ? "yellow" : "green"}
           />
         </div>
 
-        {/* ── Namespace breakdown ──────────────────────────────────────────── */}
+        {/* ── Key namespaces breakdown ─────────────────────────────────────── */}
         <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <span className="text-xs font-bold uppercase tracking-wider">Key namespaces</span>
@@ -414,7 +370,9 @@ export function AdminRedisPanel() {
                   <Skeleton className="h-4 w-36" /><Skeleton className="h-4 w-12" />
                 </div>
               ))
-              : namespaces.map((ns) => {
+              : namespaces.length === 0 ? (
+                <div className="px-4 py-5 text-center text-xs text-muted-foreground">No keys in namespaces</div>
+              ) : namespaces.map((ns) => {
                 const pct = totalNsKeys > 0 ? Math.round((ns.count / totalNsKeys) * 100) : 0
                 return (
                   <div key={ns.namespace} className="flex items-center justify-between px-4 py-3 gap-4 text-xs hover:bg-muted/30 transition-colors">

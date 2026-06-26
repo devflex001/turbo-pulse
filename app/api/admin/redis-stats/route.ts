@@ -1,13 +1,14 @@
 /**
  * GET /api/admin/redis-stats
  *
- * Single-pass Redis stats using:
- *  - One native fetch() call to the Upstash REST pipeline for INFO memory/stats/keyspace + DBSIZE
- *    (@upstash/redis has no .info() method — raw REST pipeline is the only way)
- *  - Parallel SCAN passes for per-namespace key counts
- *  - One pipelined batch for rate-limit bucket cardinalities
+ * Efficient stats endpoint using direct REST API calls to Upstash:
+ *  - INFO stats (commands, ops/sec, expired/evicted keys)
+ *  - DBSIZE (total keys)
+ *  - Namespace scanning for key distribution
+ *  - Rate-limit bucket enumeration
  *
- * Total Redis round-trips: 3 (INFO batch, SCAN passes, RL pipeline)
+ * Note: Free tier Upstash doesn't expose memory or hit rates.
+ * Those features require the paid "Monitor" add-on.
  */
 
 import { NextResponse } from "next/server"
@@ -33,25 +34,13 @@ export interface RateLimitBucket {
 export interface RedisStats {
   latencyMs: number
   totalKeys: number
-  // Memory
-  memoryUsedHuman: string
-  memoryUsedBytes: number
-  maxMemoryHuman: string
-  maxMemoryBytes: number
-  memoryUsedPct: number
-  // Throughput
+  // Throughput (from INFO stats — free tier)
   totalCommandsProcessed: number
   opsPerSec: number
   maxOpsPerSec: number
-  // Cache efficiency
-  keyspaceHits: number
-  keyspaceMisses: number
-  hitRate: number
+  // Cache efficiency (from INFO stats — free tier)
   expiredKeys: number
   evictedKeys: number
-  // Keyspace
-  dbKeys: number
-  dbExpires: number
   // Per-namespace
   namespaces: NamespaceStat[]
   // Rate limiters
@@ -103,29 +92,32 @@ export async function GET(): Promise<NextResponse> {
   }
 
   try {
-    // ── 1. INFO sections + DBSIZE — single native fetch to REST pipeline ───
-    // @upstash/redis has no .info() method; the REST /pipeline endpoint is the
-    // only available path and it works on all Upstash plans.
     const pingStart = Date.now()
 
-    const [infoBatch, namespaceCounts] = await Promise.all([
-      // INFO batch
-      fetch(`${restUrl}/pipeline`, {
+    // Fetch INFO stats + DBSIZE in parallel
+    const [infoStatsRes, dbsizeRes, namespaceCounts] = await Promise.all([
+      // INFO stats — contains commands, ops/sec, expired/evicted keys
+      fetch(`${restUrl}/info/stats`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${restToken}`,
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      }),
+
+      // DBSIZE — total key count
+      fetch(`${restUrl}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${restToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify([
-          ["INFO", "memory"],
-          ["INFO", "stats"],
-          ["INFO", "keyspace"],
-          ["DBSIZE"],
-        ]),
+        body: JSON.stringify(["DBSIZE"]),
         cache: "no-store",
-      }).then((r) => r.json()) as Promise<{ value: Array<{ result: string | number }> }>,
+      }),
 
-      // Namespace SCAN passes — run in parallel with the INFO fetch
+      // Namespace SCAN passes — run in parallel
       Promise.all([
         { namespace: "matches", label: "Match cache", pattern: `${APP_PREFIX}:matches:*` },
         { namespace: "competitions", label: "Competition cache", pattern: `${APP_PREFIX}:competitions:*` },
@@ -143,40 +135,31 @@ export async function GET(): Promise<NextResponse> {
 
     const latencyMs = Date.now() - pingStart
 
-    // Parse INFO results
-    const results = infoBatch.value ?? []
-    const mem = parseInfo((results[0]?.result as string) ?? "")
-    const st = parseInfo((results[1]?.result as string) ?? "")
-    const ks = parseInfo((results[2]?.result as string) ?? "")
-    const totalKeys = (results[3]?.result as number) ?? 0
+    // Parse INFO stats
+    let totalCommandsProcessed = 0
+    let opsPerSec = 0
+    let maxOpsPerSec = 0
+    let expiredKeys = 0
+    let evictedKeys = 0
 
-    // Memory
-    const memoryUsedBytes = int(mem.used_memory)
-    const memoryUsedHuman = mem.used_memory_human ?? "0B"
-    const maxMemoryBytes = int(mem.maxmemory)
-    const maxMemoryHuman = mem.maxmemory_human ?? "0B"
-    const memoryUsedPct = maxMemoryBytes > 0
-      ? Math.round((memoryUsedBytes / maxMemoryBytes) * 100)
-      : 0
+    if (infoStatsRes.ok) {
+      const infoStatsData = await infoStatsRes.json() as { result?: string }
+      const statsInfo = parseInfo(infoStatsData.result ?? "")
+      totalCommandsProcessed = int(statsInfo.total_commands_processed)
+      opsPerSec = int(statsInfo.instantaneous_ops_per_sec)
+      maxOpsPerSec = int(statsInfo.max_ops_per_sec)
+      expiredKeys = int(statsInfo.expired_keys)
+      evictedKeys = int(statsInfo.evicted_keys)
+    }
 
-    // Stats
-    const totalCommandsProcessed = int(st.total_commands_processed)
-    const opsPerSec = int(st.instantaneous_ops_per_sec)
-    const maxOpsPerSec = int(st.max_ops_per_sec)
-    const keyspaceHits = int(st.keyspace_hits)
-    const keyspaceMisses = int(st.keyspace_misses)
-    const hitRate = keyspaceHits + keyspaceMisses > 0
-      ? Math.round((keyspaceHits / (keyspaceHits + keyspaceMisses)) * 100)
-      : 0
-    const expiredKeys = int(st.expired_keys)
-    const evictedKeys = int(st.evicted_keys)
+    // Parse DBSIZE
+    let totalKeys = 0
+    if (dbsizeRes.ok) {
+      const dbsizeData = await dbsizeRes.json() as { result?: number }
+      totalKeys = dbsizeData.result ?? 0
+    }
 
-    // Keyspace  db0:keys=N,expires=N,...
-    const db0 = ks.db0 ?? ""
-    const dbKeys = int(db0.match(/keys=(\d+)/)?.[1])
-    const dbExpires = int(db0.match(/expires=(\d+)/)?.[1])
-
-    // ── 2. Rate-limit bucket details ────────────────────────────────────────
+    // Rate-limit bucket details
     const rlKeys: string[] = []
     let rlCursor = 0
     do {
@@ -201,25 +184,15 @@ export async function GET(): Promise<NextResponse> {
       activeRateLimits.sort((a, b) => b.hits - a.hits)
     }
 
-    // ── 3. Assemble ─────────────────────────────────────────────────────────
+    // Assemble response
     const stats: RedisStats = {
       latencyMs,
       totalKeys,
-      memoryUsedHuman,
-      memoryUsedBytes,
-      maxMemoryHuman,
-      maxMemoryBytes,
-      memoryUsedPct,
       totalCommandsProcessed,
       opsPerSec,
       maxOpsPerSec,
-      keyspaceHits,
-      keyspaceMisses,
-      hitRate,
       expiredKeys,
       evictedKeys,
-      dbKeys,
-      dbExpires,
       namespaces: namespaceCounts,
       activeRateLimits,
       fetchedAt: new Date().toISOString(),
