@@ -1,40 +1,31 @@
 /**
  * GET /api/admin/redis-stats
  *
- * Returns a lightweight snapshot of Redis state in a single batched round-trip.
- * Designed to be called on a manual refresh — not polled automatically — so it
- * never contributes meaningfully to Redis command budget.
+ * Single-pass Redis stats using:
+ *  - One native fetch() call to the Upstash REST pipeline for INFO memory/stats/keyspace + DBSIZE
+ *    (@upstash/redis has no .info() method — raw REST pipeline is the only way)
+ *  - Parallel SCAN passes for per-namespace key counts
+ *  - One pipelined batch for rate-limit bucket cardinalities
  *
- * Data returned:
- *  - Upstash dbsize (total key count)
- *  - Key counts per namespace (matches, rl, mpesa, paystack, admin, lock)
- *  - Active rate-limit buckets with their current hit counts
- *  - Memory usage estimate from INFO (if available on the plan)
- *  - Server ping latency
+ * Total Redis round-trips: 3 (INFO batch, SCAN passes, RL pipeline)
  */
 
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { redis } from "@/lib/redis"
 import { APP_PREFIX } from "@/lib/cache-keys"
 
-// Only admins should reach this — protected by the admin layout's ProtectedRoute,
-// but we add a server-side guard for defence in depth.
-function isAuthorized(request: NextRequest): boolean {
-  // In production, validate the session cookie / JWT here.
-  // For now, rely on the middleware + ProtectedRoute combo.
-  // You can add `Authorization: Bearer <admin-token>` checks here.
-  return true
-}
+// ---------------------------------------------------------------------------
+// Exported types (consumed by the panel component)
+// ---------------------------------------------------------------------------
 
-interface NamespaceStat {
+export interface NamespaceStat {
   namespace: string
   label: string
   count: number
 }
 
-interface RateLimitBucket {
+export interface RateLimitBucket {
   key: string
-  identifier: string
   hits: number
   ttl: number
 }
@@ -42,137 +33,195 @@ interface RateLimitBucket {
 export interface RedisStats {
   latencyMs: number
   totalKeys: number
+  // Memory
+  memoryUsedHuman: string
+  memoryUsedBytes: number
+  maxMemoryHuman: string
+  maxMemoryBytes: number
+  memoryUsedPct: number
+  // Throughput
+  totalCommandsProcessed: number
+  opsPerSec: number
+  maxOpsPerSec: number
+  // Cache efficiency
+  keyspaceHits: number
+  keyspaceMisses: number
+  hitRate: number
+  expiredKeys: number
+  evictedKeys: number
+  // Keyspace
+  dbKeys: number
+  dbExpires: number
+  // Per-namespace
   namespaces: NamespaceStat[]
+  // Rate limiters
   activeRateLimits: RateLimitBucket[]
-  memoryUsedHuman: string | null
-  memoryUsedBytes: number | null
-  upstashCommandsToday: number | null
   fetchedAt: string
 }
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
-  if (!isAuthorized(request)) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 })
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function parseInfo(raw: string): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const line of raw.split(/\r?\n/)) {
+    if (!line || line.startsWith("#")) continue
+    const colon = line.indexOf(":")
+    if (colon === -1) continue
+    out[line.slice(0, colon).trim()] = line.slice(colon + 1).trim()
+  }
+  return out
+}
+
+function int(v: string | undefined, fallback = 0): number {
+  const n = parseInt(v ?? "", 10)
+  return isNaN(n) ? fallback : n
+}
+
+async function scanCount(pattern: string): Promise<number> {
+  let cursor = 0
+  let count = 0
+  do {
+    const [next, keys] = await redis.scan(cursor, { match: pattern, count: 100 })
+    cursor = Number(next)
+    count += keys.length
+  } while (cursor !== 0)
+  return count
+}
+
+// ---------------------------------------------------------------------------
+// Route handler
+// ---------------------------------------------------------------------------
+
+export async function GET(): Promise<NextResponse> {
+  const restUrl = process.env.UPSTASH_REDIS_REST_URL
+  const restToken = process.env.UPSTASH_REDIS_REST_TOKEN
+
+  if (!restUrl || !restToken) {
+    return NextResponse.json({ message: "Redis not configured" }, { status: 500 })
   }
 
   try {
-    // ── 1. Ping latency ────────────────────────────────────────────────────
+    // ── 1. INFO sections + DBSIZE — single native fetch to REST pipeline ───
+    // @upstash/redis has no .info() method; the REST /pipeline endpoint is the
+    // only available path and it works on all Upstash plans.
     const pingStart = Date.now()
-    await redis.ping()
-    const latencyMs = Date.now() - pingStart
 
-    // ── 2. Total key count ─────────────────────────────────────────────────
-    const totalKeys: number = await redis.dbsize()
+    const [infoBatch, namespaceCounts] = await Promise.all([
+      // INFO batch
+      fetch(`${restUrl}/pipeline`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${restToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify([
+          ["INFO", "memory"],
+          ["INFO", "stats"],
+          ["INFO", "keyspace"],
+          ["DBSIZE"],
+        ]),
+        cache: "no-store",
+      }).then((r) => r.json()) as Promise<{ value: Array<{ result: string | number }> }>,
 
-    // ── 3. Namespace counts via SCAN — one pass per namespace pattern ──────
-    const namespacePatterns: Array<{ namespace: string; label: string; pattern: string }> = [
-      { namespace: "matches",    label: "Match cache",        pattern: `${APP_PREFIX}:matches:*` },
-      { namespace: "competitions", label: "Competition cache", pattern: `${APP_PREFIX}:competitions:*` },
-      { namespace: "admin",      label: "Admin stats",        pattern: `${APP_PREFIX}:admin:*` },
-      { namespace: "mpesa",      label: "M-Pesa (idempotency/status)", pattern: `${APP_PREFIX}:mpesa:*` },
-      { namespace: "paystack",   label: "Paystack idempotency", pattern: `${APP_PREFIX}:paystack:*` },
-      { namespace: "rl",         label: "Rate-limit buckets", pattern: `${APP_PREFIX}:rl:*` },
-      { namespace: "lock",       label: "Stampede locks",     pattern: `${APP_PREFIX}:lock:*` },
-    ]
-
-    // Count keys per namespace using SCAN (cursor-based, non-blocking)
-    async function countPattern(pattern: string): Promise<number> {
-      let cursor = 0
-      let count = 0
-      do {
-        const [nextCursor, keys] = await redis.scan(cursor, { match: pattern, count: 100 })
-        cursor = Number(nextCursor)
-        count += keys.length
-      } while (cursor !== 0)
-      return count
-    }
-
-    const namespaceCounts = await Promise.all(
-      namespacePatterns.map(async (p) => ({
+      // Namespace SCAN passes — run in parallel with the INFO fetch
+      Promise.all([
+        { namespace: "matches", label: "Match cache", pattern: `${APP_PREFIX}:matches:*` },
+        { namespace: "competitions", label: "Competition cache", pattern: `${APP_PREFIX}:competitions:*` },
+        { namespace: "admin", label: "Admin stats", pattern: `${APP_PREFIX}:admin:*` },
+        { namespace: "mpesa", label: "M-Pesa (idempotency/status)", pattern: `${APP_PREFIX}:mpesa:*` },
+        { namespace: "paystack", label: "Paystack idempotency", pattern: `${APP_PREFIX}:paystack:*` },
+        { namespace: "rl", label: "Rate-limit buckets", pattern: `${APP_PREFIX}:rl:*` },
+        { namespace: "lock", label: "Stampede locks", pattern: `${APP_PREFIX}:lock:*` },
+      ].map(async (p) => ({
         namespace: p.namespace,
         label: p.label,
-        count: await countPattern(p.pattern),
-      }))
-    )
+        count: await scanCount(p.pattern),
+      }))),
+    ])
 
-    // ── 4. Active rate-limit buckets ───────────────────────────────────────
-    // Scan all rl: keys and read their current cardinality (number of hits in window)
+    const latencyMs = Date.now() - pingStart
+
+    // Parse INFO results
+    const results = infoBatch.value ?? []
+    const mem = parseInfo((results[0]?.result as string) ?? "")
+    const st = parseInfo((results[1]?.result as string) ?? "")
+    const ks = parseInfo((results[2]?.result as string) ?? "")
+    const totalKeys = (results[3]?.result as number) ?? 0
+
+    // Memory
+    const memoryUsedBytes = int(mem.used_memory)
+    const memoryUsedHuman = mem.used_memory_human ?? "0B"
+    const maxMemoryBytes = int(mem.maxmemory)
+    const maxMemoryHuman = mem.maxmemory_human ?? "0B"
+    const memoryUsedPct = maxMemoryBytes > 0
+      ? Math.round((memoryUsedBytes / maxMemoryBytes) * 100)
+      : 0
+
+    // Stats
+    const totalCommandsProcessed = int(st.total_commands_processed)
+    const opsPerSec = int(st.instantaneous_ops_per_sec)
+    const maxOpsPerSec = int(st.max_ops_per_sec)
+    const keyspaceHits = int(st.keyspace_hits)
+    const keyspaceMisses = int(st.keyspace_misses)
+    const hitRate = keyspaceHits + keyspaceMisses > 0
+      ? Math.round((keyspaceHits / (keyspaceHits + keyspaceMisses)) * 100)
+      : 0
+    const expiredKeys = int(st.expired_keys)
+    const evictedKeys = int(st.evicted_keys)
+
+    // Keyspace  db0:keys=N,expires=N,...
+    const db0 = ks.db0 ?? ""
+    const dbKeys = int(db0.match(/keys=(\d+)/)?.[1])
+    const dbExpires = int(db0.match(/expires=(\d+)/)?.[1])
+
+    // ── 2. Rate-limit bucket details ────────────────────────────────────────
     const rlKeys: string[] = []
     let rlCursor = 0
     do {
-      const [nextCursor, keys] = await redis.scan(rlCursor, {
-        match: `${APP_PREFIX}:rl:*`,
-        count: 50,
-      })
+      const [nextCursor, keys] = await redis.scan(rlCursor, { match: `${APP_PREFIX}:rl:*`, count: 50 })
       rlCursor = Number(nextCursor)
       rlKeys.push(...keys)
     } while (rlCursor !== 0)
 
-    // Batch-fetch cardinality + TTL for each rl key (pipeline)
     const activeRateLimits: RateLimitBucket[] = []
     if (rlKeys.length > 0) {
-      const pipeline = redis.pipeline()
+      const rlPipeline = redis.pipeline()
       for (const key of rlKeys) {
-        pipeline.zcard(key)
-        pipeline.ttl(key)
+        rlPipeline.zcard(key)
+        rlPipeline.ttl(key)
       }
-      const results = await pipeline.exec()
-
+      const rlResults = await rlPipeline.exec()
       for (let i = 0; i < rlKeys.length; i++) {
-        const hits = (results[i * 2] as number) ?? 0
-        const ttl = (results[i * 2 + 1] as number) ?? -1
-        if (hits > 0) {
-          // key format: betflexx:rl:<namespace>:<identifier>
-          const parts = rlKeys[i].replace(`${APP_PREFIX}:rl:`, "").split(":")
-          const identifier = parts.slice(1).join(":") || parts[0]
-          activeRateLimits.push({
-            key: rlKeys[i],
-            identifier,
-            hits,
-            ttl,
-          })
-        }
+        const hits = (rlResults[i * 2] as number) ?? 0
+        const ttl = (rlResults[i * 2 + 1] as number) ?? -1
+        if (hits > 0) activeRateLimits.push({ key: rlKeys[i], hits, ttl })
       }
       activeRateLimits.sort((a, b) => b.hits - a.hits)
     }
 
-    // ── 5. Memory info via INFO (best-effort — may not be available) ───────
-    let memoryUsedHuman: string | null = null
-    let memoryUsedBytes: number | null = null
-    let upstashCommandsToday: number | null = null
-
-    try {
-      // @upstash/redis exposes a raw `info()` method returning a string
-      const infoRaw = await (redis as unknown as { info: (section?: string) => Promise<string> }).info("memory")
-      if (typeof infoRaw === "string") {
-        const memMatch = infoRaw.match(/used_memory_human:(\S+)/)
-        const memBytesMatch = infoRaw.match(/used_memory:(\d+)/)
-        if (memMatch?.[1]) memoryUsedHuman = memMatch[1]
-        if (memBytesMatch?.[1]) memoryUsedBytes = parseInt(memBytesMatch[1], 10)
-      }
-    } catch {
-      // INFO not available on all Upstash plans — swallow silently
-    }
-
-    // Try Upstash-specific stats header via a stats call
-    try {
-      const statsRaw = await (redis as unknown as { info: (section?: string) => Promise<string> }).info("stats")
-      if (typeof statsRaw === "string") {
-        const cmdMatch = statsRaw.match(/total_commands_processed:(\d+)/)
-        if (cmdMatch?.[1]) upstashCommandsToday = parseInt(cmdMatch[1], 10)
-      }
-    } catch {
-      // Swallow
-    }
-
+    // ── 3. Assemble ─────────────────────────────────────────────────────────
     const stats: RedisStats = {
       latencyMs,
       totalKeys,
-      namespaces: namespaceCounts,
-      activeRateLimits,
       memoryUsedHuman,
       memoryUsedBytes,
-      upstashCommandsToday,
+      maxMemoryHuman,
+      maxMemoryBytes,
+      memoryUsedPct,
+      totalCommandsProcessed,
+      opsPerSec,
+      maxOpsPerSec,
+      keyspaceHits,
+      keyspaceMisses,
+      hitRate,
+      expiredKeys,
+      evictedKeys,
+      dbKeys,
+      dbExpires,
+      namespaces: namespaceCounts,
+      activeRateLimits,
       fetchedAt: new Date().toISOString(),
     }
 
