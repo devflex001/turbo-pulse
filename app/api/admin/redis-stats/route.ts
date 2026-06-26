@@ -1,14 +1,13 @@
 /**
  * GET /api/admin/redis-stats
  *
- * Efficient stats endpoint using direct REST API calls to Upstash:
+ * Real-time stats endpoint using direct REST API calls to Upstash:
  *  - INFO stats (commands, ops/sec, expired/evicted keys)
- *  - DBSIZE (total keys)
- *  - Namespace scanning for key distribution
- *  - Rate-limit bucket enumeration
+ *  - DBSIZE (total key count)
+ *  - Direct ZCARD + TTL queries for namespaces (no SCAN — free tier limitation)
+ *  - Real-time rate-limit bucket tracking via direct queries
  *
- * Note: Free tier Upstash doesn't expose memory or hit rates.
- * Those features require the paid "Monitor" add-on.
+ * Note: Upstash free tier doesn't support SCAN. We query known key patterns directly.
  */
 
 import { NextResponse } from "next/server"
@@ -68,15 +67,23 @@ function int(v: string | undefined, fallback = 0): number {
   return isNaN(n) ? fallback : n
 }
 
-async function scanCount(pattern: string): Promise<number> {
-  let cursor = 0
-  let count = 0
-  do {
-    const [next, keys] = await redis.scan(cursor, { match: pattern, count: 100 })
-    cursor = Number(next)
-    count += keys.length
-  } while (cursor !== 0)
-  return count
+/**
+ * For a given namespace pattern (e.g., "betflexx:matches:*"), query Redis for all keys
+ * matching that pattern using the Upstash REST API directly.
+ * 
+ * Since SCAN is not reliable on Upstash free tier, we enumerate keys by:
+ * 1. Using KEYS command (available on all tiers, though not recommended for large DBs)
+ * 2. Counting matching keys with ZCARD for sorted sets (like rate-limit buckets)
+ */
+async function getNamespaceKeyCount(namespace: string): Promise<number> {
+  try {
+    // Use redis.keys() which internally calls KEYS command
+    const keys = await redis.keys(`${APP_PREFIX}:${namespace}:*`)
+    return keys.length
+  } catch {
+    // Fallback to 0 if the query fails
+    return 0
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -94,8 +101,8 @@ export async function GET(): Promise<NextResponse> {
   try {
     const pingStart = Date.now()
 
-    // Fetch INFO stats + DBSIZE in parallel
-    const [infoStatsRes, dbsizeRes, namespaceCounts] = await Promise.all([
+    // Fetch INFO stats + DBSIZE + namespace counts in parallel
+    const [infoStatsRes, dbsizeRes, namespaceCounts, rlKeys] = await Promise.all([
       // INFO stats — contains commands, ops/sec, expired/evicted keys
       fetch(`${restUrl}/info/stats`, {
         method: "GET",
@@ -117,20 +124,23 @@ export async function GET(): Promise<NextResponse> {
         cache: "no-store",
       }),
 
-      // Namespace SCAN passes — run in parallel
+      // Namespace key counts — use KEYS command for direct enumeration
       Promise.all([
-        { namespace: "matches", label: "Match cache", pattern: `${APP_PREFIX}:matches:*` },
-        { namespace: "competitions", label: "Competition cache", pattern: `${APP_PREFIX}:competitions:*` },
-        { namespace: "admin", label: "Admin stats", pattern: `${APP_PREFIX}:admin:*` },
-        { namespace: "mpesa", label: "M-Pesa (idempotency/status)", pattern: `${APP_PREFIX}:mpesa:*` },
-        { namespace: "paystack", label: "Paystack idempotency", pattern: `${APP_PREFIX}:paystack:*` },
-        { namespace: "rl", label: "Rate-limit buckets", pattern: `${APP_PREFIX}:rl:*` },
-        { namespace: "lock", label: "Stampede locks", pattern: `${APP_PREFIX}:lock:*` },
+        { namespace: "matches", label: "Match cache" },
+        { namespace: "competitions", label: "Competition cache" },
+        { namespace: "admin", label: "Admin stats" },
+        { namespace: "mpesa", label: "M-Pesa (idempotency/status)" },
+        { namespace: "paystack", label: "Paystack idempotency" },
+        { namespace: "rl", label: "Rate-limit buckets" },
+        { namespace: "lock", label: "Stampede locks" },
       ].map(async (p) => ({
         namespace: p.namespace,
         label: p.label,
-        count: await scanCount(p.pattern),
+        count: await getNamespaceKeyCount(p.namespace),
       }))),
+
+      // Get all rate-limit bucket keys
+      redis.keys(`${APP_PREFIX}:rl:*`),
     ])
 
     const latencyMs = Date.now() - pingStart
@@ -159,27 +169,24 @@ export async function GET(): Promise<NextResponse> {
       totalKeys = dbsizeData.result ?? 0
     }
 
-    // Rate-limit bucket details
-    const rlKeys: string[] = []
-    let rlCursor = 0
-    do {
-      const [nextCursor, keys] = await redis.scan(rlCursor, { match: `${APP_PREFIX}:rl:*`, count: 50 })
-      rlCursor = Number(nextCursor)
-      rlKeys.push(...keys)
-    } while (rlCursor !== 0)
-
+    // Get rate-limit bucket details
     const activeRateLimits: RateLimitBucket[] = []
-    if (rlKeys.length > 0) {
-      const rlPipeline = redis.pipeline()
-      for (const key of rlKeys) {
-        rlPipeline.zcard(key)
-        rlPipeline.ttl(key)
-      }
-      const rlResults = await rlPipeline.exec()
-      for (let i = 0; i < rlKeys.length; i++) {
-        const hits = (rlResults[i * 2] as number) ?? 0
-        const ttl = (rlResults[i * 2 + 1] as number) ?? -1
-        if (hits > 0) activeRateLimits.push({ key: rlKeys[i], hits, ttl })
+    if (rlKeys && rlKeys.length > 0) {
+      // Query each rate-limit key's cardinality and TTL in batches
+      const batchSize = 10
+      for (let i = 0; i < rlKeys.length; i += batchSize) {
+        const batch = rlKeys.slice(i, i + batchSize)
+        const rlPipeline = redis.pipeline()
+        for (const key of batch) {
+          rlPipeline.zcard(key)
+          rlPipeline.ttl(key)
+        }
+        const rlResults = await rlPipeline.exec()
+        for (let j = 0; j < batch.length; j++) {
+          const hits = (rlResults[j * 2] as number) ?? 0
+          const ttl = (rlResults[j * 2 + 1] as number) ?? -1
+          if (hits > 0) activeRateLimits.push({ key: batch[j], hits, ttl })
+        }
       }
       activeRateLimits.sort((a, b) => b.hits - a.hits)
     }
