@@ -14,35 +14,47 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { CustomEventDetail } from "@/components/custom-event-detail"
-import { SmallLoader } from "@/components/small-loader"
+import { calculateEventTimer } from "@/lib/event-timer"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Pagination } from "@/components/pagination"
 import { usePagination } from "@/hooks/use-pagination"
+import { useMediaQuery } from "@/hooks/use-media-query"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import {
   Search,
   Trash2,
-  ListPlus,
   ChevronDown,
   MoreVertical,
   Edit2,
   CheckCircle,
   EyeOff,
+  Eye,
 } from "lucide-react"
-import { Id } from "@/convex/_generated/dataModel"
-import { useMediaQuery } from "@/hooks/use-media-query"
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
-} from "@/components/ui/drawer"
 
 interface CustomEventsListProps {
   onSelectEvent?: (eventId: string) => void
@@ -64,6 +76,20 @@ const STATUS_OPTIONS = [
   { value: "published", label: "Published" },
 ]
 
+function getLiveStatusLabel(lifecycle: string) {
+  switch (lifecycle) {
+    case "first_half":
+      return "LIVE (1st Half)"
+    case "halftime":
+      return "LIVE (Halftime)"
+    case "second_half":
+      return "LIVE (2nd Half)"
+    default:
+      return "LIVE"
+  }
+}
+
+
 export function CustomEventsList({
   onSelectEvent,
   status,
@@ -76,9 +102,36 @@ export function CustomEventsList({
   >(status || "all")
   const [detailOpen, setDetailOpen] = React.useState(false)
   const [selectedEvent, setSelectedEvent] = React.useState<any>(null)
-  const isMobile = useMediaQuery("(max-width: 768px)")
 
-  const pagination = usePagination({ pageSize: 10 })
+  // Timer for checking live matches & Dialog score update state
+  const [now, setNow] = React.useState(() => Date.now())
+  const [scoreDialogOpen, setScoreDialogOpen] = React.useState(false)
+  const [dialogHomeScore, setDialogHomeScore] = React.useState<string>("")
+  const [dialogAwayScore, setDialogAwayScore] = React.useState<string>("")
+  const [savingScore, setSavingScore] = React.useState(false)
+
+  // Resolve modal state
+  const [resolveModalOpen, setResolveModalOpen] = React.useState(false)
+  const [eventToResolve, setEventToResolve] = React.useState<any>(null)
+  const [selectedOutcomesByMarket, setSelectedOutcomesByMarket] = React.useState<Map<string, Set<string>>>(new Map()) // marketId -> Set of outcomeIds
+  const [isResolving, setIsResolving] = React.useState(false)
+  const [marketSearch, setMarketSearch] = React.useState("")
+
+  // Update timer every second
+  React.useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Pre-fill score inputs when selectedEvent changes
+  React.useEffect(() => {
+    if (selectedEvent) {
+      setDialogHomeScore(String(selectedEvent.homeScore ?? 0))
+      setDialogAwayScore(String(selectedEvent.awayScore ?? 0))
+    }
+  }, [selectedEvent])
+
+  const pagination = usePagination({ pageSize: 15 })
 
   // Reset to page 1 when filters change
   React.useEffect(() => {
@@ -95,6 +148,40 @@ export function CustomEventsList({
   const deleteEvent = useMutation(api.customEvents.deleteCustomEvent)
   const publishEvent = useMutation(api.customEvents.publishCustomEvent)
   const unpublishEvent = useMutation(api.customEvents.unpublishCustomEvent)
+  const updateScore = useMutation(api.customEvents.updateCustomEventScore)
+  const settleEvent = useMutation(api.customEvents.settleCustomEvent)
+
+  const handleResolveEvent = async () => {
+    if (selectedOutcomesByMarket.size === 0 || !eventToResolve) {
+      toast.error("Please select at least one outcome in a market")
+      return
+    }
+
+    setIsResolving(true)
+    try {
+      // Build market outcomes array for the mutation
+      const marketOutcomes = Array.from(selectedOutcomesByMarket.entries()).map(([marketId, outcomeIds]) => ({
+        marketId: marketId as any,
+        winningOutcomeIds: Array.from(outcomeIds),
+      }))
+
+      await settleEvent({
+        eventId: eventToResolve._id,
+        marketOutcomes,
+      })
+
+      const totalOutcomes = Array.from(selectedOutcomesByMarket.values()).reduce((sum, set) => sum + set.size, 0)
+      toast.success(`Event resolved! ${selectedOutcomesByMarket.size} market(s) with ${totalOutcomes} outcome(s) settled.`)
+      setResolveModalOpen(false)
+      setEventToResolve(null)
+      setSelectedOutcomesByMarket(new Map())
+      setMarketSearch("")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to resolve event")
+    } finally {
+      setIsResolving(false)
+    }
+  }
 
   const handleDelete = async (eventId: string, e: React.MouseEvent) => {
     e.stopPropagation()
@@ -127,6 +214,26 @@ export function CustomEventsList({
       toast.error(
         error instanceof Error ? error.message : "Failed to unpublish"
       )
+    }
+  }
+
+  const handleScoreSave = async () => {
+    if (!selectedEvent) return
+    const h = Number(dialogHomeScore)
+    const a = Number(dialogAwayScore)
+    if (!Number.isInteger(h) || !Number.isInteger(a) || h < 0 || a < 0) {
+      toast.error("Invalid scores")
+      return
+    }
+    setSavingScore(true)
+    try {
+      await updateScore({ eventId: selectedEvent._id, homeScore: h, awayScore: a })
+      toast.success("Score updated successfully")
+      setScoreDialogOpen(false)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update score")
+    } finally {
+      setSavingScore(false)
     }
   }
 
@@ -166,7 +273,12 @@ export function CustomEventsList({
   }, [events, sort])
 
   if (!events) {
-    return <SmallLoader />
+    return (
+      <div className="space-y-2">
+        <Skeleton className="h-10 rounded-lg" />
+        <Skeleton className="h-64 rounded-lg" />
+      </div>
+    )
   }
 
   const formatTime = (ms: number) => {
@@ -179,177 +291,236 @@ export function CustomEventsList({
   }
 
   return (
-    <div className="space-y-5">
-      {/* Filters Card - matches events page pattern */}
-      <div className="space-y-3 rounded-lg border border-border bg-card p-3">
-        <div className="flex items-center gap-2">
-          {/* Search */}
-          <div className="relative flex-1">
-            <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search..."
-              className="h-8 bg-muted/50 pl-8 text-xs focus-visible:ring-primary"
-            />
-          </div>
-
-          {/* Status Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 border-border text-xs"
-              >
-                {STATUS_OPTIONS.find((s) => s.value === filterStatus)?.label ||
-                  "Status"}
-                <ChevronDown className="size-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-40">
-              {STATUS_OPTIONS.map((s) => (
-                <DropdownMenuItem
-                  key={s.value}
-                  onClick={() =>
-                    setFilterStatus(s.value as "draft" | "published" | "all")
-                  }
-                  className={filterStatus === s.value ? "bg-accent" : ""}
-                >
-                  {s.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Sort Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 gap-1.5 border-border text-xs"
-              >
-                {SORT_OPTIONS.find((s) => s.value === sort)?.label || "Sort"}
-                <ChevronDown className="size-3" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
-              {SORT_OPTIONS.map((s) => (
-                <DropdownMenuItem
-                  key={s.value}
-                  onClick={() => setSort(s.value as SortOption)}
-                  className={sort === s.value ? "bg-accent" : ""}
-                >
-                  {s.label}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+    <div className="space-y-4">
+      {/* Filters */}
+      <div className="flex items-center gap-2">
+        {/* Search */}
+        <div className="relative flex-1">
+          <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search..."
+            className="h-8 bg-muted/50 pl-8 text-xs focus-visible:ring-primary"
+          />
         </div>
+
+        {/* Status Filter */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 border-border text-xs"
+            >
+              {STATUS_OPTIONS.find((s) => s.value === filterStatus)?.label ||
+                "Status"}
+              <ChevronDown className="size-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-40">
+            {STATUS_OPTIONS.map((s) => (
+              <DropdownMenuItem
+                key={s.value}
+                onClick={() =>
+                  setFilterStatus(s.value as "draft" | "published" | "all")
+                }
+                className={filterStatus === s.value ? "bg-accent" : ""}
+              >
+                {s.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Sort Filter */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 border-border text-xs"
+            >
+              {SORT_OPTIONS.find((s) => s.value === sort)?.label || "Sort"}
+              <ChevronDown className="size-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-48">
+            {SORT_OPTIONS.map((s) => (
+              <DropdownMenuItem
+                key={s.value}
+                onClick={() => setSort(s.value as SortOption)}
+                className={sort === s.value ? "bg-accent" : ""}
+              >
+                {s.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      {/* Custom Events Table - standalone without outer card */}
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
-        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-          <h2 className="text-sm font-bold">Custom Events</h2>
-          <Badge variant="outline" className="font-mono text-[10px]">
-            {sortedEvents.length}
-          </Badge>
-        </div>
+      {/* Responsive View: Table on Desktop/Tablet, Cards on Mobile */}
+      {sortedEvents.length > 0 ? (
+        <div className="space-y-4">
+          {/* Desktop/Tablet Table view */}
+          <div className="hidden md:block overflow-hidden rounded-lg border border-border bg-card">
+            <Table>
+              <TableHeader className="bg-muted/30">
+                <TableRow className="border-border hover:bg-transparent">
+                  <TableHead className="h-10 font-semibold text-xs text-foreground">
+                    Matchup
+                  </TableHead>
+                  <TableHead className="h-10 font-semibold text-xs text-foreground">
+                    Competition
+                  </TableHead>
+                  <TableHead className="h-10 font-semibold text-xs text-foreground">
+                    Start Time
+                  </TableHead>
+                  <TableHead className="h-10 font-semibold text-xs text-foreground">
+                    Markets
+                  </TableHead>
+                  <TableHead className="h-10 font-semibold text-xs text-foreground">
+                    Status
+                  </TableHead>
+                  <TableHead className="h-10 text-right font-semibold text-xs text-foreground">
+                    Actions
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedEvents.map((event) => {
+                  const timer = calculateEventTimer(event.startTime, now)
+                  const isLive = event.status === "published" && timer.isLive
+                  const isFinished = event.status === "published" && timer.isFinished
 
-        {sortedEvents.length > 0 ? (
-          <>
-            {/* Desktop Table */}
-            <div className="hidden overflow-x-auto md:block">
-              <table className="w-full text-left text-xs">
-                <thead className="border-b border-border text-[9px] font-semibold text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Start</th>
-                    <th className="px-3 py-2 text-left">Matchup</th>
-                    <th className="px-3 py-2 text-left">Competition</th>
-                    <th className="px-3 py-2 text-left">Status</th>
-                    <th className="px-3 py-2 text-right">Markets</th>
-                    <th className="px-3 py-2 text-right">Details</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {sortedEvents.map((event) => (
-                    <tr
+                  return (
+                    <TableRow
                       key={event._id}
-                      className="transition-colors hover:bg-muted/30"
+                      className="border-border hover:bg-muted/30 transition-colors"
                     >
-                      <td className="px-3 py-2 font-mono text-[10px] text-muted-foreground">
-                        {formatTime(event.startTime)}
-                      </td>
-                      <td className="px-3 py-2 font-semibold text-foreground">
-                        <div className="truncate">
-                          {event.homeTeam} vs {event.awayTeam}
-                        </div>
-                        <div className="truncate text-[10px] text-muted-foreground">
-                          {event.title}
-                        </div>
-                      </td>
-                      <td className="px-3 py-2 text-[10px] text-muted-foreground">
+                      <TableCell className="py-2 text-xs font-semibold text-foreground">
+                        {event.homeTeam} vs {event.awayTeam}
+                      </TableCell>
+                      <TableCell className="py-2 text-xs text-muted-foreground">
                         {event.competition}
-                      </td>
-                      <td className="px-3 py-2">
-                        <Badge
-                          className={cn(
-                            "text-[9px] font-semibold",
-                            event.status === "draft"
-                              ? "rounded-sm border border-yellow-500/20 bg-yellow-500/15 text-yellow-600 hover:bg-yellow-500/15"
-                              : "rounded-sm border border-emerald-500/20 bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15"
-                          )}
-                        >
-                          {event.status}
-                        </Badge>
-                      </td>
-                      <td className="px-3 py-2 text-right font-mono text-[10px] text-muted-foreground">
-                        {event.totalMarkets}
-                      </td>
-                      <td className="flex items-center justify-end gap-2 px-3 py-2 text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 gap-1 px-2 text-xs"
+                      </TableCell>
+                      <TableCell className="py-2 text-xs text-muted-foreground font-mono">
+                        {formatTime(event.startTime)}
+                      </TableCell>
+                      <TableCell className="py-2 text-xs text-muted-foreground">
+                        <button
                           onClick={() => {
                             setSelectedEvent(event)
                             setDetailOpen(true)
                           }}
+                          className="text-primary hover:text-primary/80 font-semibold transition-colors cursor-pointer"
                         >
-                          <ListPlus className="size-3" />
-                          View
-                        </Button>
-
-                        {/* Actions Menu */}
+                          {event.totalMarkets}
+                        </button>
+                      </TableCell>
+                      <TableCell className="py-2">
+                        {(() => {
+                          if (event.status === "draft") {
+                            return (
+                              <Badge className="bg-yellow-500/15 text-yellow-600 border border-yellow-500/20 text-[9px] font-bold">
+                                draft
+                              </Badge>
+                            )
+                          }
+                          if (isLive) {
+                            return (
+                              <Badge
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelectedEvent(event)
+                                  setScoreDialogOpen(true)
+                                }}
+                                className="bg-primary text-white text-[9px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-sm select-none border-none"
+                                title="Click to update score"
+                              >
+                                <span className="size-1.5 rounded-full bg-white animate-pulse" />
+                                {getLiveStatusLabel(timer.lifecycle)}
+                              </Badge>
+                            )
+                          }
+                          if (isFinished) {
+                            return (
+                              <Badge className="bg-gray-500/15 text-gray-600 border border-gray-500/20 text-[9px] font-bold">
+                                finished
+                              </Badge>
+                            )
+                          }
+                          return (
+                            <Badge className="bg-emerald-500/15 text-emerald-600 border border-emerald-500/20 text-[9px] font-bold">
+                              published
+                            </Badge>
+                          )
+                        })()}
+                      </TableCell>
+                      <TableCell className="py-2 text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-7 px-1"
+                              className="h-6 w-6 p-0 hover:bg-muted"
                             >
-                              <MoreVertical className="size-4" />
+                              <MoreVertical className="size-3.5" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedEvent(event)
+                                setDetailOpen(true)
+                              }}
+                              className="cursor-pointer gap-2 text-sm"
+                            >
+                              <Eye className="size-4" />
+                              View Markets
+                            </DropdownMenuItem>
+                            {isLive && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelectedEvent(event)
+                                  setScoreDialogOpen(true)
+                                }}
+                                className="cursor-pointer gap-2 text-sm text-primary"
+                              >
+                                <Edit2 className="size-4" />
+                                Update Score
+                              </DropdownMenuItem>
+                            )}
+                            {isFinished && event.status === "published" && (
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setEventToResolve(event)
+                                  setResolveModalOpen(true)
+                                }}
+                                className="cursor-pointer gap-2 text-sm text-blue-600"
+                              >
+                                <CheckCircle className="size-4" />
+                                Resolve
+                              </DropdownMenuItem>
+                            )}
                             {event.status === "draft" && (
                               <>
                                 <DropdownMenuItem
                                   onClick={(e) => handleEdit(event, e as any)}
-                                  className="cursor-pointer gap-2 text-xs"
+                                  className="cursor-pointer gap-2 text-sm"
                                 >
-                                  <Edit2 className="size-3" />
+                                  <Edit2 className="size-4" />
                                   Edit
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={(e) =>
                                     handlePublish(event._id, e as any)
                                   }
-                                  className="cursor-pointer gap-2 text-xs"
+                                  className="cursor-pointer gap-2 text-sm"
                                 >
-                                  <CheckCircle className="size-3" />
+                                  <CheckCircle className="size-4" />
                                   Publish
                                 </DropdownMenuItem>
                               </>
@@ -359,208 +530,572 @@ export function CustomEventsList({
                                 onClick={(e) =>
                                   handleUnpublish(event._id, e as any)
                                 }
-                                className="cursor-pointer gap-2 text-xs"
+                                className="cursor-pointer gap-2 text-sm"
                               >
-                                <EyeOff className="size-3" />
+                                <EyeOff className="size-4" />
                                 Unpublish
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuItem
                               onClick={(e) => handleDelete(event._id, e as any)}
-                              className="cursor-pointer gap-2 text-xs text-destructive hover:text-destructive"
+                              className="cursor-pointer gap-2 text-sm text-destructive"
                             >
-                              <Trash2 className="size-3" />
+                              <Trash2 className="size-4" />
                               Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
 
-            {/* Mobile Cards */}
-            <div className="space-y-2 p-3 md:hidden">
-              {sortedEvents.map((event) => (
+          {/* Mobile Card view */}
+          <div className="block md:hidden space-y-3">
+            {sortedEvents.map((event) => {
+              const timer = calculateEventTimer(event.startTime, now)
+              const isLive = event.status === "published" && timer.isLive
+              const isFinished = event.status === "published" && timer.isFinished
+
+              const renderStatusBadge = () => {
+                if (event.status === "draft") {
+                  return (
+                    <Badge className="bg-yellow-500/15 text-yellow-600 border border-yellow-500/20 text-[9px] font-bold">
+                      draft
+                    </Badge>
+                  )
+                }
+                if (isLive) {
+                  return (
+                    <Badge
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedEvent(event)
+                        setScoreDialogOpen(true)
+                      }}
+                      className="bg-primary text-white text-[9px] font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-sm select-none border-none"
+                      title="Click to update score"
+                    >
+                      <span className="size-1.5 rounded-full bg-white animate-pulse" />
+                      {getLiveStatusLabel(timer.lifecycle)}
+                    </Badge>
+                  )
+                }
+                if (isFinished) {
+                  return (
+                    <Badge className="bg-gray-500/15 text-gray-600 border border-gray-500/20 text-[9px] font-bold">
+                      finished
+                    </Badge>
+                  )
+                }
+                return (
+                  <Badge className="bg-emerald-500/15 text-emerald-600 border border-emerald-500/20 text-[9px] font-bold">
+                    published
+                  </Badge>
+                )
+              }
+
+              return (
                 <div
                   key={event._id}
-                  className="space-y-2 rounded-lg border border-border bg-card p-3"
+                  className="rounded-lg border border-border bg-card p-3 space-y-2.5 hover:border-primary/30 transition-colors shadow-xs"
                 >
-                  <div className="mb-2 flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="mb-1 line-clamp-1 text-sm font-semibold text-foreground">
-                        {event.homeTeam} vs {event.awayTeam}
-                      </div>
-                      <div className="mb-1 text-[10px] text-muted-foreground">
-                        {event.title} • {event.competition}
-                      </div>
-                      <div className="font-mono text-[10px] text-muted-foreground">
-                        {formatTime(event.startTime)}
-                      </div>
-                    </div>
-                    <Badge
-                      className={cn(
-                        "text-[9px] font-semibold",
-                        event.status === "draft"
-                          ? "rounded-sm border border-yellow-500/20 bg-yellow-500/15 text-yellow-600 hover:bg-yellow-500/15"
-                          : "rounded-sm border border-emerald-500/20 bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/15"
-                      )}
-                    >
-                      {event.status}
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between border-t border-border pt-2">
-                    <div className="font-mono text-[10px] text-muted-foreground">
-                      {event.totalMarkets} markets
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 gap-1 px-2 text-xs"
-                        onClick={() => {
-                          setSelectedEvent(event)
-                          setDetailOpen(true)
-                        }}
-                      >
-                        <ListPlus className="size-3" />
-                        View
-                      </Button>
-
-                      {/* Actions Menu */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-7 px-1"
+                  {/* Header: Matchup & Actions */}
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-foreground">
+                      {event.homeTeam} vs {event.awayTeam}
+                    </p>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 w-6 p-0 hover:bg-muted shrink-0"
+                        >
+                          <MoreVertical className="size-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSelectedEvent(event)
+                            setDetailOpen(true)
+                          }}
+                          className="cursor-pointer gap-2 text-sm"
+                        >
+                          <Eye className="size-4" />
+                          View Markets
+                        </DropdownMenuItem>
+                        {isLive && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setSelectedEvent(event)
+                              setScoreDialogOpen(true)
+                            }}
+                            className="cursor-pointer gap-2 text-sm text-primary"
                           >
-                            <MoreVertical className="size-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40">
-                          {event.status === "draft" && (
-                            <>
-                              <DropdownMenuItem
-                                onClick={(e) => handleEdit(event, e as any)}
-                                className="cursor-pointer gap-2 text-xs"
-                              >
-                                <Edit2 className="size-3" />
-                                Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) =>
-                                  handlePublish(event._id, e as any)
-                                }
-                                className="cursor-pointer gap-2 text-xs"
-                              >
-                                <CheckCircle className="size-3" />
-                                Publish
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                          {event.status === "published" && (
+                            <Edit2 className="size-4" />
+                            Update Score
+                          </DropdownMenuItem>
+                        )}
+                        {isFinished && event.status === "published" && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setEventToResolve(event)
+                              setResolveModalOpen(true)
+                            }}
+                            className="cursor-pointer gap-2 text-sm text-blue-600"
+                          >
+                            <CheckCircle className="size-4" />
+                            Resolve
+                          </DropdownMenuItem>
+                        )}
+                        {event.status === "draft" && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={(e) => handleEdit(event, e as any)}
+                              className="cursor-pointer gap-2 text-sm"
+                            >
+                              <Edit2 className="size-4" />
+                              Edit
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={(e) =>
-                                handleUnpublish(event._id, e as any)
+                                handlePublish(event._id, e as any)
                               }
-                              className="cursor-pointer gap-2 text-xs"
+                              className="cursor-pointer gap-2 text-sm"
                             >
-                              <EyeOff className="size-3" />
-                              Unpublish
+                              <CheckCircle className="size-4" />
+                              Publish
                             </DropdownMenuItem>
-                          )}
+                          </>
+                        )}
+                        {event.status === "published" && (
                           <DropdownMenuItem
-                            onClick={(e) => handleDelete(event._id, e as any)}
-                            className="cursor-pointer gap-2 text-xs text-destructive hover:text-destructive"
+                            onClick={(e) =>
+                              handleUnpublish(event._id, e as any)
+                            }
+                            className="cursor-pointer gap-2 text-sm"
                           >
-                            <Trash2 className="size-3" />
-                            Delete
+                            <EyeOff className="size-4" />
+                            Unpublish
                           </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                        )}
+                        <DropdownMenuItem
+                          onClick={(e) => handleDelete(event._id, e as any)}
+                          className="cursor-pointer gap-2 text-sm text-destructive"
+                        >
+                          <Trash2 className="size-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+
+                  {/* Info Row: Competition & Status */}
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>{event.competition}</span>
+                    {renderStatusBadge()}
+                  </div>
+
+                  {/* Footer row: Start Time & Markets */}
+                  <div className="flex items-center justify-between pt-1 border-t border-border/30 text-[10px] text-muted-foreground font-mono">
+                    <span>{formatTime(event.startTime)}</span>
+                    <button
+                      onClick={() => {
+                        setSelectedEvent(event)
+                        setDetailOpen(true)
+                      }}
+                      className="text-primary hover:text-primary/80 font-bold transition-colors cursor-pointer font-sans text-xs"
+                    >
+                      {event.totalMarkets} Markets
+                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="p-8 text-center text-xs text-muted-foreground">
-            <p className="text-sm">No events found</p>
-            <p className="mt-1 text-xs">
-              Create your first custom event to get started
-            </p>
+              )
+            })}
           </div>
-        )}
+
+          {/* Pagination */}
+          {events && events.items && events.items.length > 0 && (
+            <div className="border border-border/40 rounded-lg bg-card px-4 py-3 shadow-xs">
+              <Pagination
+                currentPage={pagination.currentPage}
+                pageSize={pagination.pageSize}
+                totalItems={events.totalCount || 0}
+                onPageChange={pagination.onPageChange}
+              />
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-lg border border-border bg-card p-8 text-center text-xs text-muted-foreground">
+          <p className="text-sm font-semibold">No events found</p>
+          <p className="mt-1 text-xs">
+            Create your first custom event to get started
+          </p>
+        </div>
+      )}
+
+      {/* Event Detail Sheet */}
+      <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
+        <SheetContent
+          side="right"
+          className="flex h-dvh !w-[min(50vw,720px)] !max-w-none flex-col overflow-hidden bg-card p-0"
+        >
+          <SheetHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
+            <SheetTitle className="truncate text-sm font-semibold">
+              {selectedEvent
+                ? `${selectedEvent.homeTeam} vs ${selectedEvent.awayTeam}`
+                : "Event Details"}
+            </SheetTitle>
+            <p className="truncate text-xs text-muted-foreground">
+              {selectedEvent?.competition}
+            </p>
+          </SheetHeader>
+          <div className="flex flex-1 flex-col overflow-hidden">
+            {selectedEvent && (
+              <CustomEventDetail
+                eventId={selectedEvent._id}
+                adminControls
+                onBack={() => setDetailOpen(false)}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Score Update Dialog */}
+      <Dialog open={scoreDialogOpen} onOpenChange={setScoreDialogOpen}>
+        <DialogContent className="max-w-md bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold">Update Live Score</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              {selectedEvent ? `${selectedEvent.homeTeam} vs ${selectedEvent.awayTeam}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                {selectedEvent?.homeTeam || "Home Score"}
+              </label>
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                value={dialogHomeScore}
+                onChange={(e) => setDialogHomeScore(e.target.value)}
+                className="h-9 text-xs focus-visible:ring-primary"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                {selectedEvent?.awayTeam || "Away Score"}
+              </label>
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                value={dialogAwayScore}
+                onChange={(e) => setDialogAwayScore(e.target.value)}
+                className="h-9 text-xs focus-visible:ring-primary"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-8 border-border"
+              onClick={() => setScoreDialogOpen(false)}
+              disabled={savingScore}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="text-xs h-8 font-semibold"
+              onClick={handleScoreSave}
+              disabled={savingScore}
+            >
+              {savingScore ? "Saving..." : "Save Score"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Resolve Modal - Side panel on desktop, dialog on mobile */}
+      <ResolveModal
+        open={resolveModalOpen}
+        onOpenChange={setResolveModalOpen}
+        event={eventToResolve}
+        isResolving={isResolving}
+        selectedOutcomesByMarket={selectedOutcomesByMarket}
+        marketSearch={marketSearch}
+        onMarketSearchChange={setMarketSearch}
+        onOutcomeToggle={(marketId, outcomeId) => {
+          const newSelected = new Map(selectedOutcomesByMarket)
+          const marketOutcomes = newSelected.get(marketId) || new Set()
+
+          if (marketOutcomes.has(outcomeId)) {
+            marketOutcomes.delete(outcomeId)
+          } else {
+            marketOutcomes.add(outcomeId)
+          }
+
+          if (marketOutcomes.size === 0) {
+            newSelected.delete(marketId)
+          } else {
+            newSelected.set(marketId, marketOutcomes)
+          }
+
+          setSelectedOutcomesByMarket(newSelected)
+        }}
+        onResolve={handleResolveEvent}
+      />
+    </div>
+  )
+}
+
+// Resolve Modal Component
+interface ResolveModalProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  event: any | null
+  isResolving: boolean
+  selectedOutcomesByMarket: Map<string, Set<string>> // marketId -> Set of outcomeIds
+  marketSearch: string
+  onMarketSearchChange: (search: string) => void
+  onOutcomeToggle: (marketId: string, outcomeId: string) => void
+  onResolve: () => Promise<void>
+}
+
+function ResolveModal({
+  open,
+  onOpenChange,
+  event,
+  isResolving,
+  selectedOutcomesByMarket,
+  marketSearch,
+  onMarketSearchChange,
+  onOutcomeToggle,
+  onResolve,
+}: ResolveModalProps) {
+  const isMobile = useMediaQuery("(max-width: 768px)")
+
+  // Fetch markets and odds for the event
+  const markets = useQuery(
+    api.customEvents.listCustomMarkets,
+    event ? { eventId: event._id } : "skip"
+  )
+
+  const allOdds = useQuery(
+    api.customEvents.listCustomOddsByEvent,
+    event ? { eventId: event._id } : "skip"
+  )
+
+  // Group odds by market
+  const oddsByMarket = React.useMemo(() => {
+    const groups = new Map<string, any[]>()
+    if (allOdds) {
+      for (const odd of allOdds) {
+        const key = odd.marketId
+        const list = groups.get(key) ?? []
+        list.push(odd)
+        groups.set(key, list)
+      }
+      for (const list of groups.values()) {
+        list.sort((a, b) => a.priority - b.priority || a.outcomeName.localeCompare(b.outcomeName))
+      }
+    }
+    return groups
+  }, [allOdds])
+
+  // Filter and sort markets
+  const filteredMarkets = React.useMemo(() => {
+    if (!markets) return []
+    const query = marketSearch.trim().toLowerCase()
+    return markets
+      .filter((market: any) => {
+        if (!query) return true
+        return `${market.name} ${market.marketType}`.toLowerCase().includes(query)
+      })
+      .sort((a: any, b: any) => a.priority - b.priority || a.name.localeCompare(b.name))
+  }, [markets, marketSearch])
+
+  // Count total selected outcomes
+  const totalSelected = React.useMemo(() => {
+    return Array.from(selectedOutcomesByMarket.values()).reduce((sum, set) => sum + set.size, 0)
+  }, [selectedOutcomesByMarket])
+
+  const content = (
+    <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+      {/* Header */}
+      <div className="shrink-0 space-y-3 border-b border-border p-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-sm">Select Winning Outcomes</h3>
+          {totalSelected > 0 && (
+            <Badge className="text-[10px] font-bold bg-primary/10 text-primary border-primary/30">
+              {totalSelected} selected
+            </Badge>
+          )}
+        </div>
+        <div className="relative">
+          <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={marketSearch}
+            onChange={(e) => onMarketSearchChange(e.target.value)}
+            placeholder="Search markets..."
+            className="h-9 bg-muted/50 pl-8 text-xs focus-visible:ring-primary"
+          />
+        </div>
       </div>
 
-      {/* Pagination */}
-      {events && events.items && events.items.length > 0 && (
-        <Pagination
-          currentPage={pagination.currentPage}
-          pageSize={pagination.pageSize}
-          totalItems={events.totalCount || 0}
-          onPageChange={pagination.onPageChange}
-        />
-      )}
+      {/* Markets & Outcomes */}
+      <ScrollArea className="flex-1 min-h-0">
+        <div className="space-y-3 p-4">
+          {!markets && (
+            <div className="space-y-2">
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          )}
 
-      {/* Event Detail Modal */}
-      {isMobile ? (
-        <Drawer open={detailOpen} onOpenChange={setDetailOpen}>
-          <DrawerContent className="flex h-[90vh] flex-col overflow-hidden bg-card p-0">
-            <DrawerHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
-              <DrawerTitle className="truncate text-sm font-semibold">
-                {selectedEvent
-                  ? `${selectedEvent.homeTeam} vs ${selectedEvent.awayTeam}`
-                  : "Event Details"}
-              </DrawerTitle>
-              <p className="truncate text-xs text-muted-foreground">
-                {selectedEvent?.competition}
-              </p>
-            </DrawerHeader>
-            <div className="flex flex-1 flex-col overflow-hidden">
-              {selectedEvent && (
-                <CustomEventDetail
-                  eventId={selectedEvent._id}
-                  adminControls
-                  onBack={() => setDetailOpen(false)}
-                />
-              )}
+          {markets && filteredMarkets.length === 0 && (
+            <div className="text-center text-xs text-muted-foreground py-8">
+              No markets found
             </div>
-          </DrawerContent>
-        </Drawer>
-      ) : (
-        <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
-          <SheetContent
-            side="right"
-            className="flex h-dvh !w-[min(50vw,720px)] !max-w-none flex-col overflow-hidden bg-card p-0"
-          >
-            <SheetHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
-              <SheetTitle className="truncate text-sm font-semibold">
-                {selectedEvent
-                  ? `${selectedEvent.homeTeam} vs ${selectedEvent.awayTeam}`
-                  : "Event Details"}
-              </SheetTitle>
-              <p className="truncate text-xs text-muted-foreground">
-                {selectedEvent?.competition}
-              </p>
-            </SheetHeader>
-            <div className="flex flex-1 flex-col overflow-hidden">
-              {selectedEvent && (
-                <CustomEventDetail
-                  eventId={selectedEvent._id}
-                  adminControls
-                  onBack={() => setDetailOpen(false)}
-                />
-              )}
-            </div>
-          </SheetContent>
-        </Sheet>
-      )}
+          )}
+
+          {filteredMarkets.map((market: any) => {
+            const marketOutcomes = oddsByMarket.get(market._id) || []
+            const selectedInMarket = selectedOutcomesByMarket.get(market._id) || new Set()
+            const hasSelection = selectedInMarket.size > 0
+
+            return (
+              <section key={market._id} className="rounded-lg border border-border bg-card">
+                <div className={cn(
+                  "flex items-center justify-between gap-3 border-b border-border px-4 py-2.5 transition-colors",
+                  hasSelection && "bg-primary/5"
+                )}>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-xs font-semibold text-foreground truncate">
+                      {market.name}
+                    </h4>
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      {market.marketTypes?.join(", ") || market.marketType}
+                    </p>
+                  </div>
+                  {hasSelection && (
+                    <Badge className="shrink-0 text-[9px] font-bold bg-primary text-primary-foreground border-none">
+                      {selectedInMarket.size}
+                    </Badge>
+                  )}
+                </div>
+
+                {marketOutcomes.length === 0 && (
+                  <div className="px-4 py-3 text-center text-[10px] text-muted-foreground">
+                    No outcomes available
+                  </div>
+                )}
+
+                {marketOutcomes.length > 0 && (
+                  <div className={cn(
+                    "grid gap-2 p-3",
+                    marketOutcomes.length === 2 || marketOutcomes.length === 4 ? "grid-cols-2" : "grid-cols-3"
+                  )}>
+                    {marketOutcomes.map((outcome: any) => {
+                      const isSelected = selectedInMarket.has(outcome.outcomeId)
+                      return (
+                        <button
+                          key={outcome._id}
+                          onClick={() => onOutcomeToggle(market._id, outcome.outcomeId)}
+                          className={cn(
+                            "flex flex-col items-center justify-center gap-1 h-12 py-1 px-2 rounded-md border transition-all text-center min-w-0",
+                            isSelected
+                              ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                              : "bg-card border-border hover:border-muted-foreground/30 text-foreground"
+                          )}
+                        >
+                          <span className="truncate text-[9px] font-semibold leading-none">
+                            {outcome.outcomeName}
+                          </span>
+                          <span className="font-mono text-[10px] font-bold leading-none">
+                            {outcome.oddValue.toFixed(2)}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </section>
+            )
+          })}
+        </div>
+      </ScrollArea>
+
+      {/* Action Buttons */}
+      <div className="shrink-0 border-t border-border bg-muted/30 p-4 flex gap-2 justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-xs h-8 border-border"
+          onClick={() => onOpenChange(false)}
+          disabled={isResolving}
+        >
+          Cancel
+        </Button>
+        <Button
+          size="sm"
+          className="text-xs h-8 font-semibold"
+          onClick={onResolve}
+          disabled={isResolving || totalSelected === 0}
+        >
+          {isResolving ? "Resolving..." : `Resolve ${totalSelected > 0 ? `(${totalSelected})` : ""}`}
+        </Button>
+      </div>
     </div>
+  )
+
+  if (isMobile) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-md bg-card flex flex-col h-[85vh] p-0 gap-0">
+          <DialogHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
+            <DialogTitle className="text-sm font-semibold">
+              {event ? `Resolve: ${event.homeTeam} vs ${event.awayTeam}` : "Resolve Event"}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Select winning outcomes for each market
+            </DialogDescription>
+          </DialogHeader>
+          {content}
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        className="!w-[min(50vw,720px)] !max-w-none flex h-dvh flex-col overflow-hidden bg-card p-0"
+      >
+        <SheetHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
+          <SheetTitle className="truncate text-sm font-semibold">
+            {event ? `Resolve: ${event.homeTeam} vs ${event.awayTeam}` : "Resolve Event"}
+          </SheetTitle>
+          <p className="truncate text-xs text-muted-foreground">
+            Select winning outcomes for each market
+          </p>
+        </SheetHeader>
+        {content}
+      </SheetContent>
+    </Sheet>
   )
 }

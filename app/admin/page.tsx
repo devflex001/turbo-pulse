@@ -1,6 +1,8 @@
 "use client"
 
 import * as React from "react"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 import { useBetStore } from "@/hooks/use-bet-store"
 import { AdminLayout } from "@/components/admin-layout"
 import { Button } from "@/components/ui/button"
@@ -33,29 +35,14 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 
-// ─── Chart Data ───────────────────────────────────────────────────────────────
-
-const DEPOSIT_TREND_DATA = [
-  { day: "Fri, 12 Jun", amount: 10000 },
-  { day: "Sat, 13 Jun", amount: 7500 },
-  { day: "Sun, 14 Jun", amount: 11000 },
-  { day: "Mon, 15 Jun", amount: 5000 },
-  { day: "Tue, 16 Jun", amount: 1800 },
-]
-
-const USER_REG_DATA = [
-  { day: "1 Jun", count: 52 },
-  { day: "Fri, 12 Jun", count: 4 },
-  { day: "Sat, 13 Jun", count: 14 },
-  { day: "Sun, 14 Jun", count: 11 },
-  { day: "Mon, 15 Jun", count: 9 },
-  { day: "Tue, 16 Jun", count: 4 },
-]
-
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
   const { transactions, adminStats, updateAdminTransactionStatus } = useBetStore()
+
+  // Real analytics from Convex queries
+  const depositTrend = useQuery(api.bets.getDepositTrend, { daysBack: 7 })
+  const userRegistrationTrend = useQuery(api.bets.getUserRegistrationTrend, { daysBack: 7 })
 
   const [currentPage, setCurrentPage] = React.useState(1)
   const [currentTime, setCurrentTime] = React.useState("")
@@ -191,7 +178,7 @@ export default function AdminDashboard() {
                 className="h-full w-full"
               >
                 <AreaChart
-                  data={DEPOSIT_TREND_DATA}
+                  data={depositTrend || []}
                   margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -242,7 +229,7 @@ export default function AdminDashboard() {
                 className="h-full w-full"
               >
                 <BarChart
-                  data={USER_REG_DATA}
+                  data={userRegistrationTrend || []}
                   margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -440,11 +427,10 @@ export default function AdminDashboard() {
                   <Button
                     key={idx}
                     variant={currentPage === idx + 1 ? "default" : "outline"}
-                    className={`size-7 text-[10px] p-0 font-bold ${
-                      currentPage === idx + 1
-                        ? "bg-primary text-primary-foreground"
-                        : "border-border"
-                    }`}
+                    className={`size-7 text-[10px] p-0 font-bold ${currentPage === idx + 1
+                      ? "bg-primary text-primary-foreground"
+                      : "border-border"
+                      }`}
                     onClick={() => setCurrentPage(idx + 1)}
                   >
                     {idx + 1}

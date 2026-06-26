@@ -8,30 +8,49 @@ import { Id } from "@/convex/_generated/dataModel"
 import { AdminLayout } from "@/components/admin-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Save, Send, Trash2, EyeOff } from "lucide-react"
-import { SmallLoader } from "@/components/small-loader"
+import { ArrowLeft, Save, Eye, EyeOff, Trash2, CheckCircle } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "sonner"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { cn } from "@/lib/utils"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 export default function CustomEventDetailPage() {
   const router = useRouter()
   const params = useParams()
   const eventId = params.eventId as string
   const [isSaving, setIsSaving] = React.useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false)
+  const [resolutionDialogOpen, setResolutionDialogOpen] = React.useState(false)
+  const [selectedMarketId, setSelectedMarketId] = React.useState<string | null>(null)
+  const [selectedOutcomeIds, setSelectedOutcomeIds] = React.useState<Set<string>>(new Set())
+  const [isSettling, setIsSettling] = React.useState(false)
 
   const event = useQuery(api.customEvents.getCustomEvent, {
     eventId: eventId as Id<"customEvents">,
-  })
+  }) as any
 
   const markets = useQuery(api.customEvents.listCustomMarkets, {
     eventId: eventId as Id<"customEvents">,
-  })
+  }) as any
 
   const odds = useQuery(api.customEvents.listCustomOddsByEvent, {
     eventId: eventId as Id<"customEvents">,
-  })
+  }) as any
 
   const updateEvent = useMutation(api.customEvents.updateCustomEvent)
   const updateScore = useMutation(api.customEvents.updateCustomEventScore)
@@ -39,8 +58,10 @@ export default function CustomEventDetailPage() {
   const publishEvent = useMutation(api.customEvents.publishCustomEvent)
   const unpublishEvent = useMutation(api.customEvents.unpublishCustomEvent)
   const deleteEvent = useMutation(api.customEvents.deleteCustomEvent)
+  const settleEvent = useMutation(api.customEvents.settleCustomEvent)
+  const markAsFinished = useMutation(api.customEvents.markEventAsFinished)
 
-  // Form state for editing
+  // Form state
   const [formData, setFormData] = React.useState({
     title: "",
     homeTeam: "",
@@ -51,20 +72,26 @@ export default function CustomEventDetailPage() {
     homeScore: 0,
     awayScore: 0,
   })
-
-  // Odds editing state
   const [oddsEdits, setOddsEdits] = React.useState<Record<string, number>>({})
 
   // Initialize form when event loads
   React.useEffect(() => {
     if (event) {
+      const date = new Date(event.startTime)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, "0")
+      const day = String(date.getDate()).padStart(2, "0")
+      const hours = String(date.getHours()).padStart(2, "0")
+      const minutes = String(date.getMinutes()).padStart(2, "0")
+      const localDatetimeString = `${year}-${month}-${day}T${hours}:${minutes}`
+
       setFormData({
         title: event.title || "",
         homeTeam: event.homeTeam || "",
         awayTeam: event.awayTeam || "",
         sport: event.sport || "",
         competition: event.competition || "",
-        startTime: new Date(event.startTime).toISOString().slice(0, 16),
+        startTime: localDatetimeString,
         homeScore: event.homeScore || 0,
         awayScore: event.awayScore || 0,
       })
@@ -94,7 +121,6 @@ export default function CustomEventDetailPage() {
         return
       }
 
-      // Update basic info
       await updateEvent({
         eventId: eventId as Id<"customEvents">,
         title: formData.title,
@@ -105,7 +131,6 @@ export default function CustomEventDetailPage() {
         startTime: startTimeMs,
       })
 
-      // Update score if changed
       if (
         formData.homeScore !== (event?.homeScore || 0) ||
         formData.awayScore !== (event?.awayScore || 0)
@@ -117,7 +142,6 @@ export default function CustomEventDetailPage() {
         })
       }
 
-      // Update odds edits
       const oddEdits = Object.entries(oddsEdits)
       for (const [oddId, oddValue] of oddEdits) {
         await updateOdds({
@@ -137,36 +161,22 @@ export default function CustomEventDetailPage() {
     }
   }
 
-  const handlePublish = async () => {
-    if (!confirm("Publish this event? It will be visible to users.")) return
-
+  const togglePublish = async () => {
+    const isPublished = event?.status === "published"
     try {
-      await publishEvent({ eventId: eventId as Id<"customEvents"> })
-      toast.success("Event published successfully")
+      if (isPublished) {
+        await unpublishEvent({ eventId: eventId as Id<"customEvents"> })
+        toast.success("Event unpublished")
+      } else {
+        await publishEvent({ eventId: eventId as Id<"customEvents"> })
+        toast.success("Event published")
+      }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to publish")
-    }
-  }
-
-  const handleUnpublish = async () => {
-    if (
-      !confirm("Unpublish this event? It will no longer be visible to users.")
-    )
-      return
-
-    try {
-      await unpublishEvent({ eventId: eventId as Id<"customEvents"> })
-      toast.success("Event unpublished")
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to unpublish"
-      )
+      toast.error(error instanceof Error ? error.message : "Failed to update")
     }
   }
 
   const handleDelete = async () => {
-    if (!confirm("Delete this event? This cannot be undone.")) return
-
     try {
       await deleteEvent({ eventId: eventId as Id<"customEvents"> })
       toast.success("Event deleted")
@@ -176,256 +186,356 @@ export default function CustomEventDetailPage() {
     }
   }
 
+  const handleResolveEvent = async () => {
+    if (!selectedMarketId || selectedOutcomeIds.size === 0) {
+      toast.error("Please select a market and at least one winning outcome")
+      return
+    }
+
+    setIsSettling(true)
+    try {
+      // Build market outcomes array with all selected outcomes
+      const marketOutcomes = [{
+        marketId: selectedMarketId as Id<"customMarkets">,
+        winningOutcomeIds: Array.from(selectedOutcomeIds),
+      }]
+
+      await settleEvent({
+        eventId: eventId as Id<"customEvents">,
+        marketOutcomes,
+      })
+      toast.success("Event resolved and bets settled! Users have been notified.")
+      setResolutionDialogOpen(false)
+      setSelectedMarketId(null)
+      setSelectedOutcomeIds(new Set())
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to resolve event")
+    } finally {
+      setIsSettling(false)
+    }
+  }
+
   if (!event || !markets || !odds) {
     return (
       <AdminLayout>
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-6">
+          <div className="flex items-center justify-between">
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 gap-2"
+              className="h-8 w-8 p-0"
               onClick={handleBack}
             >
-              <ArrowLeft className="size-3.5" />
-              Back
+              <ArrowLeft className="size-4" />
             </Button>
           </div>
-          <SmallLoader />
+          <div className="space-y-3">
+            <Skeleton className="h-10 w-1/3" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-40 w-full" />
+          </div>
         </div>
       </AdminLayout>
     )
   }
 
-  // Group odds by market for easier display
   const oddsbyMarket = markets.reduce(
-    (acc, market) => {
-      acc[market._id] = odds.filter((o) => o.marketId === market._id)
+    (acc: any, market: any) => {
+      acc[market._id] = odds.filter((o: any) => o.marketId === market._id)
       return acc
     },
     {} as Record<string, any[]>
   )
 
+  // Check if match is finished from database eventStatus field
+  const isFinished = event?.eventStatus === "finished"
+  const isSettled = event?.winningOutcomeId ? true : false
+  const canResolve = isFinished && !isSettled && event?.status === "published"
+
   return (
-    <AdminLayout>
-      <div className="space-y-4">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+    <AdminLayout pageTitle="Edit Event">
+      <div className="flex flex-col gap-4 overflow-hidden">
+        {/* Compact Header */}
+        <div className="flex items-center justify-between gap-3 pb-3 border-b">
+          <div className="flex items-center gap-3 min-w-0">
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 gap-2"
+              className="h-8 w-8 p-0 shrink-0"
               onClick={handleBack}
             >
-              <ArrowLeft className="size-3.5" />
-              Back
+              <ArrowLeft className="size-4" />
             </Button>
-            <h1 className="text-lg font-bold">Edit Event</h1>
+            <div className="min-w-0">
+              <h1 className="text-base font-semibold truncate">{formData.homeTeam} vs {formData.awayTeam}</h1>
+              <p className="text-xs text-muted-foreground">{formData.title}</p>
+            </div>
+            {isSettled && (
+              <Badge className="ml-2 shrink-0 bg-green-100 text-green-800 hover:bg-green-100">
+                <CheckCircle className="size-3 mr-1" />
+                Settled
+              </Badge>
+            )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <Badge variant={event.status === "published" ? "default" : "secondary"}>
-              {event.status}
-            </Badge>
+          <div className="flex items-center gap-1.5 shrink-0">
+            {canResolve && event.status === "published" && (
+              <Button
+                size="sm"
+                variant="default"
+                className="h-8 px-2.5 gap-1.5 text-xs bg-blue-600 hover:bg-blue-700"
+                onClick={() => setResolutionDialogOpen(true)}
+              >
+                <CheckCircle className="size-3" />
+                <span className="hidden sm:inline">Resolve</span>
+              </Button>
+            )}
 
             {event.status === "published" ? (
               <Button
                 size="sm"
                 variant="outline"
-                className="h-8 gap-1.5 text-xs"
-                onClick={async () => {
-                  try {
-                    await unpublishEvent({
-                      eventId: eventId as Id<"customEvents">,
-                    })
-                    toast.success("Event unpublished")
-                  } catch (error) {
-                    toast.error(
-                      error instanceof Error
-                        ? error.message
-                        : "Failed to unpublish"
-                    )
-                  }
-                }}
+                className="h-8 px-2.5 gap-1.5 text-xs"
+                onClick={togglePublish}
               >
                 <EyeOff className="size-3" />
-                Unpublish
+                <span className="hidden sm:inline">Unpublish</span>
               </Button>
             ) : (
               <Button
                 size="sm"
-                className="h-8 gap-1.5 text-xs"
-                onClick={async () => {
-                  if (!confirm("Publish this event?")) return
-                  try {
-                    await publishEvent({
-                      eventId: eventId as Id<"customEvents">,
-                    })
-                    toast.success("Event published")
-                  } catch (error) {
-                    toast.error(
-                      error instanceof Error
-                        ? error.message
-                        : "Failed to publish"
-                    )
-                  }
-                }}
+                className="h-8 px-2.5 gap-1.5 text-xs"
+                onClick={togglePublish}
               >
-                <Send className="size-3" />
-                Publish
+                <Eye className="size-3" />
+                <span className="hidden sm:inline">Publish</span>
               </Button>
             )}
 
             {event.status === "draft" && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 gap-1.5 text-xs text-destructive hover:text-destructive"
-                onClick={async () => {
-                  if (!confirm("Delete this event?")) return
-                  try {
-                    await deleteEvent({
-                      eventId: eventId as Id<"customEvents">,
-                    })
-                    toast.success("Event deleted")
-                    handleBack()
-                  } catch (error) {
-                    toast.error(
-                      error instanceof Error ? error.message : "Failed to delete"
-                    )
-                  }
-                }}
-              >
-                <Trash2 className="size-3" />
-                Delete
-              </Button>
+              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 px-2.5 gap-1.5 text-xs text-destructive hover:text-destructive"
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="size-3" />
+                </Button>
+                <AlertDialogContent>
+                  <AlertDialogTitle>Delete Event</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. The event will be permanently deleted.
+                  </AlertDialogDescription>
+                  <div className="flex gap-2 justify-end">
+                    <AlertDialogCancel className="h-8">Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDelete}
+                      className="h-8 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </div>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
 
             <Button
               size="sm"
               onClick={handleSave}
               disabled={isSaving}
-              className="h-8 gap-1.5 text-xs"
+              className="h-8 px-2.5 gap-1.5 text-xs"
             >
               <Save className="size-3" />
-              {isSaving ? "Saving..." : "Save"}
+              {isSaving ? "..." : "Save"}
             </Button>
           </div>
         </div>
 
-        {/* Event Details - Organized Sections */}
-        <div className="space-y-6">
-          {/* Primary Info */}
-          <div className="space-y-3">
-            <h2 className="text-sm font-semibold">Event Information</h2>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        {/* Resolution Sheet - Side Modal on Desktop */}
+        <Sheet open={resolutionDialogOpen} onOpenChange={setResolutionDialogOpen}>
+          <SheetContent side="right" className="w-full sm:w-[500px] flex flex-col">
+            <SheetHeader>
+              <SheetTitle>Resolve Event</SheetTitle>
+              <SheetDescription>
+                Select the market and winning outcome. All related bets will be automatically settled and users will be notified.
+              </SheetDescription>
+            </SheetHeader>
+
+            <div className="flex-1 overflow-y-auto space-y-4 py-4">
+              {/* Market Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Select Market *</label>
+                <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto">
+                  {markets.map((market: any) => (
+                    <button
+                      key={market._id}
+                      onClick={() => {
+                        setSelectedMarketId(market._id as any)
+                        setSelectedOutcomeIds(new Set())
+                      }}
+                      className={cn(
+                        "p-3 rounded border text-sm text-left transition-colors",
+                        selectedMarketId === market._id
+                          ? "border-primary bg-primary/10"
+                          : "border-border hover:bg-muted"
+                      )}
+                    >
+                      <p className="font-medium">{market.name}</p>
+                      <p className="text-xs text-muted-foreground">{market.marketType}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Outcome Selection */}
+              {selectedMarketId && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Select Winning Outcome(s) *</label>
+                  <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto">
+                    {(oddsbyMarket[selectedMarketId] || []).map((odd: any) => (
+                      <button
+                        key={odd._id}
+                        onClick={() => {
+                          const newSet = new Set(selectedOutcomeIds)
+                          if (newSet.has(odd.outcomeId)) {
+                            newSet.delete(odd.outcomeId)
+                          } else {
+                            newSet.add(odd.outcomeId)
+                          }
+                          setSelectedOutcomeIds(newSet)
+                        }}
+                        className={cn(
+                          "p-3 rounded border text-sm text-left transition-colors",
+                          selectedOutcomeIds.has(odd.outcomeId)
+                            ? "border-primary bg-primary/10"
+                            : "border-border hover:bg-muted"
+                        )}
+                      >
+                        <p className="font-medium">{odd.outcomeName}</p>
+                        <p className="text-xs text-muted-foreground">Odds: {odd.oddValue}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 justify-end border-t pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setResolutionDialogOpen(false)}
+                className="h-9"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleResolveEvent}
+                disabled={!selectedMarketId || selectedOutcomeIds.size === 0 || isSettling}
+                className="h-9"
+              >
+                {isSettling ? "Resolving..." : "Resolve Event"}
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        {/* Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto pr-4 space-y-4">
+          {/* Event Basics - 3 Columns */}
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Basic Info</p>
+            <div className="grid gap-3 grid-cols-3">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Title
-                </label>
+                <label className="text-xs font-medium">Title *</label>
                 <Input
                   placeholder="Event title"
                   value={formData.title}
                   onChange={(e) =>
                     setFormData({ ...formData, title: e.target.value })
                   }
-                  className="h-8 text-sm"
+                  className="h-8 text-xs"
+                  disabled={isSettled}
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Start Time
-                </label>
+                <label className="text-xs font-medium">Start Time *</label>
                 <Input
                   type="datetime-local"
                   value={formData.startTime}
                   onChange={(e) =>
                     setFormData({ ...formData, startTime: e.target.value })
                   }
-                  className="h-8 text-sm"
+                  className="h-8 text-xs"
+                  disabled={isSettled}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium">Sport</label>
+                <Input
+                  placeholder="e.g. football"
+                  value={formData.sport}
+                  onChange={(e) =>
+                    setFormData({ ...formData, sport: e.target.value })
+                  }
+                  className="h-8 text-xs"
+                  disabled={isSettled}
                 />
               </div>
             </div>
-          </div>
 
-          {/* Teams Info */}
-          <div className="space-y-3">
-            <h2 className="text-sm font-semibold">Teams</h2>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {/* Teams - 2 Columns */}
+            <div className="grid gap-3 grid-cols-2 pt-2">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Home Team
-                </label>
+                <label className="text-xs font-medium">Home Team *</label>
                 <Input
                   placeholder="Home team"
                   value={formData.homeTeam}
                   onChange={(e) =>
                     setFormData({ ...formData, homeTeam: e.target.value })
                   }
-                  className="h-8 text-sm"
+                  className="h-8 text-xs"
+                  disabled={isSettled}
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Away Team
-                </label>
+                <label className="text-xs font-medium">Away Team *</label>
                 <Input
                   placeholder="Away team"
                   value={formData.awayTeam}
                   onChange={(e) =>
                     setFormData({ ...formData, awayTeam: e.target.value })
                   }
-                  className="h-8 text-sm"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Sport & Competition */}
-          <div className="space-y-3">
-            <h2 className="text-sm font-semibold">Category</h2>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Sport
-                </label>
-                <Input
-                  placeholder="Sport"
-                  value={formData.sport}
-                  onChange={(e) =>
-                    setFormData({ ...formData, sport: e.target.value })
-                  }
-                  className="h-8 text-sm"
+                  className="h-8 text-xs"
+                  disabled={isSettled}
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Competition
-                </label>
+                <label className="text-xs font-medium">Competition</label>
                 <Input
-                  placeholder="Competition"
+                  placeholder="e.g. Premier League"
                   value={formData.competition}
                   onChange={(e) =>
                     setFormData({ ...formData, competition: e.target.value })
                   }
-                  className="h-8 text-sm"
+                  className="h-8 text-xs"
+                  disabled={isSettled}
                 />
               </div>
             </div>
           </div>
 
-          {/* Scores */}
-          <div className="space-y-3">
-            <h2 className="text-sm font-semibold">Score</h2>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {/* Score - 2 Compact Columns */}
+          <div className="space-y-2 border-t pt-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Score</p>
+            <div className="grid gap-3 grid-cols-2">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Home Score
-                </label>
+                <label className="text-xs font-medium">{formData.homeTeam} Score</label>
                 <Input
                   type="number"
                   min={0}
@@ -436,14 +546,13 @@ export default function CustomEventDetailPage() {
                       homeScore: parseInt(e.target.value) || 0,
                     })
                   }
-                  className="h-8 text-sm text-center"
+                  className="h-8 text-center text-lg font-bold text-primary"
+                  disabled={isSettled}
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Away Score
-                </label>
+                <label className="text-xs font-medium">{formData.awayTeam} Score</label>
                 <Input
                   type="number"
                   min={0}
@@ -454,74 +563,100 @@ export default function CustomEventDetailPage() {
                       awayScore: parseInt(e.target.value) || 0,
                     })
                   }
-                  className="h-8 text-sm text-center"
+                  className="h-8 text-center text-lg font-bold text-primary"
+                  disabled={isSettled}
                 />
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Markets and Odds */}
-        <div className="space-y-3">
-          <h2 className="text-sm font-semibold">Markets & Odds</h2>
-          <div className="border rounded-lg bg-card overflow-hidden">
-            <div className="space-y-0">
-              {markets.map((market) => {
-                const marketOdds = oddsbyMarket[market._id] || []
+          {/* Settlement Info */}
+          {isSettled && event.winningOutcomeId && (
+            <div className="space-y-2 border-t pt-3 p-3 bg-green-50 rounded border-green-200">
+              <p className="text-xs font-semibold text-green-900">Event Settled</p>
+              <div className="space-y-1 text-xs">
+                <p><span className="text-green-700 font-medium">Settled at:</span> {new Date(event.settledAt || 0).toLocaleString()}</p>
+                <p><span className="text-green-700 font-medium">Winning Outcome:</span> {event.winningOutcomeId}</p>
+              </div>
+            </div>
+          )}
 
-                return (
-                  <div key={market._id} className="border-b last:border-b-0">
-                    <div className="bg-muted/50 px-3 py-2 border-b">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-semibold">{market.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {market.marketType}
-                          </p>
-                        </div>
+          {/* Markets and Odds - Compact Grid */}
+          {markets.length > 0 && (
+            <div className="space-y-2 border-t pt-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Markets & Odds ({markets.length})
+              </p>
+              <div className="space-y-2">
+                {markets.map((market: any) => {
+                  const marketOdds = oddsbyMarket[market._id] || []
+                  if (marketOdds.length === 0) return null
+
+                  const isWinningMarket = market._id === event.winningMarketId
+
+                  return (
+                    <div
+                      key={market._id}
+                      className={cn(
+                        "space-y-1.5 rounded border p-2.5",
+                        isWinningMarket
+                          ? "bg-green-50 border-green-200"
+                          : "bg-muted/30 border-border"
+                      )}
+                    >
+                      <p className="text-xs font-semibold text-foreground">{market.name}</p>
+                      <div className={cn(
+                        "grid gap-1.5",
+                        marketOdds.length <= 3 ? "grid-cols-3" : "grid-cols-2"
+                      )}>
+                        {marketOdds.map((odd: any) => {
+                          const isWinningOutcome = isWinningMarket && odd.outcomeId === event.winningOutcomeId
+
+                          return (
+                            <div
+                              key={odd._id}
+                              className={cn(
+                                "flex items-center gap-1.5 rounded p-1.5 border",
+                                isWinningOutcome
+                                  ? "bg-green-100 border-green-400"
+                                  : "bg-background border-border"
+                              )}
+                            >
+                              <label className="text-xs font-medium flex-1 min-w-0 truncate">
+                                {odd.outcomeName}
+                                {isWinningOutcome && (
+                                  <CheckCircle className="size-3 inline ml-1 text-green-600" />
+                                )}
+                              </label>
+                              <Input
+                                type="number"
+                                step={0.01}
+                                min={1}
+                                value={
+                                  oddsEdits[odd._id as any] ?? odd.oddValue
+                                }
+                                onChange={(e) => {
+                                  const val = parseFloat(e.target.value)
+                                  if (!isNaN(val)) {
+                                    setOddsEdits({
+                                      ...oddsEdits,
+                                      [odd._id]: val,
+                                    })
+                                  }
+                                }}
+                                className="h-7 text-xs text-right w-16 font-bold p-1"
+                                disabled={isSettled}
+                              />
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
-                    {marketOdds.length === 0 ? (
-                      <div className="px-3 py-2 text-xs text-muted-foreground">
-                        No odds available
-                      </div>
-                    ) : (
-                      <div className="space-y-2 p-3">
-                        {marketOdds.map((odd) => (
-                          <div
-                            key={odd._id}
-                            className="flex items-center justify-between gap-2"
-                          >
-                            <label className="text-xs font-medium min-w-fit">
-                              {odd.outcomeName}
-                            </label>
-                            <Input
-                              type="number"
-                              step={0.01}
-                              min={1}
-                              value={
-                                oddsEdits[odd._id as any] ?? odd.oddValue
-                              }
-                              onChange={(e) => {
-                                const val = parseFloat(e.target.value)
-                                if (!isNaN(val)) {
-                                  setOddsEdits({
-                                    ...oddsEdits,
-                                    [odd._id]: val,
-                                  })
-                                }
-                              }}
-                              className="h-7 text-xs text-right w-20"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </AdminLayout>

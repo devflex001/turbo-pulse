@@ -4,12 +4,12 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import {
-  createAuthToken,
-  storeAuthToken,
-  removeAuthToken,
+  storeSessionToken,
+  removeSessionToken,
   storeUserData,
+  getSessionToken,
   getUserData,
-} from "./jwt";
+} from "./session";
 import { Id } from "@/convex/_generated/dataModel";
 
 interface User {
@@ -18,6 +18,7 @@ interface User {
   role: "user" | "admin";
   createdAt: number;
   updatedAt?: number;
+  referredBy?: Id<"users"> | null;
 }
 
 interface AuthContextType {
@@ -26,7 +27,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isAdmin: boolean;
   login: (phone: string, password: string) => Promise<"user" | "admin" | undefined>;
-  register: (phone: string, password: string) => Promise<"user" | "admin" | undefined>;
+  register: (phone: string, password: string, referralCode?: string) => Promise<"user" | "admin" | undefined>;
   logout: () => void;
 }
 
@@ -35,30 +36,79 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [sessionTokenChecked, setSessionTokenChecked] = useState(false);
 
   // Convex mutations
   const loginMutation = useMutation(api.auth.login.loginUser);
   const registerMutation = useMutation(api.auth.register.registerUser);
+  const logoutMutation = useMutation(api.auth.sessions.deleteSession);
 
-  // Get current user from Convex (using session)
-  const currentUser = useQuery(api.auth.user.getCurrentUser);
-
-  // Initialize user state from localStorage or Convex session
+  // Get session token on mount (only once)
   useEffect(() => {
-    if (currentUser !== undefined) {
-      setUser(currentUser);
-      setIsLoading(false);
-    } else {
-      // Check localStorage as fallback
-      const storedUserData = getUserData();
-      if (storedUserData) {
-        // Will be validated by Convex session
-        setIsLoading(false);
-      } else {
-        setIsLoading(false);
+    const token = getSessionToken()
+    const userData = getUserData()
+    setSessionToken(token)
+    setSessionTokenChecked(true)
+
+    // Debug log
+    if (typeof window !== 'undefined') {
+      console.log('[AuthContext] Session token on mount:', token ? 'exists' : 'missing')
+      console.log('[AuthContext] User data on mount:', userData ? 'exists' : 'missing')
+      console.log('[AuthContext] Session storage keys:', Object.keys(localStorage))
+
+      // TEMPORARY FIX: If we have user data in localStorage but getCurrentUser fails,
+      // we can use the localStorage data as a fallback
+      if (userData && !token) {
+        console.log('[AuthContext] WARNING: Found user data without token, clearing invalid data')
+        removeSessionToken()
       }
     }
-  }, [currentUser]);
+  }, []);
+
+  // Get current user from Convex using session token
+  const currentUser = useQuery(
+    api.auth.user.getCurrentUser,
+    sessionTokenChecked && sessionToken && sessionToken.length > 0 ? { sessionToken } : "skip"
+  );
+
+  // Update user state when Convex query resolves or when session token changes
+  useEffect(() => {
+    // Wait until we've checked for session token
+    if (!sessionTokenChecked) {
+      return;
+    }
+
+    // If no session token, auth is done loading (user is not logged in)
+    if (!sessionToken || sessionToken.length === 0) {
+      console.log('[AuthContext] No session token found, user not logged in');
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
+
+    console.log('[AuthContext] Session token found, querying getCurrentUser...');
+
+    // If we have a session token, wait for the query to resolve
+    if (currentUser !== undefined) {
+      console.log('[AuthContext] getCurrentUser resolved:', currentUser ? 'user found' : 'no user');
+      if (currentUser) {
+        console.log('[AuthContext] User details:', { id: currentUser._id, phone: currentUser.phone });
+      }
+      setUser(currentUser);
+      setIsLoading(false);
+
+      // If session is invalid, clear local storage
+      if (currentUser === null && sessionToken) {
+        console.log('[AuthContext] Session invalid, clearing token');
+        removeSessionToken();
+        setSessionToken(null);
+      }
+    } else {
+      // Query is still loading
+      console.log('[AuthContext] getCurrentUser query loading...');
+    }
+  }, [currentUser, sessionToken, sessionTokenChecked]);
 
   const login = async (phone: string, password: string) => {
     try {
@@ -68,18 +118,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const result = await loginMutation({ phone, password });
 
       if (result.success) {
-        // Create JWT token for Convex Auth session
-        const token = await createAuthToken(result.userId, result.role);
-
-        // Store token and user data
-        storeAuthToken(token);
+        // Store session token
+        storeSessionToken(result.sessionToken);
         storeUserData({
           userId: result.userId,
           phone: result.phone,
           role: result.role,
         });
 
-        // Set user immediately to prevent flicker
+        // Update local state
+        setSessionToken(result.sessionToken);
         setUser({
           _id: result.userId,
           phone: result.phone,
@@ -98,12 +146,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (phone: string, password: string) => {
+  const register = async (phone: string, password: string, referralCode?: string) => {
     try {
       setIsLoading(true);
 
-      // Call Convex register mutation
-      const result = await registerMutation({ phone, password });
+      // Call Convex register mutation with optional referral code
+      const result = await registerMutation({
+        phone,
+        password,
+        referralCode,
+      });
 
       if (result.success) {
         // Auto-login after registration
@@ -115,13 +167,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = () => {
-    // Remove auth token and user data
-    removeAuthToken();
-    setUser(null);
+  const logout = async () => {
+    try {
+      // Delete session from database
+      if (sessionToken) {
+        await logoutMutation({ sessionToken });
+      }
+    } catch (error) {
+      console.error("Error logging out:", error);
+    } finally {
+      // Remove session token and user data
+      removeSessionToken();
+      setSessionToken(null);
+      setUser(null);
 
-    // Redirect to login page
-    window.location.href = "/login";
+      // Redirect to home page
+      if (typeof window !== "undefined") {
+        window.location.href = "/";
+      }
+    }
   };
 
   const value: AuthContextType = {

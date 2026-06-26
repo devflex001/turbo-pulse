@@ -2,9 +2,11 @@
 
 import * as React from "react"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useBetStore } from "@/hooks/use-bet-store"
+import { useVisitorTracking } from "@/hooks/use-visitor-tracking"
 import { Header } from "@/components/header"
 import { Sidebar } from "@/components/sidebar"
 import { MatchCard } from "@/components/match-card"
@@ -13,8 +15,11 @@ import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { SmallLoader } from "@/components/small-loader"
-import { cn } from "@/lib/utils" 
+import { Skeleton } from "@/components/ui/skeleton"
+import { RegisterModal } from "@/components/modals"
+import { ReferralSignupModal } from "@/components/referral-signup-modal"
+import { useAuth } from "@/lib/auth/AuthContext"
+import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import {
   Flame,
@@ -34,84 +39,59 @@ import { PublishedCustomEventsSection } from "@/components/published-custom-even
 
 const SLIDES = [
   {
-    id: "promo1",
-    title: "Matchday Specials",
-    subtitle: "Bet on today's top fixtures and win big!",
-    cta: "Win Today",
-    image: "/images/p1.jfif",
-    imageAlt: "Sports betting action",
+    id: "banner1",
+    image: "/images/banner-1.png",
+    imageAlt: "Banner 1",
+    title: "Live Matches",
+    subtitle: "Catch all the action right now",
   },
   {
-    id: "promo2",
-    title: "Live Action",
-    subtitle: "Catch the best live odds and boost your payouts.",
-    cta: "Bet Live Now",
-    image: "/images/p2.jfif",
-    imageAlt: "Live sports betting",
+    id: "banner2",
+    image: "/images/banner-2.png",
+    imageAlt: "Banner 2",
+    title: "Exclusive Odds",
+    subtitle: "Maximize your returns today",
+    showButton: true,
+    buttonText: "Explore",
+    buttonAction: "home",
   },
   {
-    id: "promo3",
-    title: "Premium Markets",
-    subtitle: "Unlock exclusive odds and maximize your returns.",
-    cta: "Explore Markets",
-    image: "/images/p3.jfif",
-    imageAlt: "Premium sports markets",
+    id: "banner3",
+    image: "/images/banner-3.png",
+    imageAlt: "Banner 3",
+    title: "Weekend Specials",
+    subtitle: "Premium markets for you",
   },
   {
-    id: "promo4",
-    title: "Weekend Accumulators",
-    subtitle: "Build your ultimate betslip for massive rewards.",
-    cta: "Build a Slip",
-    image: "/images/p4.jfif",
-    imageAlt: "Accumulator betting",
-  },
-  {
-    id: "promo5",
+    id: "banner4",
+    image: "/images/banner-4.png",
+    imageAlt: "Banner 4",
     title: "In-Play Betting",
-    subtitle: "React to the action and bet minute-by-minute.",
-    cta: "View In-Play",
-    image: "/images/p5.jfif",
-    imageAlt: "In-play betting action",
+    subtitle: "React to every moment",
+    showButton: true,
+    buttonText: "Bet Now",
+    buttonAction: "live",
   },
   {
-    id: "promo6",
+    id: "banner5",
+    image: "/images/banner-5.png",
+    imageAlt: "Banner 5",
+    title: "Accumulator Bets",
+    subtitle: "Build your ultimate slip",
+  },
+  {
+    id: "banner6",
+    image: "/images/banner-6.png",
+    imageAlt: "Banner 6",
     title: "Early Payouts",
-    subtitle: "Cash out your winnings early before the final whistle.",
-    cta: "Learn More",
-    image: "/images/p6.jfif",
-    imageAlt: "Early payout options",
+    subtitle: "Cash out before the final whistle",
   },
   {
-    id: "promo7",
+    id: "banner7",
+    image: "/images/banner-7.png",
+    imageAlt: "Banner 7",
     title: "Boosted Odds",
-    subtitle: "Get maximum value with daily super-boosted markets.",
-    cta: "See Boosts",
-    image: "/images/p7.jfif",
-    imageAlt: "Boosted sports odds",
-  },
-  {
-    id: "promo8",
-    title: "Esports Arena",
-    subtitle: "Back your favorite teams in top tier esports tournaments.",
-    cta: "Bet Esports",
-    image: "/images/p8.jfif",
-    imageAlt: "Esports betting",
-  },
-  {
-    id: "promo9",
-    title: "Virtual Sports",
-    subtitle: "24/7 action with our high-definition virtual leagues.",
-    cta: "Play Virtuals",
-    image: "/images/p9.jfif",
-    imageAlt: "Virtual sports betting",
-  },
-  {
-    id: "promo10",
-    title: "VIP Rewards",
-    subtitle: "Join the VIP club for exclusive bonuses and cashback.",
-    cta: "Claim Bonus",
-    image: "/images/p10.jfif",
-    imageAlt: "VIP rewards and bonuses",
+    subtitle: "Daily super-boosted markets",
   },
 ]
 
@@ -136,6 +116,8 @@ function getSportIcon(slug: string) {
 }
 
 export default function Page() {
+  const router = useRouter()
+  const { user, isLoading: authLoading } = useAuth()
   const {
     activeTab,
     setActiveTab,
@@ -145,6 +127,30 @@ export default function Page() {
     selectedLeague,
     setSelectedLeague,
   } = useBetStore()
+
+  // Track visitor on page load
+  useVisitorTracking()
+
+  // State for signup modal triggered by referral link
+  const [showSignupFromReferral, setShowSignupFromReferral] = React.useState(false)
+  const [forceShowModal, setForceShowModal] = React.useState(false) // Debug: force show modal
+
+  // Check for referral code on mount and open signup modal
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search)
+      const ref = searchParams.get("ref")
+
+      console.log('[Referral] URL ref param:', ref)
+      console.log('[Referral] User logged in:', !!user)
+      console.log('[Referral] Auth loading:', authLoading)
+
+      if (ref && !user && !authLoading) {
+        console.log('[Referral] Opening signup modal with ref:', ref)
+        setShowSignupFromReferral(true)
+      }
+    }
+  }, [user, authLoading])
 
   const matchStatus =
     activeTab === "live" ? "live" : activeTab === "home" || activeTab === "featured" ? "upcoming" : undefined
@@ -190,8 +196,8 @@ export default function Page() {
       return matches
     }
 
-    if (matches && typeof matches === "object" && Array.isArray((matches as { page?: unknown }).page)) {
-      return (matches as { page: (SportsMatch & { firstMarket?: any })[] }).page
+    if (matches && typeof matches === "object" && Array.isArray((matches as { items?: unknown }).items)) {
+      return (matches as { items: (SportsMatch & { firstMarket?: any })[] }).items
     }
 
     return []
@@ -202,8 +208,8 @@ export default function Page() {
       return allMatches
     }
 
-    if (allMatches && typeof allMatches === "object" && Array.isArray((allMatches as { page?: unknown }).page)) {
-      return (allMatches as { page: SportsMatch[] }).page
+    if (allMatches && typeof allMatches === "object" && Array.isArray((allMatches as { items?: unknown }).items)) {
+      return (allMatches as { items: SportsMatch[] }).items
     }
 
     return []
@@ -211,7 +217,7 @@ export default function Page() {
 
   const featuredMatches = displayedMatches.slice(0, 4)
   const upcomingMatches = activeTab === "featured" ? featuredMatches : displayedMatches
-  
+
   const sportOptions = React.useMemo(() => {
     const counts = new Map<string, number>()
 
@@ -249,365 +255,435 @@ export default function Page() {
   const liveCount = displayedMatches.filter((match) => match.isLive).length
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background">
-      <Header />
+    <>
+      <div className="flex flex-col h-screen overflow-hidden bg-background">
+        <Header />
 
-      <div className="flex-1 flex max-w-[1400px] w-full mx-auto overflow-hidden">
-        <Sidebar className="hidden lg:flex w-60 shrink-0 h-full" />
+        <div className="flex flex-1 overflow-hidden">
+          <Sidebar className="hidden lg:flex w-60 shrink-0 overflow-y-auto border-r border-border" />
 
-        <main className="flex-1 min-w-0 p-4 sm:p-6 overflow-y-auto h-full flex flex-col gap-6 scrollbar-thin">
-          {(activeTab === "home" || activeTab === "live" || activeTab === "featured") && (
-            
-            <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-2 border-b border-border scrollbar-none shrink-0">
-              
-              <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    "h-9 px-4 rounded-md text-sm font-semibold shrink-0 gap-2 border transition-all",
-                    activeTab === "home"
-                      ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
-                      : "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
-                  )}
-                  onClick={() => { setActiveTab("home"); setSelectedSport("all"); setSelectedLeague("All Leagues"); }}
-                >
-                  <Home className="size-4" />
-                  Home
-                </Button>
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-6 scrollbar-thin">
+            {((activeTab === "home" || activeTab === "live" || activeTab === "featured" || activeTab === "how-it-works" || activeTab === "faqs" || activeTab === "contact" || activeTab === "custom" || activeTab === "mybets") || !activeTab) && (
 
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    "h-9 px-4 rounded-md text-sm font-semibold shrink-0 gap-2 border transition-all",
-                    activeTab === "live"
-                      ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
-                      : "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
-                  )}
-                  onClick={() => { setActiveTab("live"); setSelectedLeague("All Leagues"); }}
-                >
-                  <PlayCircle className="size-4" />
-                  Live
-                  <span className="size-1.5 rounded-full bg-red-500 animate-pulse ml-0.5" />
-                </Button>
+              <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-2 border-b border-border scrollbar-none shrink-0">
 
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    "h-9 px-4 rounded-md text-sm font-semibold shrink-0 gap-2 border transition-all",
-                    activeTab === "featured"
-                      ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
-                      : "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
-                  )}
-                  onClick={() => { setActiveTab("featured"); setSelectedSport("all"); setSelectedLeague("All Leagues"); }}
-                >
-                  <Flame className="size-4" />
-                  Featured
-                </Button>
-              </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "h-9 px-4 rounded-md text-sm font-semibold shrink-0 gap-2 border transition-all",
+                      activeTab === "home"
+                        ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
+                        : "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
+                    )}
+                    onClick={() => { setActiveTab("home"); setSelectedSport("all"); setSelectedLeague("All Leagues"); }}
+                  >
+                    <Home className="size-4" />
+                    Home
+                  </Button>
 
-              <div className="w-px h-6 bg-border mx-1 shrink-0" />
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "h-9 px-4 rounded-md text-sm font-semibold shrink-0 gap-2 border transition-all",
+                      "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
+                    )}
+                    onClick={() => { router.push("/live") }}
+                  >
+                    <PlayCircle className="size-4" />
+                    Live
+                    <span className="size-1.5 rounded-full bg-red-500 animate-pulse ml-0.5" />
+                  </Button>
 
-              <div className="flex items-center gap-2 shrink-0">
-                {!allMatches ? (
-                  <>
-                    <div className="h-9 w-24 rounded-md bg-muted animate-pulse shrink-0" />
-                    <div className="h-9 w-24 rounded-md bg-muted animate-pulse shrink-0" />
-                  </>
-                ) : (
-                  sportOptions.map((sport) => {
-                    const SportIcon = getSportIcon(sport.id)
-                    const isActive = selectedSport === sport.id && activeTab !== "live" && activeTab !== "featured"
-                    return (
-                      <Button
-                        key={sport.id}
-                        variant="ghost"
-                        className={cn(
-                          "h-9 px-4 rounded-md text-sm font-semibold shrink-0 gap-2 border transition-all",
-                          isActive
-                            ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
-                            : "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
-                        )}
-                        onClick={() => {
-                          setSelectedSport(sport.id)
-                          setSelectedLeague("All Leagues")
-                          setActiveTab("home")
-                        }}
-                      >
-                        <SportIcon className="size-4" />
-                        <span>{sport.label}</span>
-                        <span className={cn(
-                          "rounded-full px-1.5 py-0.5 text-[10px] font-bold ml-1 transition-colors",
-                          isActive ? "bg-[#4b9f71]/20 text-[#4b9f71]" : "bg-muted text-muted-foreground"
-                        )}>
-                          {sport.count}
-                        </span>
-                      </Button>
-                    )
-                  })
-                )}
-              </div>
-
-              <div className="w-px h-6 bg-border mx-1 shrink-0" />
-
-              <div className="flex items-center gap-2 shrink-0">
-                {!leagues ? (
-                  <>
-                    <div className="h-9 w-24 rounded-md bg-muted animate-pulse shrink-0" />
-                    <div className="h-9 w-24 rounded-md bg-muted animate-pulse shrink-0" />
-                  </>
-                ) : (
-                  (leagues ?? ["All Leagues"]).map((league) => {
-                    const isActive = selectedLeague === league
-                    return (
-                      <Button
-                        key={league}
-                        variant="ghost"
-                        className={cn(
-                          "h-9 px-4 rounded-md text-sm font-medium shrink-0 transition-all border",
-                          isActive
-                            ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
-                            : "bg-transparent text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
-                        )}
-                        onClick={() => setSelectedLeague(league)}
-                      >
-                        {league}
-                      </Button>
-                    )
-                  })
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === "home" && (
-            <>
-              <PublishedCustomEventsSection />
-
-              {matches !== undefined && (
-                <div className="relative overflow-hidden rounded-lg border border-border bg-card w-full min-h-[220px] sm:h-[280px] lg:h-[320px] flex">
-                  <img
-                    key={SLIDES[slideIndex].id}
-                    src={SLIDES[slideIndex].image}
-                    alt={SLIDES[slideIndex].imageAlt}
-                    className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500"
-                  />
-                  
-                  {/* Dynamic gradient that darkens appropriately on mobile to protect the stacked text */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/80 sm:via-background/60 to-transparent" aria-hidden="true" />
-
-                  {/* Fully responsive flex container */}
-                  <div className="relative z-10 flex w-full flex-col sm:flex-row justify-center sm:justify-between items-start sm:items-center p-5 sm:p-10 gap-3 sm:gap-6">
-                    
-                    {/* Left Side: Text */}
-                    <div className="w-full sm:max-w-[60%] lg:max-w-[50%] space-y-2 select-none">
-                      <Badge className="bg-[#4b9f71]/15 border-[#4b9f71]/40 text-[#4b9f71] font-bold tracking-wider text-[10px] uppercase px-2 py-0.5">
-                        {SLIDES[slideIndex].title}
-                      </Badge>
-                      <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white leading-snug sm:leading-tight tracking-tight shadow-sm drop-shadow-md">
-                        {SLIDES[slideIndex].subtitle}
-                      </h2>
-                    </div>
-
-                    {/* Right Side (Tablet/Desktop) or Bottom Left (Mobile): Button */}
-                    <div className="shrink-0 pt-2 sm:pt-0 sm:pr-8">
-                      <Button
-                        size="sm"
-                        className="h-9 sm:h-10 text-xs sm:text-sm px-5 sm:px-6 font-bold bg-[#4b9f71] text-white hover:bg-[#3e865f] border-none shadow-md transition-transform hover:scale-105"
-                        onClick={() => setActiveTab(slideIndex === 2 ? "featured" : "home")}
-                      >
-                        {SLIDES[slideIndex].cta}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Slider Navigation Dots - slimmed down for mobile so 10 fit neatly */}
-                  <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-6 z-10 flex justify-end items-center gap-1 sm:gap-1.5">
-                    {SLIDES.map((slide, index) => (
-                      <span
-                        key={slide.id}
-                        onClick={() => setSlideIndex(index)}
-                        className={`h-1 sm:h-1.5 rounded-full cursor-pointer transition-all ${
-                          index === slideIndex ? "w-4 sm:w-5 bg-[#4b9f71]" : "w-1.5 sm:w-1.5 bg-white/50 hover:bg-white/80"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-                    <PlayCircle className="size-4 text-muted-foreground" />
-                    <span>Upcoming Matches & Fixtures</span>
-                  </h3>
-                  <Badge variant="outline" className="font-semibold text-[10px] text-muted-foreground bg-muted/20 border-border">
-                    Fixtures {upcomingMatches.length}
-                  </Badge>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "h-9 px-4 rounded-md text-sm font-semibold shrink-0 gap-2 border transition-all",
+                      activeTab === "featured"
+                        ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
+                        : "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
+                    )}
+                    onClick={() => { setActiveTab("featured"); setSelectedSport("all"); setSelectedLeague("All Leagues"); }}
+                  >
+                    <Flame className="size-4" />
+                    Featured
+                  </Button>
                 </div>
 
+                <div className="w-px h-6 bg-border mx-1 shrink-0" />
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {!allMatches ? (
+                    <>
+                      <div className="h-9 w-24 rounded-md bg-muted animate-pulse shrink-0" />
+                      <div className="h-9 w-24 rounded-md bg-muted animate-pulse shrink-0" />
+                    </>
+                  ) : (
+                    sportOptions.map((sport) => {
+                      const SportIcon = getSportIcon(sport.id)
+                      const isActive = selectedSport === sport.id && activeTab !== "live" && activeTab !== "featured"
+                      return (
+                        <Button
+                          key={sport.id}
+                          variant="ghost"
+                          className={cn(
+                            "h-9 px-4 rounded-md text-sm font-semibold shrink-0 gap-2 border transition-all",
+                            isActive
+                              ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
+                              : "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
+                          )}
+                          onClick={() => {
+                            setSelectedSport(sport.id)
+                            setSelectedLeague("All Leagues")
+                            setActiveTab("home")
+                          }}
+                        >
+                          <SportIcon className="size-4" />
+                          <span>{sport.label}</span>
+                          <span className={cn(
+                            "rounded-full px-1.5 py-0.5 text-[10px] font-bold ml-1 transition-colors",
+                            isActive ? "bg-[#4b9f71]/20 text-[#4b9f71]" : "bg-muted text-muted-foreground"
+                          )}>
+                            {sport.count}
+                          </span>
+                        </Button>
+                      )
+                    })
+                  )}
+                </div>
+
+                <div className="w-px h-6 bg-border mx-1 shrink-0" />
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {!leagues ? (
+                    <>
+                      <div className="h-9 w-24 rounded-md bg-muted animate-pulse shrink-0" />
+                      <div className="h-9 w-24 rounded-md bg-muted animate-pulse shrink-0" />
+                    </>
+                  ) : (
+                    (leagues ?? ["All Leagues"]).map((league) => {
+                      const isActive = selectedLeague === league
+                      return (
+                        <Button
+                          key={league}
+                          variant="ghost"
+                          className={cn(
+                            "h-9 px-4 rounded-md text-sm font-medium shrink-0 transition-all border",
+                            isActive
+                              ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
+                              : "bg-transparent text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
+                          )}
+                          onClick={() => setSelectedLeague(league)}
+                        >
+                          {league}
+                        </Button>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === "home" && (
+              <>
+                {matches !== undefined && (
+                  <div className="relative overflow-hidden rounded-lg border border-border bg-card w-full h-24 sm:h-32 flex shrink-0">
+                    {SLIDES[slideIndex] && (
+                      <>
+                        <img
+                          key={SLIDES[slideIndex].id}
+                          src={SLIDES[slideIndex].image}
+                          alt={SLIDES[slideIndex].imageAlt}
+                          className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500"
+                          loading="eager"
+                          decoding="async"
+                        />
+
+                        {/* Dark gradient overlay for text readability */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" aria-hidden="true" />
+
+                        {/* Text and Button at Bottom Left */}
+                        <div className="absolute bottom-0 left-0 flex flex-col items-start gap-2 px-4 sm:px-6 py-2 sm:py-3 z-10">
+                          {/* Button */}
+                          {SLIDES[slideIndex].showButton && (
+                            <Button
+                              size="sm"
+                              className="h-7 sm:h-8 text-[11px] sm:text-xs px-3 sm:px-4 font-semibold bg-[#4b9f71] text-white hover:bg-[#3e865f] shadow-md"
+                              onClick={() => SLIDES[slideIndex].buttonAction === "live" ? router.push("/live") : setActiveTab("home")}
+                            >
+                              {SLIDES[slideIndex].buttonText}
+                            </Button>
+                          )}
+
+                          {/* Text */}
+                          <div className="space-y-0.5 text-left">
+                            <h3 className="text-xs sm:text-sm font-bold text-white">
+                              {SLIDES[slideIndex].title}
+                            </h3>
+                            <p className="text-[10px] sm:text-xs text-white/95">
+                              {SLIDES[slideIndex].subtitle}
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                <PublishedCustomEventsSection />
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                      <PlayCircle className="size-4 text-muted-foreground" />
+                      <span>Upcoming Matches & Fixtures</span>
+                    </h3>
+                    <Badge variant="outline" className="font-semibold text-[10px] text-muted-foreground bg-muted/20 border-border">
+                      Fixtures {upcomingMatches.length}
+                    </Badge>
+                  </div>
+
+                  {!matches ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Skeleton className="h-32 rounded-lg" />
+                      <Skeleton className="h-32 rounded-lg" />
+                    </div>
+                  ) : upcomingMatches.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {upcomingMatches.map((match) => (
+                        <MatchCard key={match.sourceMatchId} match={match} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center p-8 border border-dashed border-border rounded-lg text-muted-foreground text-xs py-12">
+                      No synced fixtures found. Ask an admin to run the scraper.
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {activeTab === "featured" && (
+              <div className="space-y-4">
+                <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <Flame className="size-4 text-primary fill-current" />
+                  Featured Market Highlights
+                </h2>
                 {!matches ? (
-                  <SmallLoader />
-                ) : upcomingMatches.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {upcomingMatches.map((match) => (
+                    <Skeleton className="h-32 rounded-lg" />
+                    <Skeleton className="h-32 rounded-lg" />
+                  </div>
+                ) : featuredMatches.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {featuredMatches.map((match) => (
                       <MatchCard key={match.sourceMatchId} match={match} />
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center p-8 border border-dashed border-border rounded-lg text-muted-foreground text-xs py-12">
-                    No synced fixtures found. Ask an admin to run the scraper.
+                  <div className="text-center py-12 border border-dashed border-border rounded-lg text-muted-foreground text-xs">
+                    No featured fixtures available.
                   </div>
                 )}
               </div>
-            </>
-          )}
+            )}
 
-          {activeTab === "live" && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
-                Live Sports Betting
-              </h2>
-              {!matches ? (
-                <SmallLoader />
-              ) : displayedMatches.length > 0 ? (
+            {activeTab === "custom" && (
+              <div className="text-center py-12 border border-dashed border-border rounded-lg text-muted-foreground text-xs">
+                Custom mock events are disabled while live scraped markets are active.
+              </div>
+            )}
+
+
+            {activeTab === "how-it-works" && (
+              <div className="space-y-6">
+                <h2 className="text-lg font-bold text-foreground">How BetFlexx Works</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {displayedMatches.map((match) => (
-                    <MatchCard key={match.sourceMatchId} match={match} />
+                  {[
+                    ["1", "Sync Markets", "Admins run the scraper or let the schedule refresh upcoming KwikBet fixtures."],
+                    ["2", "Browse Odds", "Open any fixture to inspect full market groups and outcomes."],
+                    ["3", "Build Slips", "Pick outcomes across markets and combine them into accumulator or single slips."],
+                    ["4", "Settle", "Use the mock settlement flow to test wallet and slip outcomes."],
+                  ].map(([step, title, body]) => (
+                    <div key={step} className="border border-border rounded-lg p-4 space-y-2 bg-card text-card-foreground">
+                      <span className="flex items-center justify-center size-7 rounded-full bg-primary text-primary-foreground font-bold text-xs">{step}</span>
+                      <h3 className="font-bold text-sm">{title}</h3>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{body}</p>
+                    </div>
                   ))}
                 </div>
-              ) : (
-                <div className="text-center py-12 border border-dashed border-border rounded-lg text-muted-foreground text-xs">
-                  No live games active at the moment.
-                </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
 
-          {activeTab === "featured" && (
-            <div className="space-y-4">
-              <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-                <Flame className="size-4 text-primary fill-current" />
-                Featured Market Highlights
-              </h2>
-              {!matches ? (
-                <SmallLoader />
-              ) : featuredMatches.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {featuredMatches.map((match) => (
-                    <MatchCard key={match.sourceMatchId} match={match} />
+            {activeTab === "faqs" && (
+              <div className="space-y-6">
+                <h2 className="text-lg font-bold text-foreground">Frequently Asked Questions</h2>
+                <div className="space-y-4">
+                  {[
+                    ["Is this real-money betting?", "No. BetFlexx is a mock sports betting dashboard for market ingestion and slip simulations."],
+                    ["Where do fixtures come from?", "Fixtures and odds are scraped from the configured KwikBet sports API and stored in Convex."],
+                    ["How do I view all markets?", "Click the markets button on a fixture card to open the full market browser."],
+                  ].map(([question, answer]) => (
+                    <div key={question} className="border border-border p-4 rounded-lg bg-card text-card-foreground space-y-1">
+                      <h4 className="font-bold text-sm text-foreground flex gap-1.5 items-start">
+                        <HelpCircle className="size-4 shrink-0 text-primary mt-0.5" /> {question}
+                      </h4>
+                      <p className="text-xs text-muted-foreground pl-5.5 leading-relaxed">{answer}</p>
+                    </div>
                   ))}
                 </div>
-              ) : (
-                <div className="text-center py-12 border border-dashed border-border rounded-lg text-muted-foreground text-xs">
-                  No featured fixtures available.
+              </div>
+            )}
+
+            {activeTab === "contact" && (
+              <div className="space-y-6 max-w-xl">
+                <div className="border border-border rounded-lg bg-card p-4 space-y-4">
+                  <div>
+                    <h2 className="text-sm font-bold">Contact Support</h2>
+                    <p className="text-xs text-muted-foreground">Send a message to the BetFlexx support team.</p>
+                  </div>
+                  <form onSubmit={handleContactSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-name">Full Name <span className="text-destructive">*</span></label>
+                      <Input id="c-name" value={contactName} onChange={(event) => setContactName(event.target.value)} required />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-email">Email Address <span className="text-destructive">*</span></label>
+                      <Input id="c-email" type="email" value={contactEmail} onChange={(event) => setContactEmail(event.target.value)} required />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-msg">Message <span className="text-destructive">*</span></label>
+                      <textarea
+                        id="c-msg"
+                        rows={4}
+                        value={contactMsg}
+                        onChange={(event) => setContactMsg(event.target.value)}
+                        required
+                        className="w-full text-sm p-3 rounded-md bg-transparent border border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary"
+                      />
+                    </div>
+                    <Button type="submit" disabled={isSendingContact} className="w-full font-semibold">
+                      {isSendingContact ? "Sending..." : "Submit Message"}
+                    </Button>
+                  </form>
                 </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === "custom" && (
-            <div className="text-center py-12 border border-dashed border-border rounded-lg text-muted-foreground text-xs">
-              Custom mock events are disabled while live scraped markets are active.
-            </div>
-          )}
-
-
-          {activeTab === "how-it-works" && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-bold text-foreground">How BetFlexx Works</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {[
-                  ["1", "Sync Markets", "Admins run the scraper or let the schedule refresh upcoming KwikBet fixtures."],
-                  ["2", "Browse Odds", "Open any fixture to inspect full market groups and outcomes."],
-                  ["3", "Build Slips", "Pick outcomes across markets and combine them into accumulator or single slips."],
-                  ["4", "Settle", "Use the mock settlement flow to test wallet and slip outcomes."],
-                ].map(([step, title, body]) => (
-                  <div key={step} className="border border-border rounded-lg p-4 space-y-2 bg-card text-card-foreground">
-                    <span className="flex items-center justify-center size-7 rounded-full bg-primary text-primary-foreground font-bold text-xs">{step}</span>
-                    <h3 className="font-bold text-sm">{title}</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{body}</p>
-                  </div>
-                ))}
               </div>
-            </div>
-          )}
+            )}
 
-          {activeTab === "faqs" && (
-            <div className="space-y-6">
-              <h2 className="text-lg font-bold text-foreground">Frequently Asked Questions</h2>
-              <div className="space-y-4">
-                {[
-                  ["Is this real-money betting?", "No. BetFlexx is a mock sports betting dashboard for market ingestion and slip simulations."],
-                  ["Where do fixtures come from?", "Fixtures and odds are scraped from the configured KwikBet sports API and stored in Convex."],
-                  ["How do I view all markets?", "Click the markets button on a fixture card to open the full market browser."],
-                ].map(([question, answer]) => (
-                  <div key={question} className="border border-border p-4 rounded-lg bg-card text-card-foreground space-y-1">
-                    <h4 className="font-bold text-sm text-foreground flex gap-1.5 items-start">
-                      <HelpCircle className="size-4 shrink-0 text-primary mt-0.5" /> {question}
-                    </h4>
-                    <p className="text-xs text-muted-foreground pl-5.5 leading-relaxed">{answer}</p>
+            {!activeTab && (
+              <>
+                {matches !== undefined && (
+                  <div className="relative overflow-hidden rounded-lg border border-border bg-card w-full h-24 sm:h-32 flex shrink-0">
+                    {SLIDES[slideIndex] && (
+                      <>
+                        <img
+                          key={SLIDES[slideIndex].id}
+                          src={SLIDES[slideIndex].image}
+                          alt={SLIDES[slideIndex].imageAlt}
+                          className="absolute inset-0 w-full h-full object-cover object-center transition-opacity duration-500"
+                          loading="eager"
+                          decoding="async"
+                        />
+
+                        {/* Dark gradient overlay for text readability */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" aria-hidden="true" />
+
+                        {/* Text and Button at Bottom Left */}
+                        <div className="absolute bottom-0 left-0 flex flex-col items-start gap-2 px-4 sm:px-6 py-2 sm:py-3 z-10">
+                          {/* Button */}
+                          {SLIDES[slideIndex].showButton && (
+                            <Button
+                              size="sm"
+                              className="h-7 sm:h-8 text-[11px] sm:text-xs px-3 sm:px-4 font-semibold bg-[#4b9f71] text-white hover:bg-[#3e865f] shadow-md"
+                              onClick={() => SLIDES[slideIndex].buttonAction === "live" ? router.push("/live") : setActiveTab("home")}
+                            >
+                              {SLIDES[slideIndex].buttonText}
+                            </Button>
+                          )}
+
+                          {/* Text */}
+                          <div className="space-y-0.5 text-left">
+                            <h3 className="text-xs sm:text-sm font-bold text-white">
+                              {SLIDES[slideIndex].title}
+                            </h3>
+                            <p className="text-[10px] sm:text-xs text-white/95">
+                              {SLIDES[slideIndex].subtitle}
+                            </p>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                )}
 
-          {activeTab === "contact" && (
-            <div className="space-y-6 max-w-xl">
-              <div className="border border-border rounded-lg bg-card p-4 space-y-4">
-                <div>
-                  <h2 className="text-sm font-bold">Contact Support</h2>
-                  <p className="text-xs text-muted-foreground">Send a message to the BetFlexx support team.</p>
+                <PublishedCustomEventsSection />
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                      <PlayCircle className="size-4 text-muted-foreground" />
+                      <span>Upcoming Matches & Fixtures</span>
+                    </h3>
+                    <Badge variant="outline" className="font-semibold text-[10px] text-muted-foreground bg-muted/20 border-border">
+                      Fixtures {upcomingMatches.length}
+                    </Badge>
+                  </div>
+
+                  {!matches ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Skeleton className="h-32 rounded-lg" />
+                      <Skeleton className="h-32 rounded-lg" />
+                    </div>
+                  ) : upcomingMatches.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {upcomingMatches.map((match) => (
+                        <MatchCard key={match.sourceMatchId} match={match} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center p-8 border border-dashed border-border rounded-lg text-muted-foreground text-xs py-12">
+                      No synced fixtures found. Ask an admin to run the scraper.
+                    </div>
+                  )}
                 </div>
-                <form onSubmit={handleContactSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-name">Full Name <span className="text-destructive">*</span></label>
-                    <Input id="c-name" value={contactName} onChange={(event) => setContactName(event.target.value)} required />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-email">Email Address <span className="text-destructive">*</span></label>
-                    <Input id="c-email" type="email" value={contactEmail} onChange={(event) => setContactEmail(event.target.value)} required />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-msg">Message <span className="text-destructive">*</span></label>
-                    <textarea
-                      id="c-msg"
-                      rows={4}
-                      value={contactMsg}
-                      onChange={(event) => setContactMsg(event.target.value)}
-                      required
-                      className="w-full text-sm p-3 rounded-md bg-transparent border border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary"
-                    />
-                  </div>
-                  <Button type="submit" disabled={isSendingContact} className="w-full font-semibold">
-                    {isSendingContact ? "Sending..." : "Submit Message"}
-                  </Button>
-                </form>
+              </>
+            )}
+
+            <footer className="mt-auto pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+              <div className="flex flex-col gap-1 text-center sm:text-left">
+                <span className="font-bold text-foreground text-sm">BetFlexx</span>
+                <span>Smart betting tracker with full market ingestion. Play responsibly.</span>
               </div>
-            </div>
-          )}
+              <div className="flex gap-4">
+                <span className="hover:text-foreground cursor-pointer" onClick={() => setActiveTab("how-it-works")}>How It Works</span>
+                <span className="hover:text-foreground cursor-pointer" onClick={() => setActiveTab("faqs")}>FAQs</span>
+                <span className="hover:text-foreground cursor-pointer" onClick={() => setActiveTab("contact")}>Contact Support</span>
+              </div>
+            </footer>
+          </main >
 
-          <footer className="mt-auto pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
-            <div className="flex flex-col gap-1 text-center sm:text-left">
-              <span className="font-bold text-foreground text-sm">BetFlexx</span>
-              <span>Smart betting tracker with full market ingestion. Play responsibly.</span>
-            </div>
-            <div className="flex gap-4">
-              <span className="hover:text-foreground cursor-pointer" onClick={() => setActiveTab("how-it-works")}>How It Works</span>
-              <span className="hover:text-foreground cursor-pointer" onClick={() => setActiveTab("faqs")}>FAQs</span>
-              <span className="hover:text-foreground cursor-pointer" onClick={() => setActiveTab("contact")}>Contact Support</span>
-            </div>
-          </footer>
-        </main>
+          <aside className="hidden lg:flex w-80 shrink-0 border-l border-border bg-card flex-col h-full min-h-0">
+            <Betslip />
+          </aside>
+        </div >
 
-        <aside className="hidden xl:flex w-80 shrink-0 border-l border-border bg-card flex-col h-full min-h-0">
-          <Betslip />
-        </aside>
+        <BottomNav liveCount={liveCount} />
       </div>
 
-      <BottomNav liveCount={liveCount} />
-    </div>
+      {/* Signup modal for referral links */}
+      {(showSignupFromReferral || forceShowModal) && (
+        <RegisterModal
+          open={showSignupFromReferral || forceShowModal}
+          onOpenChange={(open) => {
+            console.log('[Referral Modal] onOpenChange called with:', open)
+            if (!open) {
+              setShowSignupFromReferral(false)
+              setForceShowModal(false)
+            }
+          }}
+        />
+      )}
+
+    </>
   )
 }

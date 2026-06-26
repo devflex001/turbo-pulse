@@ -1,14 +1,15 @@
 "use client"
 
 import * as React from "react"
-import { useMutation, usePaginatedQuery } from "convex/react"
+import { useMutation, useQuery, usePaginatedQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
+import { useAuthClient } from "@/lib/auth-client"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { SmallLoader } from "@/components/small-loader"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { ResponsiveModal } from "@/components/ui/responsive-modal"
@@ -37,7 +38,9 @@ import {
   AlertTriangle,
   Users,
   Eye,
+  Globe,
 } from "lucide-react"
+import Link from "next/link"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -96,10 +99,11 @@ interface BanModalProps {
   user: UserWithBan | null
   open: boolean
   onClose: () => void
+  adminUserId?: string
 }
 
-function BanModal({ user, open, onClose }: BanModalProps) {
-  // const banUser = useMutation(api.adminUsers.banUser)
+function BanModal({ user, open, onClose, adminUserId }: BanModalProps) {
+  const banUser = useMutation(api.adminUsers.banUser)
   const [reason, setReason] = React.useState("")
   const [duration, setDuration] = React.useState<string>("permanent")
   const [loading, setLoading] = React.useState(false)
@@ -135,7 +139,8 @@ function BanModal({ user, open, onClose }: BanModalProps) {
     try {
       setLoading(true)
       await banUser({
-        targetUserId: user._id,
+        userId: adminUserId as Id<"users"> | undefined,
+        targetUserId: user._id as Id<"users">,
         reason: reason.trim(),
         durationHours,
       })
@@ -234,9 +239,10 @@ interface EditModalProps {
   user: UserWithBan | null
   open: boolean
   onClose: () => void
+  adminUserId?: string
 }
 
-function EditModal({ user, open, onClose }: EditModalProps) {
+function EditModal({ user, open, onClose, adminUserId }: EditModalProps) {
   const editUser = useMutation(api.adminUsers.editUser)
   const [phone, setPhone] = React.useState("")
   const [loading, setLoading] = React.useState(false)
@@ -262,7 +268,8 @@ function EditModal({ user, open, onClose }: EditModalProps) {
     try {
       setLoading(true)
       await editUser({
-        targetUserId: user._id,
+        userId: adminUserId as Id<"users"> | undefined,
+        targetUserId: user._id as Id<"users">,
         email: phone.trim(),
       })
       toast.success("Phone number updated")
@@ -338,12 +345,18 @@ interface UserDetailsModalProps {
   user: UserWithBan | null
   open: boolean
   onClose: () => void
+  adminUserId?: string
 }
 
-function UserDetailsModal({ user, open, onClose }: UserDetailsModalProps) {
-  if (!user) return null
+function UserDetailsModal({ user, open, onClose, adminUserId }: UserDetailsModalProps) {
+  const ipInfo = useQuery(
+    api.ipTracking.getUserIPInfo,
+    user && open
+      ? { userId: user._id as Id<"users">, adminUserId: adminUserId as Id<"users"> | undefined }
+      : "skip"
+  )
 
-  const displayId = user.phone ?? user._id
+  if (!user) return null
 
   return (
     <ResponsiveModal
@@ -374,6 +387,81 @@ function UserDetailsModal({ user, open, onClose }: UserDetailsModalProps) {
             <BanBadge ban={user.activeBan} />
           </div>
         </div>
+
+        {/* IP Tracking Info */}
+        {ipInfo && (
+          <>
+            <Separator />
+            <div className="space-y-3.5">
+              <h3 className="font-bold text-foreground flex items-center gap-1.5">
+                <Globe className="size-3.5" />
+                IP & Location Information
+              </h3>
+
+              <div className="grid grid-cols-3 gap-y-2 gap-x-2 text-[11px]">
+                <span className="font-semibold text-muted-foreground">IP Address:</span>
+                <span className="col-span-2 font-mono text-foreground">{ipInfo.ip}</span>
+
+                <span className="font-semibold text-muted-foreground">Country:</span>
+                <span className="col-span-2 text-foreground">
+                  {ipInfo.location.country} ({ipInfo.location.countryCode})
+                </span>
+
+                {ipInfo.location.city && (
+                  <>
+                    <span className="font-semibold text-muted-foreground">City:</span>
+                    <span className="col-span-2 text-foreground">{ipInfo.location.city}</span>
+                  </>
+                )}
+
+                {ipInfo.location.state && (
+                  <>
+                    <span className="font-semibold text-muted-foreground">State:</span>
+                    <span className="col-span-2 text-foreground">{ipInfo.location.state}</span>
+                  </>
+                )}
+
+                {ipInfo.location.timezone && (
+                  <>
+                    <span className="font-semibold text-muted-foreground">Timezone:</span>
+                    <span className="col-span-2 text-foreground">{ipInfo.location.timezone}</span>
+                  </>
+                )}
+
+                <span className="font-semibold text-muted-foreground">Last Seen:</span>
+                <span className="col-span-2 text-foreground">
+                  {formatDate(ipInfo.lastSeen)}
+                </span>
+              </div>
+
+              <div className="space-y-2 pt-1 border-t border-border/50">
+                <h4 className="font-semibold text-muted-foreground text-[10px] uppercase tracking-wider">Device</h4>
+                <div className="grid grid-cols-3 gap-y-1.5 gap-x-2 text-[10px]">
+                  {ipInfo.device.deviceType && (
+                    <>
+                      <span className="font-semibold text-muted-foreground">Type:</span>
+                      <span className="col-span-2 text-foreground capitalize">{ipInfo.device.deviceType}</span>
+                    </>
+                  )}
+
+                  {ipInfo.device.browserName && (
+                    <>
+                      <span className="font-semibold text-muted-foreground">Browser:</span>
+                      <span className="col-span-2 text-foreground">{ipInfo.device.browserName}</span>
+                    </>
+                  )}
+
+                  {ipInfo.device.osName && (
+                    <>
+                      <span className="font-semibold text-muted-foreground">OS:</span>
+                      <span className="col-span-2 text-foreground">{ipInfo.device.osName}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
 
         {user.activeBan && (
           <>
@@ -416,11 +504,14 @@ function UserDetailsModal({ user, open, onClose }: UserDetailsModalProps) {
   )
 }
 
+
 // ─── Main Users Panel ─────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 10
 
 export function AdminUsersPanel() {
+  const { user } = useAuthClient()
+  const userStats = useQuery(api.adminUsers.getUserStats, { userId: user?._id })
   const [search, setSearch] = React.useState("")
   const [debouncedSearch, setDebouncedSearch] = React.useState("")
 
@@ -431,7 +522,7 @@ export function AdminUsersPanel() {
 
   const { results: users, status, loadMore, isLoading } = usePaginatedQuery(
     api.adminUsers.listUsers,
-    { search: debouncedSearch || undefined },
+    { search: debouncedSearch || undefined, userId: user?._id },
     { initialNumItems: PAGE_SIZE }
   )
 
@@ -441,17 +532,14 @@ export function AdminUsersPanel() {
   const [editTarget, setEditTarget] = React.useState<UserWithBan | null>(null)
   const [detailTarget, setDetailTarget] = React.useState<UserWithBan | null>(null)
 
-  async function handleUnban(user: UserWithBan) {
+  async function handleUnban(targetUser: UserWithBan) {
     try {
-      await unbanUser({ targetUserId: user._id })
-      toast.success(`${user.phone ?? user._id.slice(-8)} has been unbanned`)
+      await unbanUser({ userId: user?._id as Id<"users"> | undefined, targetUserId: targetUser._id as Id<"users"> })
+      toast.success(`${targetUser.phone ?? targetUser._id.slice(-8)} has been unbanned`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to unban user")
     }
   }
-
-  const displayName = (u: UserWithBan) =>
-    u.phone ?? u._id.slice(-8)
 
   return (
     <div className="space-y-4">
@@ -467,25 +555,92 @@ export function AdminUsersPanel() {
           </p>
         </div>
 
-        {/* Search */}
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-          <Input
-            id="users-search"
-            placeholder="Search by phone, email, or ID..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 h-9 text-xs focus-visible:ring-primary"
-          />
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          {/* Visitors Button */}
+          <Link href="/admin/visitors" className="w-full sm:w-auto">
+            <Button variant="outline" className="w-full gap-2 text-xs font-semibold h-9">
+              <Globe className="size-4" />
+              Visitors
+            </Button>
+          </Link>
+
+          {/* Search */}
+          <div className="relative flex-1 sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+            <Input
+              id="users-search"
+              placeholder="Search by phone, email, or ID..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-8 h-9 text-xs focus-visible:ring-primary"
+            />
+          </div>
         </div>
       </div>
 
       <Separator />
 
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="border border-border rounded-lg p-3.5 space-y-1 bg-card">
+          <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5">
+            <Users className="size-3.5 text-primary" /> Total Users
+          </span>
+          {userStats === undefined ? (
+            <Skeleton className="h-6 w-16" />
+          ) : (
+            <p className="text-lg font-bold tracking-tight font-mono">{userStats.totalUsers}</p>
+          )}
+        </div>
+
+        <div className="border border-border rounded-lg p-3.5 space-y-1 bg-card">
+          <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5">
+            <ShieldCheck className="size-3.5 text-blue-500" /> Admin Users
+          </span>
+          {userStats === undefined ? (
+            <Skeleton className="h-6 w-16" />
+          ) : (
+            <p className="text-lg font-bold tracking-tight font-mono text-blue-600 dark:text-blue-400">
+              {userStats.adminUsers}
+            </p>
+          )}
+        </div>
+
+        <div className="border border-border rounded-lg p-3.5 space-y-1 bg-card">
+          <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5">
+            <Ban className="size-3.5 text-rose-500" /> Banned Users
+          </span>
+          {userStats === undefined ? (
+            <Skeleton className="h-6 w-16" />
+          ) : (
+            <p className="text-lg font-bold tracking-tight font-mono text-rose-600 dark:text-rose-400">
+              {userStats.activeBans}
+            </p>
+          )}
+        </div>
+
+        <div className="border border-border rounded-lg p-3.5 space-y-1 bg-card">
+          <span className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5">
+            <AlertTriangle className="size-3.5 text-amber-500" /> Pending Appeals
+          </span>
+          {userStats === undefined ? (
+            <Skeleton className="h-6 w-16" />
+          ) : (
+            <p className="text-lg font-bold tracking-tight font-mono text-amber-600 dark:text-amber-400">
+              {userStats.pendingAppeals}
+            </p>
+          )}
+        </div>
+      </div>
+
       {/* ── Mobile Card List (< sm) ── */}
       <div className="sm:hidden space-y-2">
         {isLoading && (
-          <SmallLoader />
+          <div className="space-y-2">
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+          </div>
         )}
 
         {!isLoading && users.length === 0 && (
@@ -495,7 +650,21 @@ export function AdminUsersPanel() {
         )}
 
         {users.map((user, idx) => {
-          const u = { ...user, _id: (user as any)._id ?? (user as any).id, _creationTime: (user as any)._creationTime ?? (user as any).createdAt ?? 0, activeBan: (user as any).activeBan ?? null } as UserWithBan
+          const userObj = user as {
+            _id?: string
+            id?: string
+            _creationTime?: number
+            createdAt?: number
+            activeBan?: ActiveBan | null
+            phone?: string
+          }
+          const u = {
+            ...user,
+            _id: userObj._id ?? userObj.id ?? "",
+            _creationTime: userObj._creationTime ?? userObj.createdAt ?? 0,
+            activeBan: userObj.activeBan ?? null,
+            phone: userObj.phone,
+          } as UserWithBan
           return (
             <div
               key={u._id}
@@ -586,7 +755,11 @@ export function AdminUsersPanel() {
               {isLoading && (
                 <tr>
                   <td colSpan={5} className="py-8">
-                    <SmallLoader />
+                    <div className="space-y-2">
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                    </div>
                   </td>
                 </tr>
               )}
@@ -603,7 +776,21 @@ export function AdminUsersPanel() {
               )}
 
               {users.map((user, idx) => {
-                const u = { ...user, _id: (user as any)._id ?? (user as any).id, _creationTime: (user as any)._creationTime ?? (user as any).createdAt ?? 0, activeBan: (user as any).activeBan ?? null } as UserWithBan
+                const userObj = user as {
+                  _id?: string
+                  id?: string
+                  _creationTime?: number
+                  createdAt?: number
+                  activeBan?: ActiveBan | null
+                  phone?: string
+                }
+                const u = {
+                  ...user,
+                  _id: userObj._id ?? userObj.id ?? "",
+                  _creationTime: userObj._creationTime ?? userObj.createdAt ?? 0,
+                  activeBan: userObj.activeBan ?? null,
+                  phone: userObj.phone,
+                } as UserWithBan
                 return (
                   <tr key={u._id} className="hover:bg-muted/30 transition-colors">
                     <td className="py-3 px-4 text-muted-foreground font-medium">
@@ -727,31 +914,38 @@ export function AdminUsersPanel() {
       </div>
 
       {/* Contextual hint when banned users exist */}
-      {!isLoading && users.some((u) => !!(u as any).activeBan) && (
-        <div className="flex items-start gap-2 p-3 rounded-lg border border-rose-500/20 bg-rose-500/5 text-xs text-rose-600">
-          <AlertTriangle className="size-4 shrink-0 mt-0.5" />
-          <span>
-            Banned users see a suspension notice and can submit an appeal when
-            they log in.
-          </span>
-        </div>
-      )}
+      {!isLoading &&
+        users.some((u) => {
+          const userObj = u as { activeBan?: unknown }
+          return !!userObj.activeBan
+        }) && (
+          <div className="flex items-start gap-2 p-3 rounded-lg border border-rose-500/20 bg-rose-500/5 text-xs text-rose-600">
+            <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+            <span>
+              Banned users see a suspension notice and can submit an appeal when
+              they log in.
+            </span>
+          </div>
+        )}
 
       {/* Modals */}
       <UserDetailsModal
         user={detailTarget}
         open={!!detailTarget}
         onClose={() => setDetailTarget(null)}
+        adminUserId={user?._id}
       />
       <BanModal
         user={banTarget}
         open={!!banTarget}
         onClose={() => setBanTarget(null)}
+        adminUserId={user?._id}
       />
       <EditModal
         user={editTarget}
         open={!!editTarget}
         onClose={() => setEditTarget(null)}
+        adminUserId={user?._id}
       />
     </div>
   )

@@ -62,9 +62,6 @@ export function AdminCustomEventsPanel() {
                 eventId={selectedEventId as Id<"customEvents">}
                 adminControls
                 onBack={handleBackFromDetail}
-                onEdit={() => {
-                  // Could implement edit mode in detail view if needed
-                }}
               />
             )}
           </div>

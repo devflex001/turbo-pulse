@@ -43,7 +43,7 @@ describe("custom event preconfiguration", () => {
       "DOUBLE CHANCE",
       "DRAW NO BET",
       "TOTAL",
-      "BOTH TEAMS TO SCORE (GG/NG)",
+      "BOTH TEAMS TO SCORE",
       "1X2 & BOTH TEAMS TO SCORE",
       "1X2 & TOTAL",
       "HALFTIME/FULLTIME",

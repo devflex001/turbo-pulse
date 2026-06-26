@@ -1,15 +1,15 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
-import { useBetStore } from "@/hooks/use-bet-store"
+import { useAuth } from "@/lib/auth/AuthContext"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 import { ResponsiveModal } from "@/components/ui/responsive-modal"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { CopyIcon, CheckIcon, Loader2, Eye, EyeOff } from "lucide-react"
-import { useQuery, useMutation } from "convex/react"
-import { api } from "@/convex/_generated/api"
+import { WithdrawalSheet } from "@/components/withdrawal-sheet"
 
 interface ModalProps {
   open: boolean
@@ -32,7 +32,7 @@ function normalizeKenyanPhone(phone: string): string {
 }
 
 export function LoginModal({ open, onOpenChange }: ModalProps) {
-  const router = useRouter()
+  const { login } = useAuth()
   const [phone, setPhone] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [showPassword, setShowPassword] = React.useState(false)
@@ -55,29 +55,19 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
 
     try {
       setIsSubmitting(true)
-      const result = await signIn(phone, password)
-
-      if (result.error) {
-        toast.error(result.error)
-        setIsSubmitting(false)
-        return
-      }
+      const role = await login(phone, password)
 
       // Success! Close modal
       toast.success("Welcome back!")
       onOpenChange(false)
       setPhone("")
       setPassword("")
-      
-      // Check if admin - if so, redirect to admin
-      const authState = typeof window !== "undefined" ? sessionStorage.getItem("auth_state") : null
-      const isAdmin = authState ? JSON.parse(authState).user?.role === "admin" : false
 
-      // Redirect based on role
-      if (isAdmin) {
-        router.push("/admin")
-      } else {
-        router.push("/")
+      // Redirect admins to admin panel
+      if (role === "admin" && typeof window !== "undefined") {
+        setTimeout(() => {
+          window.location.href = "/admin"
+        }, 500)
       }
     } catch (error) {
       const errMsg =
@@ -186,12 +176,29 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
 }
 
 export function RegisterModal({ open, onOpenChange }: ModalProps) {
+  const { register } = useAuth()
   const [phone, setPhone] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [showPassword, setShowPassword] = React.useState(false)
   const [confirmPassword, setConfirmPassword] = React.useState("")
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const [referralCode, setReferralCode] = React.useState<string | undefined>()
+
+  // Get configurable referral reward (using public query, no auth required)
+  const platformConfig = useQuery(api.platformConfig.getUserFacingConfig, {})
+  const referralReward = platformConfig?.referralReward ?? 1000
+
+  // Get referral code from URL on mount
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search)
+      const ref = searchParams.get("ref")
+      if (ref) {
+        setReferralCode(ref)
+      }
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -214,24 +221,17 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
 
     try {
       setIsSubmitting(true)
-      const result = await signUp(phone, password)
+      // Pass referral code to register function if it exists
+      const role = await register(phone, password, referralCode)
 
-      if (result.error) {
-        toast.error(result.error)
-        setIsSubmitting(false)
-        return
-      }
-
-      toast.success("Account created successfully! Welcome to BetFlexx.")
+      toast.success(referralCode
+        ? `Account created successfully! Start inviting friends and earn KES ${referralReward.toLocaleString()} for each successful referral. Welcome to BetFlexx!`
+        : "Account created successfully! Welcome to BetFlexx.")
       onOpenChange(false)
       setPhone("")
       setPassword("")
       setConfirmPassword("")
-      
-      // Reload to pick up new auth state
-      setTimeout(() => {
-        window.location.reload()
-      }, 100)
+      // Don't reload or redirect - auth context is already updated
     } catch (error) {
       const errMsg =
         error instanceof Error
@@ -248,9 +248,18 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
       open={open}
       onOpenChange={onOpenChange}
       title="Join BetFlexx"
-      description="Create an account to start tracking your bets and managing your insights."
+      description={referralCode
+        ? `Create an account and start earning KES ${referralReward.toLocaleString()} for each successful referral!`
+        : "Create an account to start tracking your bets and managing your insights."}
     >
       <form onSubmit={handleSubmit} className="space-y-4 py-2">
+        {referralCode && (
+          <div className="p-3 bg-[#4b9f71]/10 rounded-lg border border-[#4b9f71]/20">
+            <p className="text-sm text-foreground font-medium">
+              🎉 You've been invited! Earn <span className="font-bold">KES {referralReward.toLocaleString()}</span> for every friend you refer who signs up.
+            </p>
+          </div>
+        )}
         <div className="space-y-2">
           <label
             className="block text-xs font-semibold text-muted-foreground"
@@ -403,9 +412,16 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
 }
 
 export function DepositModal({ open, onOpenChange }: ModalProps) {
+  const { user } = useAuth()
   const [amount, setAmount] = React.useState("")
   const [phone, setPhone] = React.useState("")
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+
+  React.useEffect(() => {
+    if (user?.phone) {
+      setPhone(user.phone)
+    }
+  }, [user?.phone])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -489,82 +505,16 @@ export function DepositModal({ open, onOpenChange }: ModalProps) {
 }
 
 export function WithdrawModal({ open, onOpenChange }: ModalProps) {
-  const { walletBalance, user } = useBetStore()
-  const [amount, setAmount] = React.useState("")
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
-  const createTx = useMutation(api.bets.createTransaction)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const parsedAmount = parseFloat(amount)
-    if (isNaN(parsedAmount) || parsedAmount < 50) {
-      toast.error("Minimum withdrawal is KES 50")
-      return
-    }
-    if (parsedAmount > walletBalance) {
-      toast.error("Insufficient balance in wallet")
-      return
-    }
-
-    try {
-      setIsSubmitting(true)
-      await createTx({
-        type: "withdrawal",
-        amount: parsedAmount,
-        phone: user?.username || "Self",
-        status: "success"
-      })
-      toast.success(
-        `Successfully withdrew KES ${parsedAmount.toLocaleString()} to your registered number!`
-      )
-      onOpenChange(false)
-      setAmount("")
-    } catch {
-      toast.error("Failed to process withdrawal. Please try again.")
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
   return (
     <ResponsiveModal
       open={open}
       onOpenChange={onOpenChange}
-      title="Withdraw Winnings"
-      description={`Withdraw your winnings directly to your M-Pesa mobile number. (Available: KES ${walletBalance.toLocaleString()})`}
+      title="Withdraw Funds"
+      description="Request a withdrawal to your M-Pesa number."
     >
-      <form onSubmit={handleSubmit} className="space-y-4 py-2">
-        <div className="space-y-2">
-          <label
-            className="block text-xs font-semibold text-muted-foreground"
-            htmlFor="with-amount"
-          >
-            Amount (KES) <span className="text-destructive">*</span>
-          </label>
-          <Input
-            id="with-amount"
-            type="number"
-            min="50"
-            placeholder="e.g. 250"
-            value={amount}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setAmount(e.target.value)
-            }
-            disabled={isSubmitting}
-            required
-            className="focus-visible:ring-primary"
-          />
-        </div>
-        <div className="pt-4">
-          <Button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full bg-primary font-semibold text-primary-foreground hover:opacity-90"
-          >
-            {isSubmitting ? "Processing..." : "Withdraw Now"}
-          </Button>
-        </div>
-      </form>
+      <div className="py-2">
+        <WithdrawalSheet onSuccess={() => onOpenChange(false)} />
+      </div>
     </ResponsiveModal>
   )
 }

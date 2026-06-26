@@ -5,7 +5,7 @@ import { useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { SmallLoader } from "@/components/small-loader"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Pagination } from "@/components/pagination"
 import { usePagination } from "@/hooks/use-pagination"
 import { toast } from "sonner"
@@ -240,7 +240,12 @@ export function AdminScraperPanel() {
   }
 
   if (!overview) {
-    return <SmallLoader />
+    return (
+      <div className="space-y-4 p-4">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    )
   }
 
   // Calculate metrics based on totalRuns from overview

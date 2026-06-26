@@ -7,11 +7,10 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
 import { BetStoreProvider } from "@/hooks/use-bet-store"
 import { ConvexProvider } from "@/components/convex-provider"
-import { Footer } from "@/components/footer"
 
-const robotoHeading = Roboto({subsets:['latin'],variable:'--font-heading'})
+const robotoHeading = Roboto({ subsets: ['latin'], variable: '--font-heading' })
 
-const figtree = Figtree({subsets:['latin'],variable:'--font-sans'})
+const figtree = Figtree({ subsets: ['latin'], variable: '--font-sans' })
 
 const fontMono = Geist_Mono({
   subsets: ["latin"],
@@ -34,9 +33,8 @@ export default function RootLayout({
           <ConvexProvider>
             <BetStoreProvider>
               <TooltipProvider>
-                <div className="min-h-screen flex flex-col">
+                <div className="flex flex-col">
                   {children}
-                  <Footer />
                 </div>
                 <Toaster richColors position="top-right" />
               </TooltipProvider>

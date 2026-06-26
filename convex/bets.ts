@@ -1,21 +1,45 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+import { notifyAdmins, notifyUser } from "./notifications";
+
+function formatKes(amount: number) {
+  return `KES ${amount.toLocaleString("en-KE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+function getBetLabel(selections: { matchName: string }[]) {
+  if (selections.length === 1) {
+    return selections[0]?.matchName ?? "your selection";
+  }
+
+  return `${selections.length} selections`;
+}
 
 export const getWalletBalance = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    // Get wallet for this specific user
     const wallet = await ctx.db
       .query("wallets")
-      .first();
-    return wallet ? wallet.balance : 1000;
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .unique();
+    return wallet ? wallet.balance : 0;
   },
 });
 
 export const getMyBets = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
     const bets = await ctx.db
       .query("bets")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .order("desc")
       .take(100);
 
@@ -38,10 +62,13 @@ export const getMyBets = query({
 });
 
 export const getTransactions = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
     const txs = await ctx.db
       .query("transactions")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .order("desc")
       .take(100);
 
@@ -64,6 +91,7 @@ export const getTransactions = query({
 
 export const placeBet = mutation({
   args: {
+    userId: v.id("users"),
     selections: v.array(
       v.object({
         id: v.string(),
@@ -90,18 +118,20 @@ export const placeBet = mutation({
   handler: async (ctx, args) => {
     let wallet = await ctx.db
       .query("wallets")
-      .first();
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .unique();
 
-    const balance = wallet ? wallet.balance : 1000;
+    const balance = wallet ? wallet.balance : 0;
     if (args.stake > balance) throw new Error("Insufficient balance");
 
     if (wallet) {
       await ctx.db.patch(wallet._id, { balance: balance - args.stake });
     } else {
-      await ctx.db.insert("wallets", { balance: 1000 - args.stake });
+      await ctx.db.insert("wallets", { userId: args.userId, balance: 0 - args.stake });
     }
 
     const betId = await ctx.db.insert("bets", {
+      userId: args.userId,
       selections: args.selections,
       totalOdds: args.totalOdds,
       stake: args.stake,
@@ -110,12 +140,41 @@ export const placeBet = mutation({
       placedAt: Date.now(),
     });
 
+    const betLabel = getBetLabel(args.selections);
+    if (args.userId) {
+      await notifyUser(ctx, {
+        recipientUserId: args.userId,
+        type: "bet",
+        title: "Bet placed",
+        message: `Your ${formatKes(args.stake)} bet on ${betLabel} was placed successfully.`,
+        href: "/my-bets",
+        dedupeKey: `bet-placed:user:${betId}`,
+        metadata: {
+          betId,
+          amount: args.stake,
+        },
+      });
+    }
+
+    await notifyAdmins(ctx, {
+      type: "bet",
+      title: "New bet placed",
+      message: `A ${formatKes(args.stake)} bet was placed on ${betLabel}.`,
+      href: "/admin/bets",
+      dedupeKey: `bet-placed:${betId}`,
+      metadata: {
+        betId,
+        amount: args.stake,
+      },
+    });
+
     return { success: true, betId };
   },
 });
 
 export const createTransaction = mutation({
   args: {
+    userId: v.id("users"),
     type: v.union(v.literal("deposit"), v.literal("withdrawal")),
     amount: v.number(),
     phone: v.optional(v.string()),
@@ -130,8 +189,9 @@ export const createTransaction = mutation({
     const txId =
       "TX-" + Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    await ctx.db.insert("transactions", {
+    const transactionId = await ctx.db.insert("transactions", {
       txId,
+      userId: args.userId,
       type: args.type,
       amount: args.amount,
       phone: args.phone,
@@ -143,14 +203,44 @@ export const createTransaction = mutation({
     if (args.status === "success") {
       let wallet = await ctx.db
         .query("wallets")
-        .first();
-      const currentBalance = wallet ? wallet.balance : 1000;
+        .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+        .unique();
+      const currentBalance = wallet ? wallet.balance : 0;
       const change = args.type === "deposit" ? args.amount : -args.amount;
 
       if (wallet) {
         await ctx.db.patch(wallet._id, { balance: currentBalance + change });
       } else {
-        await ctx.db.insert("wallets", { balance: 1000 + change });
+        await ctx.db.insert("wallets", { userId: args.userId, balance: 0 + change });
+      }
+
+      if (args.type === "deposit") {
+        await notifyUser(ctx, {
+          recipientUserId: args.userId,
+          type: "payment",
+          title: "Deposit successful",
+          message: `${formatKes(args.amount)} has been added to your wallet.`,
+          href: "/account",
+          dedupeKey: `transaction-success:user:${transactionId}`,
+          metadata: {
+            transactionId,
+            amount: args.amount,
+          },
+        });
+      }
+
+      if (args.type === "deposit") {
+        await notifyAdmins(ctx, {
+          type: "payment",
+          title: "New deposit",
+          message: `A ${formatKes(args.amount)} deposit was completed.`,
+          href: "/admin/payments",
+          dedupeKey: `transaction-success:${transactionId}`,
+          metadata: {
+            transactionId,
+            amount: args.amount,
+          },
+        });
       }
     }
 
@@ -183,11 +273,13 @@ export const updateTransactionStatus = mutation({
       errorDetail: args.errorDetail,
     });
 
-    if (args.status === "success" && oldStatus !== "success") {
+    if (args.status === "success" && oldStatus !== "success" && transaction.userId) {
+      const userId = transaction.userId as Id<"users">;
       let wallet = await ctx.db
         .query("wallets")
-        .first();
-      const currentBalance = wallet ? wallet.balance : 1000;
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .unique();
+      const currentBalance = wallet ? wallet.balance : 0;
       const change =
         transaction.type === "deposit"
           ? transaction.amount
@@ -197,13 +289,45 @@ export const updateTransactionStatus = mutation({
         await ctx.db.patch(wallet._id, { balance: currentBalance + change });
       } else {
         await ctx.db.insert("wallets", {
-          balance: 1000 + change,
+          userId: userId,
+          balance: 0 + change,
         });
       }
-    } else if (args.status !== "success" && oldStatus === "success") {
+
+      if (transaction.type === "deposit") {
+        await notifyUser(ctx, {
+          recipientUserId: userId,
+          type: "payment",
+          title: "Deposit successful",
+          message: `${formatKes(transaction.amount)} has been added to your wallet.`,
+          href: "/account",
+          dedupeKey: `transaction-success:user:${transaction._id}`,
+          metadata: {
+            transactionId: transaction._id,
+            amount: transaction.amount,
+          },
+        });
+      }
+
+      if (transaction.type === "deposit") {
+        await notifyAdmins(ctx, {
+          type: "payment",
+          title: "New deposit",
+          message: `A ${formatKes(transaction.amount)} deposit was completed.`,
+          href: "/admin/payments",
+          dedupeKey: `transaction-success:${transaction._id}`,
+          metadata: {
+            transactionId: transaction._id,
+            amount: transaction.amount,
+          },
+        });
+      }
+    } else if (args.status !== "success" && oldStatus === "success" && transaction.userId) {
+      const userId = transaction.userId as Id<"users">;
       let wallet = await ctx.db
         .query("wallets")
-        .first();
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .unique();
       if (wallet) {
         const change =
           transaction.type === "deposit"
@@ -229,21 +353,55 @@ export const settleSingleBet = mutation({
 
     await ctx.db.patch(args.betId, { status: args.status });
 
-    if (args.status === "won") {
+    if (args.status === "won" && bet.userId) {
+      const userId = bet.userId as Id<"users">;
       let wallet = await ctx.db
         .query("wallets")
-        .first();
-      const currentBalance = wallet ? wallet.balance : 1000;
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .unique();
+      const currentBalance = wallet ? wallet.balance : 0;
       if (wallet) {
         await ctx.db.patch(wallet._id, {
           balance: currentBalance + bet.potentialReturn,
         });
       } else {
         await ctx.db.insert("wallets", {
-          balance: 1000 + bet.potentialReturn,
+          userId: userId,
+          balance: 0 + bet.potentialReturn,
         });
       }
     }
+
+    if (bet.userId) {
+      const recipientUserId = bet.userId as Id<"users">;
+      await notifyUser(ctx, {
+        recipientUserId,
+        type: "bet",
+        title: args.status === "won" ? "Bet won" : "Bet lost",
+        message:
+          args.status === "won"
+            ? `Your bet on ${getBetLabel(bet.selections)} won. ${formatKes(bet.potentialReturn)} has been credited.`
+            : `Your bet on ${getBetLabel(bet.selections)} did not win.`,
+        href: "/my-bets",
+        dedupeKey: `bet-settled:user:${args.betId}:${args.status}`,
+        metadata: {
+          betId: args.betId,
+          amount: args.status === "won" ? bet.potentialReturn : bet.stake,
+        },
+      });
+    }
+
+    await notifyAdmins(ctx, {
+      type: "bet",
+      title: args.status === "won" ? "Bet settled as won" : "Bet settled as lost",
+      message: `A bet on ${getBetLabel(bet.selections)} was settled as ${args.status}.`,
+      href: "/admin/bets",
+      dedupeKey: `bet-settled:${args.betId}:${args.status}`,
+      metadata: {
+        betId: args.betId,
+        amount: args.status === "won" ? bet.potentialReturn : bet.stake,
+      },
+    });
     return { success: true };
   },
 });
@@ -274,16 +432,45 @@ export const cancelBet = mutation({
 
     await ctx.db.patch(args.betId, { status: "cancelled" });
 
-    let wallet = await ctx.db
-      .query("wallets")
-      .first();
-    const currentBalance = wallet ? wallet.balance : 1000;
+    if (bet.userId) {
+      const userId = bet.userId as Id<"users">;
+      let wallet = await ctx.db
+        .query("wallets")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .unique();
+      const currentBalance = wallet ? wallet.balance : 0;
 
-    if (wallet) {
-      await ctx.db.patch(wallet._id, { balance: currentBalance + bet.stake });
-    } else {
-      await ctx.db.insert("wallets", { balance: 1000 + bet.stake });
+      if (wallet) {
+        await ctx.db.patch(wallet._id, { balance: currentBalance + bet.stake });
+      } else {
+        await ctx.db.insert("wallets", { userId: userId, balance: 0 + bet.stake });
+      }
+
+      await notifyUser(ctx, {
+        recipientUserId: userId,
+        type: "bet",
+        title: "Bet cancelled",
+        message: `Your bet on ${getBetLabel(bet.selections)} was cancelled and ${formatKes(bet.stake)} was returned.`,
+        href: "/my-bets",
+        dedupeKey: `bet-cancelled:user:${args.betId}`,
+        metadata: {
+          betId: args.betId,
+          amount: bet.stake,
+        },
+      });
     }
+
+    await notifyAdmins(ctx, {
+      type: "bet",
+      title: "Bet cancelled",
+      message: `A ${formatKes(bet.stake)} bet on ${getBetLabel(bet.selections)} was cancelled.`,
+      href: "/admin/bets",
+      dedupeKey: `bet-cancelled:${args.betId}`,
+      metadata: {
+        betId: args.betId,
+        amount: bet.stake,
+      },
+    });
 
     return { success: true };
   },
@@ -303,23 +490,197 @@ export const settleAllBets = mutation({
       const status = won ? "won" : "lost";
       await ctx.db.patch(bet._id, { status });
 
-      if (won) {
+      if (won && bet.userId) {
+        const userId = bet.userId as Id<"users">;
         let wallet = await ctx.db
           .query("wallets")
-          .first();
-        const currentBalance = wallet ? wallet.balance : 1000;
+          .withIndex("by_userId", (q) => q.eq("userId", userId))
+          .unique();
+        const currentBalance = wallet ? wallet.balance : 0;
         if (wallet) {
           await ctx.db.patch(wallet._id, {
             balance: currentBalance + bet.potentialReturn,
           });
         } else {
           await ctx.db.insert("wallets", {
-            balance: 1000 + bet.potentialReturn,
+            userId: userId,
+            balance: 0 + bet.potentialReturn,
           });
         }
       }
+
+      if (bet.userId) {
+        await notifyUser(ctx, {
+          recipientUserId: bet.userId as Id<"users">,
+          type: "bet",
+          title: won ? "Bet won" : "Bet lost",
+          message: won
+            ? `Your bet on ${getBetLabel(bet.selections)} won. ${formatKes(bet.potentialReturn)} has been credited.`
+            : `Your bet on ${getBetLabel(bet.selections)} did not win.`,
+          href: "/my-bets",
+          dedupeKey: `bet-settled:user:${bet._id}:${status}`,
+          metadata: {
+            betId: bet._id,
+            amount: won ? bet.potentialReturn : bet.stake,
+          },
+        });
+      }
+
+      await notifyAdmins(ctx, {
+        type: "bet",
+        title: won ? "Bet settled as won" : "Bet settled as lost",
+        message: `A bet on ${getBetLabel(bet.selections)} was settled as ${status}.`,
+        href: "/admin/bets",
+        dedupeKey: `bet-settled:${bet._id}:${status}`,
+        metadata: {
+          betId: bet._id,
+          amount: won ? bet.potentialReturn : bet.stake,
+        },
+      });
     }
 
     return { success: true };
+  },
+});
+
+// ─── Admin Analytics Queries ───────────────────────────────────────────────
+
+export const getAdminStats = query({
+  args: {},
+  handler: async (ctx) => {
+    // Total users
+    const allUsers = await ctx.db
+      .query("users")
+      .collect();
+    const totalUsers = allUsers.length;
+
+    // Total successful deposits
+    const allTransactions = await ctx.db
+      .query("transactions")
+      .collect();
+    const totalDeposits = allTransactions
+      .filter((t) => t.type === "deposit" && t.status === "success")
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    // Active bets
+    const allBets = await ctx.db
+      .query("bets")
+      .collect();
+    const activeBets = allBets.filter((b) => b.status === "active").length;
+
+    return {
+      totalUsers,
+      totalDeposits,
+      activeBets,
+    };
+  },
+});
+
+export const getDepositTrend = query({
+  args: {
+    daysBack: v.optional(v.number()), // defaults to 7 days
+  },
+  handler: async (ctx, args) => {
+    const daysBack = args.daysBack ?? 7;
+    const now = Date.now();
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const millisPerDay = 24 * 60 * 60 * 1000;
+
+    // Get all deposits in the range
+    const allTransactions = await ctx.db
+      .query("transactions")
+      .collect();
+
+    const depositsByDay: Record<string, number> = {};
+
+    // Initialize days
+    for (let i = daysBack - 1; i >= 0; i--) {
+      const date = new Date(startOfToday.getTime() - i * millisPerDay);
+      const dayKey = date.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        weekday: "short",
+      });
+      depositsByDay[dayKey] = 0;
+    }
+
+    // Accumulate deposits
+    allTransactions.forEach((tx) => {
+      if (tx.type === "deposit" && tx.status === "success") {
+        const txDate = new Date(tx.time);
+        const txStartOfDay = new Date(txDate);
+        txStartOfDay.setHours(0, 0, 0, 0);
+        const daysAgo = Math.floor(
+          (startOfToday.getTime() - txStartOfDay.getTime()) / millisPerDay
+        );
+
+        if (daysAgo >= 0 && daysAgo < daysBack) {
+          const dayKey = txDate.toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "short",
+            weekday: "short",
+          });
+          depositsByDay[dayKey] += tx.amount;
+        }
+      }
+    });
+
+    return Object.entries(depositsByDay).map(([day, amount]) => ({
+      day,
+      amount,
+    }));
+  },
+});
+
+export const getUserRegistrationTrend = query({
+  args: {
+    daysBack: v.optional(v.number()), // defaults to 7 days
+  },
+  handler: async (ctx, args) => {
+    const daysBack = args.daysBack ?? 7;
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const millisPerDay = 24 * 60 * 60 * 1000;
+
+    // Get all users
+    const allUsers = await ctx.db
+      .query("users")
+      .collect();
+
+    const usersByDay: Record<string, number> = {};
+
+    // Initialize days
+    for (let i = daysBack - 1; i >= 0; i--) {
+      const date = new Date(startOfToday.getTime() - i * millisPerDay);
+      const dayKey = date.toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+      });
+      usersByDay[dayKey] = 0;
+    }
+
+    // Count users by registration date
+    allUsers.forEach((user) => {
+      const userDate = new Date(user.createdAt);
+      const userStartOfDay = new Date(userDate);
+      userStartOfDay.setHours(0, 0, 0, 0);
+      const daysAgo = Math.floor(
+        (startOfToday.getTime() - userStartOfDay.getTime()) / millisPerDay
+      );
+
+      if (daysAgo >= 0 && daysAgo < daysBack) {
+        const dayKey = userDate.toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+        });
+        usersByDay[dayKey] += 1;
+      }
+    });
+
+    return Object.entries(usersByDay).map(([day, count]) => ({
+      day,
+      count,
+    }));
   },
 });

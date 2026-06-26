@@ -18,8 +18,8 @@ import {
 interface ResponsiveModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  title?: string
-  description?: string
+  title?: React.ReactNode
+  description?: React.ReactNode
   children: React.ReactNode
   className?: string
 }
@@ -33,8 +33,15 @@ export function ResponsiveModal({
   className,
 }: ResponsiveModalProps) {
   const isMobile = useMediaQuery("(max-width: 640px)")
+  const [isMounted, setIsMounted] = React.useState(false)
 
-  if (isMobile) {
+  React.useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  // Always render Dialog on server and until hydration completes
+  // This prevents hydration mismatch
+  if (isMobile && isMounted) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className={className}>

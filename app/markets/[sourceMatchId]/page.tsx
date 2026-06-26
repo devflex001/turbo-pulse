@@ -1,100 +1,40 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import React, { useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useQuery } from "convex/react"
-import { ArrowLeft, Share2 } from "lucide-react"
 import { api } from "@/convex/_generated/api"
-import { Button } from "@/components/ui/button"
-import { BottomNav } from "@/components/bottom-nav"
-import { SmallLoader } from "@/components/small-loader"
+import { useMediaQuery } from "@/hooks/use-media-query"
 import {
-  MarketsBrowser,
-  type SportsMatchWithOdds,
-  type SportsMatch,
-} from "@/components/markets-panel"
-
-function CountdownTimer({ startTime, isLive }: { startTime: number; isLive: boolean }) {
-  const [timeLeft, setTimeLeft] = useState("")
-
-  useEffect(() => {
-    if (isLive) {
-      setTimeLeft("LIVE")
-      return
-    }
-
-    const updateTimer = () => {
-      const now = Date.now()
-      const diff = startTime - now
-
-      if (diff <= 0) {
-        setTimeLeft("LIVE")
-        return
-      }
-
-      const hours = Math.floor(diff / (3600 * 1000))
-      const minutes = Math.floor((diff % (3600 * 1000)) / (60 * 1000))
-      const seconds = Math.floor((diff % (60 * 1000)) / 1000)
-
-      setTimeLeft(`${hours}h ${minutes}m ${seconds}s`)
-    }
-
-    updateTimer()
-    const timer = setInterval(updateTimer, 1000)
-    return () => clearInterval(timer)
-  }, [startTime, isLive])
-
-  if (timeLeft === "LIVE") {
-    return (
-      <div className="flex flex-col items-center gap-0.5">
-        <span className="text-[9px] font-bold tracking-widest text-muted-foreground/80 uppercase">
-          STATUS
-        </span>
-        <span className="text-sm font-extrabold text-destructive tracking-wide animate-pulse">
-          LIVE
-        </span>
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex flex-col items-center gap-0.5">
-      <span className="text-[9px] font-bold tracking-widest text-muted-foreground/85 uppercase">
-        STARTS IN
-      </span>
-      <span className="text-xl font-black text-emerald-500 tracking-wide">
-        {timeLeft}
-      </span>
-    </div>
-  )
-}
-
-function formatStartTime(startTime: number) {
-  if (!startTime) return ""
-  return new Date(startTime).toLocaleString([], {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  })
-}
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Button } from "@/components/ui/button"
+import { Share2 } from "lucide-react"
+import { ShareModal } from "@/components/modals"
+import { MatchEventDetail } from "@/components/match-event-detail"
+import type { SportsMatchWithOdds } from "@/components/markets-panel"
 
 export default function MatchMarketsPage() {
   const params = useParams<{ sourceMatchId: string }>()
   const router = useRouter()
   const sourceMatchId = params.sourceMatchId
+  const isMobile = useMediaQuery("(max-width: 768px)")
+  const [shareOpen, setShareOpen] = React.useState(false)
 
   const match = useQuery(
     api.sportsData.getMatchWithMainOdds,
     sourceMatchId ? { sourceMatchId } : "skip"
   ) as SportsMatchWithOdds | null | undefined
-
-  const liveMatches = useQuery(api.sportsData.listMatches, {
-    status: "live",
-    limit: 80,
-  }) as SportsMatch[] | undefined
-
-  const liveCount = liveMatches ? liveMatches.filter((m) => m.isLive).length : 0
 
   useEffect(() => {
     if (match) {
@@ -104,94 +44,87 @@ export default function MatchMarketsPage() {
     }
   }, [match])
 
-  const handleShare = () => {
-    if (match && navigator.share) {
-      navigator.share({
-        title: `${match.homeTeam} vs ${match.awayTeam} Odds`,
-        url: window.location.href,
-      }).catch(() => { })
-    }
+  if (!sourceMatchId) {
+    return <div className="p-6 text-center text-sm text-muted-foreground">Invalid match ID</div>
+  }
+
+  const matchName = match ? `${match.homeTeam} vs ${match.awayTeam}` : "Markets"
+  const competition = match?.competitionName || ""
+
+  const content = match && (
+    <MatchEventDetail match={match} onBack={() => router.back()} />
+  )
+
+  const shareButton = match && (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="size-8 text-muted-foreground hover:text-foreground shrink-0"
+      onClick={() => setShareOpen(true)}
+      aria-label="Share match odds"
+    >
+      <Share2 className="size-3.5" />
+    </Button>
+  )
+
+  if (isMobile) {
+    return (
+      <>
+        <Drawer open={!!match} onOpenChange={(open) => !open && router.back()}>
+          <DrawerContent className="h-[90vh] flex flex-col overflow-hidden p-0 bg-card">
+            {!match ? (
+              <DrawerHeader className="shrink-0 border-b border-border px-4 py-3">
+                <Skeleton className="h-6 w-40" />
+              </DrawerHeader>
+            ) : (
+              <>
+                <DrawerHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <DrawerTitle className="truncate text-sm font-semibold">{matchName}</DrawerTitle>
+                      <p className="truncate text-xs text-muted-foreground">{competition}</p>
+                    </div>
+                    {shareButton}
+                  </div>
+                </DrawerHeader>
+                {content}
+              </>
+            )}
+          </DrawerContent>
+        </Drawer>
+        <ShareModal open={shareOpen} onOpenChange={setShareOpen} matchName={matchName} />
+      </>
+    )
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background">
-      <main className="flex-1 min-w-0 flex flex-col">
-        {!match && match !== null && (
-          <SmallLoader />
-        )}
-
-        {match === null && (
-          <div className="p-6 text-center text-sm text-muted-foreground flex-1">
-            Match not found.
-          </div>
-        )}
-
-        {match && (
-          <>
-            {/* Custom Header Layout matching reference screenshot */}
-            <div className="flex flex-col bg-card border-b border-border pb-4">
-              {/* Top row with category back and share buttons */}
-              <div className="flex items-center justify-between p-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-8 shrink-0 hover:bg-muted"
-                    onClick={() => router.back()}
-                    aria-label="Back"
-                  >
-                    <ArrowLeft className="size-4" />
-                  </Button>
-                  <span className="truncate text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    {match.competitionName}
-                  </span>
+    <>
+      <Sheet open={!!match} onOpenChange={(open) => !open && router.back()}>
+        <SheetContent
+          side="right"
+          className="!w-[min(50vw,720px)] !max-w-none flex h-dvh flex-col overflow-hidden p-0 bg-card"
+        >
+          {!match ? (
+            <SheetHeader className="shrink-0 border-b border-border px-4 py-3">
+              <Skeleton className="h-6 w-40" />
+            </SheetHeader>
+          ) : (
+            <>
+              <SheetHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <SheetTitle className="truncate text-sm font-semibold">{matchName}</SheetTitle>
+                    <p className="truncate text-xs text-muted-foreground">{competition}</p>
+                  </div>
+                  {shareButton}
                 </div>
-
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="size-8 border-border bg-transparent hover:bg-muted text-muted-foreground hover:text-foreground shrink-0"
-                  onClick={handleShare}
-                  aria-label="Share match odds"
-                >
-                  <Share2 className="size-4" />
-                </Button>
-              </div>
-
-              {/* Countdown block */}
-              <div className="py-2">
-                <CountdownTimer startTime={match.startTime} isLive={match.isLive} />
-              </div>
-
-              {/* Centered Team Names with VS Badge */}
-              <div className="flex flex-col items-center gap-1.5 px-4 text-center">
-                <div className="flex items-center justify-center flex-wrap gap-2.5 max-w-full">
-                  <span className="text-base font-extrabold text-foreground truncate max-w-[160px] sm:max-w-xs">
-                    {match.homeTeam}
-                  </span>
-                  <span className="text-[10px] font-bold text-muted-foreground/80 px-2 py-0.5 rounded border border-border/80 bg-muted/20 uppercase">
-                    vs
-                  </span>
-                  <span className="text-base font-extrabold text-foreground truncate max-w-[160px] sm:max-w-xs">
-                    {match.awayTeam}
-                  </span>
-                </div>
-                <span className="text-[11px] font-medium text-muted-foreground/80">
-                  Start: {formatStartTime(match.startTime)}
-                </span>
-              </div>
-            </div>
-
-            <MarketsBrowser
-              match={match}
-              queryEnabled
-              mode="page"
-              className="flex-1"
-            />
-          </>
-        )}
-      </main>
-      <BottomNav liveCount={liveCount} />
-    </div>
+              </SheetHeader>
+              {content}
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+      <ShareModal open={shareOpen} onOpenChange={setShareOpen} matchName={matchName} />
+    </>
   )
 }
