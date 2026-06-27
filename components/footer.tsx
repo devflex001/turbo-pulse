@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { openSupportChat } from "@/lib/support-chat"
 
 export function Footer() {
   const pathname = usePathname()
@@ -32,9 +33,13 @@ export function Footer() {
             <Link href="/#faqs" className="transition-colors hover:text-foreground">
               FAQs
             </Link>
-            <Link href="mailto:support@betflexx.com" className="transition-colors hover:text-foreground">
+            <button
+              type="button"
+              onClick={() => openSupportChat()}
+              className="transition-colors hover:text-foreground"
+            >
               Contact
-            </Link>
+            </button>
             <Link href="/" className="transition-colors hover:text-foreground">
               Privacy
             </Link>

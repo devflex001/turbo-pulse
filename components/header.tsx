@@ -27,7 +27,8 @@ import {
   X,
   Settings,
   ArrowUpRight,
-  Menu
+  Menu,
+  MessageCircle,
 } from "lucide-react"
 import {
   LoginModal,
@@ -39,6 +40,7 @@ import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescri
 import { Betslip } from "./betslip"
 import { Sidebar } from "./sidebar"
 import { NotificationsCenter } from "./notifications-center"
+import { openSupportChat } from "@/lib/support-chat"
 
 export function Header() {
   const router = useRouter()
@@ -183,6 +185,14 @@ export function Header() {
                     <DropdownMenuItem className="sm:hidden flex items-center justify-between text-xs py-2">
                       <span className="flex items-center gap-2"><Wallet className="size-3.5 text-[#4b9f71]" /> Balance:</span>
                       <span className="font-semibold">KES {walletBalance.toLocaleString()}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        openSupportChat()
+                      }}
+                    >
+                      <MessageCircle className="mr-2 h-4 w-4 text-[#25d366]" />
+                      <span>Support Chat</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => router.push("/account")}>
                       <User className="mr-2 h-4 w-4 text-blue-500" />

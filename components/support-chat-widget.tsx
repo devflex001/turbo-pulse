@@ -25,6 +25,15 @@ export function SupportChatWidget() {
     authArgs ?? "skip"
   )
 
+  // Allow other components (sidebar, header menu, footer) to open the chat
+  React.useEffect(() => {
+    function handleOpen() {
+      setOpen(true)
+    }
+    window.addEventListener("open-support-chat", handleOpen)
+    return () => window.removeEventListener("open-support-chat", handleOpen)
+  }, [])
+
   if (pathname?.startsWith("/admin")) {
     return null
   }

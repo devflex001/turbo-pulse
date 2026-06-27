@@ -21,9 +21,17 @@ import {
   CircleDot,
   LayoutGrid,
   Users,
+  MessageCircle,
+  ChevronDown,
 } from "lucide-react"
 import { useAuth } from "@/lib/auth/AuthContext"
+import { openSupportChat } from "@/lib/support-chat"
 import { useRouter, usePathname } from "next/navigation"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 
 interface SidebarProps {
   className?: string
@@ -224,6 +232,18 @@ export function Sidebar({ className, onClose }: SidebarProps) {
               </Button>
             </>
           )}
+
+          <Button
+            variant="ghost"
+            className="h-9 w-full text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground justify-start gap-2.5 px-3"
+            onClick={() => {
+              onClose?.()
+              openSupportChat()
+            }}
+          >
+            <MessageCircle className="size-4 shrink-0 text-[#25d366]" />
+            <span>Support</span>
+          </Button>
         </div>
       </div>
 
@@ -277,50 +297,58 @@ export function Sidebar({ className, onClose }: SidebarProps) {
         </div>
       </div>
 
-      <div className="pb-6 px-4">
-        <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Competitions
-        </h2>
-        <div className="space-y-1 w-full">
-          {!competitions ? (
-            <>
-              <Skeleton className="h-9 w-full" />
-              <Skeleton className="h-9 w-full" />
-            </>
-          ) : (
-            competitions.map((competition) => {
-              const isActive = selectedLeague === competition
-              const isAllLeagues = competition === "All Leagues"
+      <Collapsible defaultOpen={false} className="pb-6 px-4">
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="group mb-1 flex w-full items-center justify-between rounded-md px-2 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:bg-accent/50"
+          >
+            <span>Leagues</span>
+            <ChevronDown className="size-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="space-y-1 w-full pt-1">
+            {!competitions ? (
+              <>
+                <Skeleton className="h-9 w-full" />
+                <Skeleton className="h-9 w-full" />
+              </>
+            ) : (
+              competitions.map((competition) => {
+                const isActive = selectedLeague === competition
+                const isAllLeagues = competition === "All Leagues"
 
-              return (
-                <Button
-                  key={competition}
-                  variant="ghost"
-                  className={cn(
-                    "h-9 w-full text-sm font-normal justify-between px-3 text-left",
-                    isActive
-                      ? "bg-[#4b9f71]/10 font-semibold text-[#4b9f71] hover:bg-[#4b9f71]/15 hover:text-[#4b9f71]"
-                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-                  )}
-                  onClick={() => {
-                    onClose?.()
-                    setSelectedLeague(competition)
-                    setActiveTab("home")
-                    if (pathname !== "/") {
-                      router.push("/")
-                    }
-                  }}
-                >
-                  <span className="min-w-0 truncate">{competition}</span>
-                  {isAllLeagues && (
-                    <Trophy className={cn("size-4 shrink-0", isActive ? "text-[#4b9f71]" : "text-muted-foreground")} />
-                  )}
-                </Button>
-              )
-            })
-          )}
-        </div>
-      </div>
+                return (
+                  <Button
+                    key={competition}
+                    variant="ghost"
+                    className={cn(
+                      "h-9 w-full text-sm font-normal justify-between px-3 text-left",
+                      isActive
+                        ? "bg-[#4b9f71]/10 font-semibold text-[#4b9f71] hover:bg-[#4b9f71]/15 hover:text-[#4b9f71]"
+                        : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                    )}
+                    onClick={() => {
+                      onClose?.()
+                      setSelectedLeague(competition)
+                      setActiveTab("home")
+                      if (pathname !== "/") {
+                        router.push("/")
+                      }
+                    }}
+                  >
+                    <span className="min-w-0 truncate">{competition}</span>
+                    {isAllLeagues && (
+                      <Trophy className={cn("size-4 shrink-0", isActive ? "text-[#4b9f71]" : "text-muted-foreground")} />
+                    )}
+                  </Button>
+                )
+              })
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </aside>
   )
 }

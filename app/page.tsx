@@ -14,13 +14,12 @@ import { Betslip } from "@/components/betslip"
 import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { RegisterModal } from "@/components/modals"
 import { ReferralSignupModal } from "@/components/referral-signup-modal"
 import { useAuth } from "@/lib/auth/AuthContext"
+import { openSupportChat } from "@/lib/support-chat"
 import { cn } from "@/lib/utils"
-import { toast } from "sonner"
 import {
   Flame,
   HelpCircle,
@@ -179,10 +178,6 @@ export default function Page() {
   }) as string[] | undefined
 
   const [slideIndex, setSlideIndex] = React.useState(0)
-  const [contactName, setContactName] = React.useState("")
-  const [contactEmail, setContactEmail] = React.useState("")
-  const [contactMsg, setContactMsg] = React.useState("")
-  const [isSendingContact, setIsSendingContact] = React.useState(false)
 
   React.useEffect(() => {
     const timer = setInterval(() => {
@@ -234,23 +229,6 @@ export default function Page() {
         .map(([id, count]) => ({ id, label: titleCase(id), count })),
     ]
   }, [countedMatches])
-
-  const handleContactSubmit = (event: React.FormEvent) => {
-    event.preventDefault()
-    if (!contactName.trim() || !contactEmail.trim() || !contactMsg.trim()) {
-      toast.error("Please fill in all contact fields")
-      return
-    }
-
-    setIsSendingContact(true)
-    setTimeout(() => {
-      toast.success("Thank you. Your message has been sent.")
-      setIsSendingContact(false)
-      setContactName("")
-      setContactEmail("")
-      setContactMsg("")
-    }, 900)
-  }
 
   const liveCount = displayedMatches.filter((match) => match.isLive).length
 
@@ -535,41 +513,6 @@ export default function Page() {
               </div>
             )}
 
-            {activeTab === "contact" && (
-              <div className="space-y-6 max-w-xl">
-                <div className="border border-border rounded-lg bg-card p-4 space-y-4">
-                  <div>
-                    <h2 className="text-sm font-bold">Contact Support</h2>
-                    <p className="text-xs text-muted-foreground">Send a message to the BetFlexx support team.</p>
-                  </div>
-                  <form onSubmit={handleContactSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-name">Full Name <span className="text-destructive">*</span></label>
-                      <Input id="c-name" value={contactName} onChange={(event) => setContactName(event.target.value)} required />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-email">Email Address <span className="text-destructive">*</span></label>
-                      <Input id="c-email" type="email" value={contactEmail} onChange={(event) => setContactEmail(event.target.value)} required />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-muted-foreground block" htmlFor="c-msg">Message <span className="text-destructive">*</span></label>
-                      <textarea
-                        id="c-msg"
-                        rows={4}
-                        value={contactMsg}
-                        onChange={(event) => setContactMsg(event.target.value)}
-                        required
-                        className="w-full text-sm p-3 rounded-md bg-transparent border border-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary"
-                      />
-                    </div>
-                    <Button type="submit" disabled={isSendingContact} className="w-full font-semibold">
-                      {isSendingContact ? "Sending..." : "Submit Message"}
-                    </Button>
-                  </form>
-                </div>
-              </div>
-            )}
-
             {!activeTab && (
               <>
                 {matches !== undefined && (
@@ -657,7 +600,7 @@ export default function Page() {
               <div className="flex gap-4">
                 <span className="hover:text-foreground cursor-pointer" onClick={() => setActiveTab("how-it-works")}>How It Works</span>
                 <span className="hover:text-foreground cursor-pointer" onClick={() => setActiveTab("faqs")}>FAQs</span>
-                <span className="hover:text-foreground cursor-pointer" onClick={() => setActiveTab("contact")}>Contact Support</span>
+                <span className="hover:text-foreground cursor-pointer" onClick={() => openSupportChat()}>Contact Support</span>
               </div>
             </footer>
           </main >
