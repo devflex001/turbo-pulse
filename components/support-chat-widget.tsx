@@ -3,7 +3,7 @@
 import * as React from "react"
 import { usePathname } from "next/navigation"
 import { useQuery } from "convex/react"
-import { MessageCircle } from "lucide-react"
+import { MessageCircle, X } from "lucide-react"
 
 import { api } from "@/convex/_generated/api"
 import { useAuth } from "@/lib/auth/AuthContext"
@@ -11,10 +11,22 @@ import { getSessionToken } from "@/lib/auth/session"
 import { Button } from "@/components/ui/button"
 import { WhatsAppChat } from "@/components/support/whatsapp-chat"
 
+const DISMISSED_KEY = "support-widget-dismissed"
+
 export function SupportChatWidget() {
   const pathname = usePathname()
   const { user, isLoading } = useAuth()
   const [open, setOpen] = React.useState(false)
+  const [dismissed, setDismissed] = React.useState(false)
+
+  // Read dismissed state from localStorage on mount
+  React.useEffect(() => {
+    try {
+      setDismissed(localStorage.getItem(DISMISSED_KEY) === "true")
+    } catch {
+      // ignore – localStorage may be unavailable in some environments
+    }
+  }, [])
 
   const sessionToken = getSessionToken()
   const authArgs =
@@ -34,14 +46,34 @@ export function SupportChatWidget() {
     return () => window.removeEventListener("open-support-chat", handleOpen)
   }, [])
 
+  function handleDismiss(e: React.MouseEvent) {
+    e.stopPropagation()
+    try {
+      localStorage.setItem(DISMISSED_KEY, "true")
+    } catch {
+      // ignore
+    }
+    setDismissed(true)
+  }
+
   if (pathname?.startsWith("/admin")) {
     return null
   }
 
   return (
     <>
-      {!open && (
+      {!open && !dismissed && (
         <div className="fixed bottom-20 right-4 z-50 lg:bottom-6">
+          {/* Dismiss (X) button — top-left corner of the FAB */}
+          <button
+            type="button"
+            aria-label="Dismiss support chat"
+            onClick={handleDismiss}
+            className="absolute -left-2 -top-2 z-10 flex size-5 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <X className="size-3" />
+          </button>
+
           <Button
             type="button"
             size="icon"

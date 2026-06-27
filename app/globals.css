@@ -164,10 +164,10 @@
   --event-secondary-foreground: oklch(0.98 0 0);
 }
 
-/* Custom scrollbar styles */
+/* Custom scrollbar — thin, themed, works in both light and dark */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -175,10 +175,16 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted) / 1);
-  border-radius: 4px;
+  background: var(--color-border);
+  border-radius: 99px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 1);
+  background: var(--color-muted-foreground);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
 }
