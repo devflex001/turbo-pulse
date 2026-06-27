@@ -487,6 +487,29 @@ const schema = defineSchema({
     .index("by_referredUserId", ["referredUserId"])
     .index("by_status", ["status"])
     .index("by_referrerId_and_status", ["referrerId", "status"]),
+
+  support_conversations: defineTable({
+    userId: v.id("users"),
+    status: v.union(v.literal("open"), v.literal("closed")),
+    lastMessageAt: v.number(),
+    lastMessagePreview: v.optional(v.string()),
+    unreadByAdmin: v.number(),
+    unreadByUser: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_lastMessageAt", ["lastMessageAt"])
+    .index("by_status_and_lastMessageAt", ["status", "lastMessageAt"]),
+
+  support_messages: defineTable({
+    conversationId: v.id("support_conversations"),
+    senderId: v.id("users"),
+    senderRole: v.union(v.literal("user"), v.literal("admin")),
+    body: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_conversationId", ["conversationId"])
+    .index("by_conversationId_and_createdAt", ["conversationId", "createdAt"]),
 })
 
 export default schema

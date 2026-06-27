@@ -42,6 +42,7 @@ import {
   Zap,
   Globe,
   ServerCog,
+  MessageSquare,
 } from "lucide-react"
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
@@ -54,6 +55,7 @@ const coreNavItems = [
   { id: "referrals", label: "Referrals", icon: Zap, href: "/admin/referrals" },
   { id: "payments", label: "Payments", icon: ArrowUpRight, href: "/admin/payments" },
   { id: "withdrawals", label: "Withdrawals", icon: ArrowDownLeft, href: "/admin/withdrawals" },
+  { id: "support", label: "Support", icon: MessageSquare, href: "/admin/support" },
 ]
 
 const operationsNavItems = [

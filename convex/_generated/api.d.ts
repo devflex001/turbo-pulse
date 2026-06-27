@@ -36,6 +36,7 @@ import type * as scraperValidators from "../scraperValidators.js";
 import type * as scrapers_kwikbet from "../scrapers/kwikbet.js";
 import type * as scrapers_types from "../scrapers/types.js";
 import type * as sportsData from "../sportsData.js";
+import type * as supportChat from "../supportChat.js";
 import type * as tests_walletIsolationTest from "../tests/walletIsolationTest.js";
 import type * as withdrawals from "../withdrawals.js";
 
@@ -74,6 +75,7 @@ declare const fullApi: ApiFromModules<{
   "scrapers/kwikbet": typeof scrapers_kwikbet;
   "scrapers/types": typeof scrapers_types;
   sportsData: typeof sportsData;
+  supportChat: typeof supportChat;
   "tests/walletIsolationTest": typeof tests_walletIsolationTest;
   withdrawals: typeof withdrawals;
 }>;

@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
 import { BetStoreProvider } from "@/hooks/use-bet-store"
 import { ConvexProvider } from "@/components/convex-provider"
+import { SupportChatWidget } from "@/components/support-chat-widget"
 
 const robotoHeading = Roboto({ subsets: ['latin'], variable: '--font-heading' })
 
@@ -36,6 +37,7 @@ export default function RootLayout({
                 <div className="flex flex-col">
                   {children}
                 </div>
+                <SupportChatWidget />
                 <Toaster richColors position="top-right" />
               </TooltipProvider>
             </BetStoreProvider>
