@@ -1,16 +1,64 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { requireAdmin, requireAuth } from "./auth/authorization";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
+import {
+  getUserIdFromSessionToken,
+  requireAuth,
+} from "./auth/authorization";
 import { notifyAdmins, notifyUser } from "./notifications";
 
 const MAX_MESSAGE_LENGTH = 2000;
+const MIN_DISPLAY_NAME_LENGTH = 2;
+const MAX_DISPLAY_NAME_LENGTH = 50;
+
+const authArgs = {
+  sessionToken: v.optional(v.string()),
+  userId: v.optional(v.id("users")),
+};
+
+async function resolveAuthenticatedUser(
+  ctx: QueryCtx | MutationCtx,
+  args: { sessionToken?: string; userId?: Id<"users"> }
+): Promise<Doc<"users">> {
+  if (args.sessionToken) {
+    const userId = await getUserIdFromSessionToken(ctx, args.sessionToken);
+    if (!userId) {
+      throw new Error("Invalid or expired session. Please log in again.");
+    }
+    const user = await ctx.db.get(userId);
+    if (!user) {
+      throw new Error("User not found.");
+    }
+    return user;
+  }
+
+  if (args.userId) {
+    return await requireAuth(ctx, args.userId);
+  }
+
+  throw new Error("Authentication required. Please log in.");
+}
+
+function normalizeDisplayName(value: string) {
+  return value.trim().replace(/\s+/g, " ");
+}
+
+function validateDisplayName(displayName: string) {
+  const normalized = normalizeDisplayName(displayName);
+  if (normalized.length < MIN_DISPLAY_NAME_LENGTH) {
+    throw new Error(`Name must be at least ${MIN_DISPLAY_NAME_LENGTH} characters.`);
+  }
+  if (normalized.length > MAX_DISPLAY_NAME_LENGTH) {
+    throw new Error(`Name must be ${MAX_DISPLAY_NAME_LENGTH} characters or fewer.`);
+  }
+  return normalized;
+}
 
 export const getMyConversation = query({
-  args: {
-    userId: v.id("users"),
-  },
+  args: authArgs,
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.userId);
+    const user = await resolveAuthenticatedUser(ctx, args);
 
     return await ctx.db
       .query("support_conversations")
@@ -21,11 +69,11 @@ export const getMyConversation = query({
 
 export const getMessages = query({
   args: {
-    userId: v.id("users"),
+    ...authArgs,
     conversationId: v.id("support_conversations"),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.userId);
+    const user = await resolveAuthenticatedUser(ctx, args);
     const conversation = await ctx.db.get(args.conversationId);
 
     if (!conversation) {
@@ -50,11 +98,13 @@ export const getMessages = query({
 });
 
 export const listConversations = query({
-  args: {
-    userId: v.id("users"),
-  },
+  args: authArgs,
   handler: async (ctx, args) => {
-    await requireAdmin(ctx, args.userId);
+    const user = await resolveAuthenticatedUser(ctx, args);
+
+    if (user.role !== "admin") {
+      throw new Error("Admin access required.");
+    }
 
     const conversations = await ctx.db
       .query("support_conversations")
@@ -68,6 +118,7 @@ export const listConversations = query({
         return {
           ...conversation,
           userPhone: user?.phone ?? "Unknown",
+          displayName: conversation.displayName ?? user?.phone ?? "Unknown",
         };
       })
     );
@@ -76,14 +127,56 @@ export const listConversations = query({
   },
 });
 
+export const initSupportChat = mutation({
+  args: {
+    ...authArgs,
+    displayName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await resolveAuthenticatedUser(ctx, args);
+
+    if (user.role === "admin") {
+      throw new Error("Admins cannot start a user support conversation.");
+    }
+
+    const displayName = validateDisplayName(args.displayName);
+
+    const existing = await ctx.db
+      .query("support_conversations")
+      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .first();
+
+    if (existing) {
+      if (!existing.displayName) {
+        await ctx.db.patch(existing._id, { displayName });
+      }
+      return { success: true, conversationId: existing._id, displayName };
+    }
+
+    const now = Date.now();
+    const conversationId = await ctx.db.insert("support_conversations", {
+      userId: user._id,
+      displayName,
+      status: "open",
+      lastMessageAt: now,
+      lastMessagePreview: undefined,
+      unreadByAdmin: 0,
+      unreadByUser: 0,
+      createdAt: now,
+    });
+
+    return { success: true, conversationId, displayName };
+  },
+});
+
 export const sendMessage = mutation({
   args: {
-    userId: v.id("users"),
+    ...authArgs,
     conversationId: v.optional(v.id("support_conversations")),
     body: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.userId);
+    const user = await resolveAuthenticatedUser(ctx, args);
     const body = args.body.trim();
 
     if (!body) {
@@ -101,29 +194,27 @@ export const sendMessage = mutation({
       if (!conversation) {
         throw new Error("Conversation ID required");
       }
-    } else if (conversation) {
-      if (conversation.userId !== user._id) {
-        throw new Error("Conversation not found");
-      }
     } else {
-      conversation = await ctx.db
-        .query("support_conversations")
-        .withIndex("by_userId", (q) => q.eq("userId", user._id))
-        .first();
+      if (conversation) {
+        if (conversation.userId !== user._id) {
+          throw new Error("Conversation not found");
+        }
+      } else {
+        conversation = await ctx.db
+          .query("support_conversations")
+          .withIndex("by_userId", (q) => q.eq("userId", user._id))
+          .first();
+        if (conversation) {
+          conversationId = conversation._id;
+        }
+      }
 
       if (!conversation) {
-        conversationId = await ctx.db.insert("support_conversations", {
-          userId: user._id,
-          status: "open",
-          lastMessageAt: Date.now(),
-          lastMessagePreview: body.slice(0, 100),
-          unreadByAdmin: 0,
-          unreadByUser: 0,
-          createdAt: Date.now(),
-        });
-        conversation = await ctx.db.get(conversationId);
-      } else {
-        conversationId = conversation._id;
+        throw new Error("Please enter your name before sending a message.");
+      }
+
+      if (!conversation.displayName) {
+        throw new Error("Please enter your name before sending a message.");
       }
     }
 
@@ -135,7 +226,7 @@ export const sendMessage = mutation({
     const preview = body.slice(0, 100);
     const senderRole = user.role === "admin" ? "admin" : "user";
 
-    await ctx.db.insert("support_messages", {
+    const messageId = await ctx.db.insert("support_messages", {
       conversationId,
       senderId: user._id,
       senderRole,
@@ -151,13 +242,17 @@ export const sendMessage = mutation({
         status: "open",
       });
 
-      await notifyUser(ctx, {
-        recipientUserId: conversation.userId,
-        type: "system",
-        title: "Support replied",
-        message: preview,
-        href: "/",
-      });
+      try {
+        await notifyUser(ctx, {
+          recipientUserId: conversation.userId,
+          type: "system",
+          title: "Support replied",
+          message: preview,
+          href: "/",
+        });
+      } catch (error) {
+        console.error("Failed to notify user about support reply:", error);
+      }
     } else {
       await ctx.db.patch(conversationId, {
         lastMessageAt: now,
@@ -166,26 +261,31 @@ export const sendMessage = mutation({
         status: "open",
       });
 
-      await notifyAdmins(ctx, {
-        type: "system",
-        title: "New support message",
-        message: `${user.phone}: ${preview}`,
-        href: "/admin/support",
-        dedupeKey: `support:${conversationId}:${now}`,
-      });
+      try {
+        const label = conversation.displayName ?? user.phone;
+        await notifyAdmins(ctx, {
+          type: "system",
+          title: "New support message",
+          message: `${label}: ${preview}`,
+          href: "/admin/support",
+          dedupeKey: `support:${conversationId}:${messageId}`,
+        });
+      } catch (error) {
+        console.error("Failed to notify admins about support message:", error);
+      }
     }
 
-    return { success: true, conversationId };
+    return { success: true, conversationId, messageId };
   },
 });
 
 export const markAsRead = mutation({
   args: {
-    userId: v.id("users"),
+    ...authArgs,
     conversationId: v.id("support_conversations"),
   },
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.userId);
+    const user = await resolveAuthenticatedUser(ctx, args);
     const conversation = await ctx.db.get(args.conversationId);
 
     if (!conversation) {
@@ -205,11 +305,9 @@ export const markAsRead = mutation({
 });
 
 export const getUnreadCount = query({
-  args: {
-    userId: v.id("users"),
-  },
+  args: authArgs,
   handler: async (ctx, args) => {
-    const user = await requireAuth(ctx, args.userId);
+    const user = await resolveAuthenticatedUser(ctx, args);
 
     if (user.role === "admin") {
       const conversations = await ctx.db
@@ -218,7 +316,10 @@ export const getUnreadCount = query({
         .order("desc")
         .take(100);
 
-      return conversations.reduce((sum, conversation) => sum + conversation.unreadByAdmin, 0);
+      return conversations.reduce(
+        (sum, conversation) => sum + conversation.unreadByAdmin,
+        0
+      );
     }
 
     const conversation = await ctx.db
@@ -232,11 +333,15 @@ export const getUnreadCount = query({
 
 export const closeConversation = mutation({
   args: {
-    userId: v.id("users"),
+    ...authArgs,
     conversationId: v.id("support_conversations"),
   },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx, args.userId);
+    const user = await resolveAuthenticatedUser(ctx, args);
+
+    if (user.role !== "admin") {
+      throw new Error("Admin access required.");
+    }
 
     const conversation = await ctx.db.get(args.conversationId);
     if (!conversation) {
@@ -250,11 +355,15 @@ export const closeConversation = mutation({
 
 export const reopenConversation = mutation({
   args: {
-    userId: v.id("users"),
+    ...authArgs,
     conversationId: v.id("support_conversations"),
   },
   handler: async (ctx, args) => {
-    await requireAdmin(ctx, args.userId);
+    const user = await resolveAuthenticatedUser(ctx, args);
+
+    if (user.role !== "admin") {
+      throw new Error("Admin access required.");
+    }
 
     const conversation = await ctx.db.get(args.conversationId);
     if (!conversation) {

@@ -8,6 +8,7 @@ import { toast } from "sonner"
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
 import { useAuth } from "@/lib/auth/AuthContext"
+import { getSessionToken } from "@/lib/auth/session"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -17,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea"
 type Conversation = {
   _id: Id<"support_conversations">
   userId: Id<"users">
+  displayName?: string
   status: "open" | "closed"
   lastMessageAt: number
   lastMessagePreview?: string
@@ -33,6 +35,16 @@ type SupportMessage = {
   senderRole: "user" | "admin"
   body: string
   createdAt: number
+}
+
+function useSupportAuthArgs() {
+  const { user } = useAuth()
+  const sessionToken = getSessionToken()
+
+  return React.useMemo(() => {
+    if (!user || !sessionToken) return null
+    return { sessionToken, userId: user._id }
+  }, [user, sessionToken])
 }
 
 function formatRelativeTime(value: number) {
@@ -107,13 +119,18 @@ function ConversationList({
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="truncate text-sm font-semibold">{conversation.userPhone}</p>
+                  <p className="truncate text-sm font-semibold">
+                    {conversation.displayName ?? conversation.userPhone}
+                  </p>
                   {conversation.status === "closed" && (
                     <Badge variant="outline" className="h-5 text-[10px]">
                       Closed
                     </Badge>
                   )}
                 </div>
+                <p className="truncate text-[11px] text-muted-foreground">
+                  {conversation.userPhone}
+                </p>
                 <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
                   {conversation.lastMessagePreview ?? "No messages yet"}
                 </p>
@@ -137,10 +154,10 @@ function ConversationList({
 }
 
 function AdminChatThread({
-  userId,
+  authArgs,
   conversation,
 }: {
-  userId: Id<"users">
+  authArgs: { sessionToken: string; userId: Id<"users"> }
   conversation: Conversation
 }) {
   const [draft, setDraft] = React.useState("")
@@ -153,13 +170,13 @@ function AdminChatThread({
   const reopenConversation = useMutation(api.supportChat.reopenConversation)
 
   const messages = useQuery(api.supportChat.getMessages, {
-    userId,
+    ...authArgs,
     conversationId: conversation._id,
   }) as SupportMessage[] | undefined
 
   React.useEffect(() => {
-    markAsRead({ userId, conversationId: conversation._id }).catch(() => {})
-  }, [conversation._id, userId, markAsRead, messages?.length])
+    markAsRead({ ...authArgs, conversationId: conversation._id }).catch(() => {})
+  }, [authArgs, conversation._id, markAsRead, messages?.length])
 
   React.useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -172,7 +189,7 @@ function AdminChatThread({
     try {
       setIsSending(true)
       await sendMessage({
-        userId,
+        ...authArgs,
         conversationId: conversation._id,
         body,
       })
@@ -187,10 +204,10 @@ function AdminChatThread({
   async function toggleStatus() {
     try {
       if (conversation.status === "open") {
-        await closeConversation({ userId, conversationId: conversation._id })
+        await closeConversation({ ...authArgs, conversationId: conversation._id })
         toast.success("Conversation closed")
       } else {
-        await reopenConversation({ userId, conversationId: conversation._id })
+        await reopenConversation({ ...authArgs, conversationId: conversation._id })
         toast.success("Conversation reopened")
       }
     } catch (error) {
@@ -209,7 +226,10 @@ function AdminChatThread({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div>
-          <p className="text-sm font-semibold">{conversation.userPhone}</p>
+          <p className="text-sm font-semibold">
+            {conversation.displayName ?? conversation.userPhone}
+          </p>
+          <p className="text-xs text-muted-foreground">{conversation.userPhone}</p>
           <p className="text-xs text-muted-foreground">
             {conversation.status === "open" ? "Active conversation" : "Closed conversation"}
           </p>
@@ -293,14 +313,14 @@ function AdminChatThread({
 }
 
 export function AdminSupportPanel() {
-  const { user } = useAuth()
+  const authArgs = useSupportAuthArgs()
   const [selectedId, setSelectedId] =
     React.useState<Id<"support_conversations"> | null>(null)
   const [showThreadOnMobile, setShowThreadOnMobile] = React.useState(false)
 
   const conversations = useQuery(
     api.supportChat.listConversations,
-    user ? { userId: user._id } : "skip"
+    authArgs ?? "skip"
   ) as Conversation[] | undefined
 
   const selectedConversation =
@@ -317,7 +337,7 @@ export function AdminSupportPanel() {
     setShowThreadOnMobile(true)
   }
 
-  if (!user) {
+  if (!authArgs) {
     return null
   }
 
@@ -376,7 +396,7 @@ export function AdminSupportPanel() {
                   Back
                 </Button>
               </div>
-              <AdminChatThread userId={user._id} conversation={selectedConversation} />
+              <AdminChatThread authArgs={authArgs} conversation={selectedConversation} />
             </>
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">

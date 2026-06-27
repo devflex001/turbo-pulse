@@ -490,6 +490,7 @@ const schema = defineSchema({
 
   support_conversations: defineTable({
     userId: v.id("users"),
+    displayName: v.optional(v.string()),
     status: v.union(v.literal("open"), v.literal("closed")),
     lastMessageAt: v.number(),
     lastMessagePreview: v.optional(v.string()),
