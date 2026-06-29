@@ -242,7 +242,10 @@ export function PaystackDepositSheet() {
       const sanitizedPhone = userPhone.replace(/[^a-zA-Z0-9]/g, "")
       const placeholderEmail = `user${sanitizedPhone}@betflexx.com`
 
-      const paystack = window.PaystackPop.setup({
+      // Use new Paystack API (constructor-based)
+      const paystack = new window.PaystackPop()
+
+      paystack.newTransaction({
         key: paystackPublicKey,
         email: placeholderEmail,
         amount: Math.floor(depositAmount * 100), // Amount in cents
@@ -251,7 +254,7 @@ export function PaystackDepositSheet() {
           console.log("[Paystack] Transaction successful:", transaction)
           handlePaystackSuccess(transaction)
         },
-        onClose: () => {
+        onCancel: () => {
           console.log("[Paystack] Modal closed")
           if (stage === "pending_user_action") {
             handlePaystackCancel()
@@ -259,7 +262,6 @@ export function PaystackDepositSheet() {
         },
       })
 
-      paystack.openIframe()
       setStage("pending_user_action")
     } catch (error) {
       console.error("[Paystack] Failed to open modal:", error)
