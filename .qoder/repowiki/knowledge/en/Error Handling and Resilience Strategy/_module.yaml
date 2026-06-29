@@ -1,0 +1,15 @@
+schema_version: 1
+module_path: error_handling
+title: Error Handling and Resilience Strategy
+scope: []
+source_files:
+    - lib/mpesa-service.ts
+    - lib/rate-limit.ts
+    - app/api/mpesa/callback/route.ts
+    - app/api/mpesa/initiate-stk/route.ts
+    - app/api/paystack/webhook/route.ts
+    - convex/mpesa.ts
+    - convex/bets.ts
+    - convex/auth/utils.ts
+depends_on: []
+related_to: []

@@ -6,9 +6,9 @@ import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import { ArrowDownToLine, Copy, Check, Loader, Lock } from "lucide-react"
+import { ArrowDownToLine, Loader, Lock } from "lucide-react"
 import { useAuth } from "@/lib/auth/AuthContext"
-import { MPesaLiveStatus, MPesaFeedback } from "@/components/mpesa-feedback"
+import { PaymentModal } from "@/components/payment-modal"
 
 const QUICK_AMOUNTS = [100, 250, 500, 1000, 2500, 5000]
 const MIN_AMOUNT = 10
@@ -24,16 +24,11 @@ type DepositStage =
   | "initiating"
   | "pending_user_action"
   | "processing"
-  | "complete"
+  | "success"
+  | "failed"
+  | "cancelled"
+  | "timeout"
   | "error"
-
-interface TransactionResult {
-  resultCode: string
-  resultDesc: string
-  mpesaReceiptNumber?: string
-  amount?: number
-  timestamp?: number
-}
 
 export function DepositSheet() {
   const { user } = useAuth()
@@ -55,13 +50,13 @@ export function DepositSheet() {
       setPhone(user.phone)
     }
   }, [user?.phone])
+
   const [stage, setStage] = React.useState<DepositStage>("idle")
-  const [transactionResult, setTransactionResult] = React.useState<TransactionResult | null>(
-    null
-  )
+  const [modalOpen, setModalOpen] = React.useState(false)
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const [checkoutRequestID, setCheckoutRequestID] = React.useState<string | null>(null)
-  const [copied, setCopied] = React.useState(false)
+  const [feedbackMessage, setFeedbackMessage] = React.useState<string>("")
+  const [mpesaReceipt, setMpesaReceipt] = React.useState<string | undefined>()
   const timeoutRef = React.useRef<NodeJS.Timeout | null>(null)
 
   // Query latest transaction status from database - listens for real-time updates
@@ -83,20 +78,21 @@ export function DepositSheet() {
     console.log("[Real-time] M-Pesa callback received:", latestTransaction)
 
     const resultCode = latestTransaction.resultCode
-    // Use feedback message from server - single source of truth
     const feedbackMessage = latestTransaction.feedback || `Transaction error: ${resultCode}`
 
-    // Mark complete immediately to prevent duplicate processing
-    setStage("complete")
+    // Map result code to stage
+    let newStage: DepositStage = "failed"
+    if (resultCode === "0") {
+      newStage = "success"
+    } else if (resultCode === "1" || resultCode === "1032") {
+      newStage = "cancelled"
+    } else if (resultCode === "2") {
+      newStage = "timeout"
+    }
 
-    // Set transaction result with server feedback
-    setTransactionResult({
-      resultCode: resultCode,
-      resultDesc: feedbackMessage,
-      mpesaReceiptNumber: latestTransaction.mpesaReceiptNumber,
-      amount: latestTransaction.amount,
-      timestamp: latestTransaction.updatedAt || Date.now(),
-    })
+    setStage(newStage)
+    setFeedbackMessage(feedbackMessage)
+    setMpesaReceipt(latestTransaction.mpesaReceiptNumber)
 
     // Show appropriate toast
     if (resultCode === "0") {
@@ -123,7 +119,8 @@ export function DepositSheet() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setErrorMessage(null)
-    setTransactionResult(null)
+    setFeedbackMessage("")
+    setMpesaReceipt(undefined)
 
     if (isLoading) {
       setErrorMessage("Loading configuration, please wait...")
@@ -148,6 +145,7 @@ export function DepositSheet() {
     }
 
     setStage("initiating")
+    setModalOpen(true)
 
     try {
       // Step 1: Initiate STK Push
@@ -166,6 +164,7 @@ export function DepositSheet() {
         const error = await response.json()
         setErrorMessage(error.message || "Failed to initiate payment")
         setStage("error")
+        setModalOpen(false)
         return
       }
 
@@ -186,15 +185,10 @@ export function DepositSheet() {
       setStage("pending_user_action")
 
       // Step 4: Set 60-second timeout as fallback
-      // M-Pesa callback will update the database immediately when user responds
       const timeoutId = setTimeout(() => {
         if (stage === "pending_user_action") {
-          setStage("complete")
-          setTransactionResult({
-            resultCode: "2",
-            resultDesc: "Request timed out - No response from M-Pesa",
-            timestamp: Date.now(),
-          })
+          setStage("timeout")
+          setFeedbackMessage("Request timed out - No response from M-Pesa")
           toast.error("Transaction timeout after 60 seconds")
         }
       }, 60000)
@@ -204,24 +198,41 @@ export function DepositSheet() {
       console.error("Deposit error:", error)
       setErrorMessage("Failed to initiate deposit")
       setStage("error")
+      setModalOpen(false)
     }
   }
 
   const handleReset = () => {
     setAmount("")
     setStage("idle")
-    setTransactionResult(null)
+    setFeedbackMessage("")
+    setMpesaReceipt(undefined)
     setErrorMessage(null)
     setCheckoutRequestID(null)
+    setModalOpen(false)
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
       timeoutRef.current = null
     }
   }
 
-  // Render based on stage
-  if (stage === "idle") {
-    return (
+  const handleModalClose = () => {
+    setModalOpen(false)
+    // Reset to idle after closing
+    if (stage === "success" || stage === "failed" || stage === "cancelled" || stage === "timeout") {
+      handleReset()
+    }
+  }
+
+  const getPaymentStage = (): "initiating" | "pending_user_action" | "processing" | "success" | "failed" | "cancelled" | "timeout" | "error" => {
+    // Map internal stages to payment modal stages
+    if (stage === "idle") return "initiating"
+    if (stage === "error") return "failed"
+    return stage as any
+  }
+
+  return (
+    <>
       <form onSubmit={handleSubmit} className="space-y-4">
         {errorMessage && (
           <div className="animate-in fade-in-50 slide-in-from-top-2 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
@@ -259,7 +270,7 @@ export function DepositSheet() {
                 type="button"
                 variant="outline"
                 size="sm"
-                className="text-xs h-8 font-medium animate-in fade-in-50"
+                className="text-xs h-8 font-medium animate-in fade-in-50 transition-all hover:scale-105"
                 style={{ animationDelay: `${idx * 25}ms` }}
                 onClick={() => setAmount(amt.toString())}
                 disabled={isLoading}
@@ -288,7 +299,7 @@ export function DepositSheet() {
         {/* Submit Button */}
         <Button
           type="submit"
-          className="w-full text-sm font-bold gap-2 h-10 animate-in fade-in-50"
+          className="w-full text-sm font-bold gap-2 h-10 animate-in fade-in-50 transition-all hover:scale-[1.02]"
           size="default"
           disabled={isLoading}
         >
@@ -300,7 +311,7 @@ export function DepositSheet() {
           ) : (
             <>
               <ArrowDownToLine className="h-4 w-4" />
-              Deposit
+              Deposit with M-Pesa
             </>
           )}
         </Button>
@@ -310,85 +321,19 @@ export function DepositSheet() {
           <span>Secured by M-Pesa API. Encrypted end-to-end.</span>
         </div>
       </form>
-    )
-  }
 
-  if (stage === "error") {
-    return (
-      <div className="space-y-4 animate-in fade-in-50 slide-in-from-bottom-4">
-        <MPesaLiveStatus
-          stage="error"
-          errorMessage={errorMessage || "An error occurred"}
-        />
-        <Button
-          className="w-full text-sm font-bold h-10"
-          onClick={handleReset}
-          variant="outline"
-        >
-          Try Again
-        </Button>
-      </div>
-    )
-  }
-
-  if (stage === "complete" && transactionResult) {
-    const handleCopyReceipt = () => {
-      if (transactionResult.mpesaReceiptNumber) {
-        navigator.clipboard.writeText(transactionResult.mpesaReceiptNumber)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
-      }
-    }
-
-    return (
-      <div className="space-y-3 animate-in fade-in-50 slide-in-from-bottom-4">
-        <MPesaFeedback
-          resultCode={transactionResult.resultCode}
-          resultDesc={transactionResult.resultDesc}
-          amount={transactionResult.amount}
-          transactionId={transactionResult.mpesaReceiptNumber}
-          timestamp={transactionResult.timestamp}
-        />
-
-        {transactionResult.mpesaReceiptNumber && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="w-full text-xs gap-2"
-            onClick={handleCopyReceipt}
-          >
-            {copied ? (
-              <>
-                <Check className="h-3 w-3" />
-                Copied
-              </>
-            ) : (
-              <>
-                <Copy className="h-3 w-3" />
-                Copy Receipt
-              </>
-            )}
-          </Button>
-        )}
-
-        <Button
-          className="w-full text-sm font-bold h-10"
-          onClick={handleReset}
-          variant={transactionResult.resultCode === "0" ? "default" : "outline"}
-        >
-          {transactionResult.resultCode === "0" ? "Deposit Again" : "Try Again"}
-        </Button>
-      </div>
-    )
-  }
-
-  // Rendering: initiating, pending_user_action, processing
-  return (
-    <MPesaLiveStatus
-      stage={stage as "initiating" | "pending_user_action" | "processing"}
-      amount={parseFloat(amount) || undefined}
-      phone={phone}
-    />
+      <PaymentModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        stage={getPaymentStage()}
+        amount={parseFloat(amount) || undefined}
+        phone={phone}
+        provider="mpesa"
+        message={feedbackMessage}
+        mpesaReceiptNumber={mpesaReceipt}
+        onReset={handleReset}
+        onClose={handleModalClose}
+      />
+    </>
   )
 }

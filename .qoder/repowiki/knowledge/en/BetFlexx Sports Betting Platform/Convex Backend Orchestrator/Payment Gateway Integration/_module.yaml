@@ -1,0 +1,13 @@
+schema_version: 1
+module_path: backend/payment_gateways
+title: Payment Gateway Integration
+scope:
+    - convex/mpesa.ts
+    - convex/paystack.ts
+    - convex/daraja.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: backend/payment_operations
+    - path: backend/user_support
+    - path: frontend

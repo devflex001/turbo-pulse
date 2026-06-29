@@ -22,8 +22,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify webhook signature
-    const secretKey = process.env.PAYSTACK_SECRET_KEY
+    // Get secret key from database or environment
+    let secretKey = process.env.PAYSTACK_SECRET_KEY
+
+    try {
+      const { fetchQuery } = await import("convex/nextjs")
+      const config = await fetchQuery(api.paystack.getConfig)
+
+      if (config && config.secretKey) {
+        secretKey = config.secretKey
+        console.log("[Paystack Webhook] Using secret key from database:", config.source)
+      }
+    } catch (error) {
+      console.warn("[Paystack Webhook] Could not fetch from database, using env:", error)
+    }
+
     if (!secretKey) {
       console.error("[Paystack Webhook] Secret key not configured")
       return NextResponse.json(
@@ -32,6 +45,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Verify webhook signature
     const hash = crypto.createHmac("sha512", secretKey).update(body).digest("hex")
 
     if (hash !== signature) {

@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     // ── Verify with Paystack ─────────────────────────────────────────────────
     console.log(`[Paystack API] Verifying transaction: ${reference}`)
-    const paystack = initializePaystackService()
+    const paystack = await initializePaystackService()
     const verification = await paystack.verifyTransaction(reference)
 
     if (!verification.status) {

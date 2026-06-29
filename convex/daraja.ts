@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server"
+import { mutation, query, action } from "./_generated/server"
 import { v } from "convex/values"
 
 /**
@@ -141,7 +141,7 @@ export const deleteConfig = mutation({
 /**
  * Test configuration
  */
-export const testConfig = mutation({
+export const testConfig = action({
   args: {
     consumerKey: v.string(),
     consumerSecret: v.string(),

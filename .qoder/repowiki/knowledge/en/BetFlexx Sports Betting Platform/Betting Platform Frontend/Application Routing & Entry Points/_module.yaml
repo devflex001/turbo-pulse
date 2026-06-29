@@ -1,0 +1,8 @@
+schema_version: 1
+module_path: frontend/app_routes
+title: Application Routing & Entry Points
+scope:
+    - app/
+source_files: []
+depends_on: []
+related_to: []

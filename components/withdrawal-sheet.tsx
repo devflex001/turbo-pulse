@@ -134,15 +134,17 @@ export function WithdrawalSheet({ onSuccess }: { onSuccess?: () => void }) {
     }
     const sanitizedPhone = (user?.phone ?? "user").replace(/[^a-zA-Z0-9]/g, "")
     const email = `user${sanitizedPhone}@betflexx.com`
-    const popup = window.PaystackPop.setup({
+
+    // Use new Paystack API
+    const popup = new window.PaystackPop()
+    popup.newTransaction({
       key: paystackPublicKey,
       email,
       amount: Math.round(opts.amountKes * 100),
       ref: opts.ref,
       onSuccess: (tx) => opts.onSuccess(tx.reference),
-      onClose: opts.onCancel,
+      onCancel: opts.onCancel,
     })
-    popup.openIframe()
   }
 
   function validateForm(): string | null {

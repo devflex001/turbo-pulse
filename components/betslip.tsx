@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import { useBetStore } from "@/hooks/use-bet-store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,6 +15,7 @@ interface BetslipProps {
 }
 
 export function Betslip({ onClose }: BetslipProps) {
+  const router = useRouter()
   const {
     betslip,
     walletBalance,
@@ -57,7 +59,7 @@ export function Betslip({ onClose }: BetslipProps) {
     }
 
     if (totalStake > walletBalance) {
-      toast.error("Insufficient wallet balance. Please deposit funds first.")
+      router.push("/deposit")
       return
     }
 
@@ -212,17 +214,10 @@ export function Betslip({ onClose }: BetslipProps) {
           </div>
         </div>
 
-        {user && totalStake > walletBalance && (
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-destructive justify-center bg-destructive/10 p-2 rounded">
-            <AlertCircle className="size-3.5 shrink-0" />
-            Insufficient balance
-          </div>
-        )}
-
         <Button
           onClick={handlePlaceBet}
           className="w-full bg-primary text-primary-foreground font-bold hover:opacity-95 text-xs h-10"
-          disabled={isPlacing || (user ? totalStake > walletBalance : false)}
+          disabled={isPlacing}
         >
           {isPlacing ? (
             <span className="flex items-center gap-1.5 justify-center">

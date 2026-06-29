@@ -1,0 +1,16 @@
+schema_version: 1
+module_path: frontend
+title: Betting Platform Frontend
+scope:
+    - app/
+    - components/
+    - lib/
+source_files: []
+depends_on: []
+related_to:
+    - path: backend/betting
+    - path: backend/payment_gateways
+    - path: backend/payment_operations
+    - path: backend/sports_data
+    - path: backend/user_admin
+    - path: backend/user_support

@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { useMutation, useQuery } from "convex/react"
+import { useMutation, useQuery, useAction } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useAuthClient } from "@/lib/auth-client"
 import { AdminLayout } from "@/components/admin-layout"
@@ -73,8 +73,8 @@ export default function SettingsPage() {
   // Mutations
   const saveDarajaConfig = useMutation(api.daraja.saveConfig)
   const savePaystackConfig = useMutation(api.paystack.saveConfig)
-  const testDarajaConfig = useMutation(api.daraja.testConfig)
-  const testPaystackConfig = useMutation(api.paystack.testConfig)
+  const testDarajaConfig = useAction(api.daraja.testConfig)
+  const testPaystackConfig = useAction(api.paystack.testConfig)
   const setPaymentMode = useMutation(api.paymentMode.setMode)
 
   const { user } = useAuthClient()

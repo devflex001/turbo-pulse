@@ -113,8 +113,8 @@ export function BetStoreProvider({ children }: { children: React.ReactNode }) {
   const updateTransactionStatusMutation = useMutation(api.bets.updateTransactionStatus)
 
   const user = React.useMemo(() => {
-    return { username: "User" }
-  }, [])
+    return authUser ? { username: authUser.name || "User" } : null
+  }, [authUser])
 
   const [activeTab, setActiveTabState] = React.useState<string>("home")
   const [searchQuery, setSearchQuery] = React.useState<string>("")

@@ -237,13 +237,36 @@ export class PaystackService {
 }
 
 /**
- * Initialize Paystack service with environment variables or database configuration
+ * Initialize Paystack service with database configuration or environment variables
+ * Fetches configuration from Convex database first, falls back to environment variables
  */
-export function initializePaystackService(
+export async function initializePaystackService(
   configOverride?: Partial<PaystackConfig>
-): PaystackService {
-  const publicKey = configOverride?.publicKey || process.env.PAYSTACK_PUBLIC_KEY
-  const secretKey = configOverride?.secretKey || process.env.PAYSTACK_SECRET_KEY
+): Promise<PaystackService> {
+  let publicKey = configOverride?.publicKey
+  let secretKey = configOverride?.secretKey
+
+  // If no override provided, try to fetch from database
+  if (!publicKey || !secretKey) {
+    try {
+      const { fetchQuery } = await import("convex/nextjs")
+      const { api } = await import("@/convex/_generated/api")
+
+      const config = await fetchQuery(api.paystack.getConfig)
+
+      if (config && config.publicKey && config.secretKey) {
+        publicKey = config.publicKey
+        secretKey = config.secretKey
+        console.log("[Paystack] Using configuration from database:", config.source)
+      }
+    } catch (error) {
+      console.warn("[Paystack] Could not fetch from database, falling back to env:", error)
+    }
+  }
+
+  // Fall back to environment variables
+  if (!publicKey) publicKey = process.env.PAYSTACK_PUBLIC_KEY
+  if (!secretKey) secretKey = process.env.PAYSTACK_SECRET_KEY
 
   if (!publicKey || !secretKey) {
     throw new Error(

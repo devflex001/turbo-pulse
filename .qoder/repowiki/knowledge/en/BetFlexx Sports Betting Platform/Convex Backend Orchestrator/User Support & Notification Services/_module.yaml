@@ -1,0 +1,14 @@
+schema_version: 1
+module_path: backend/user_support
+title: User Support & Notification Services
+scope:
+    - convex/notifications.ts
+    - convex/supportChat.ts
+    - convex/platformConfig.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: backend/betting
+    - path: backend/payment_gateways
+    - path: backend/payment_operations
+    - path: frontend

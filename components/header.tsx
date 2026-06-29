@@ -210,15 +210,6 @@ export function Header() {
                       <History className="mr-2 h-4 w-4 text-blue-500" />
                       <span>My Placed Bets</span>
                     </DropdownMenuItem>
-                    {user.role === "admin" && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => router.push("/admin")}>
-                          <Settings className="mr-2 h-4 w-4 text-amber-500" />
-                          <span>Admin Panel</span>
-                        </DropdownMenuItem>
-                      </>
-                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
                       <LogOut className="mr-2 h-4 w-4" />

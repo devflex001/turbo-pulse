@@ -1,0 +1,13 @@
+schema_version: 1
+module_path: backend/payment_operations
+title: Withdrawal & Payment Mode Management
+scope:
+    - convex/withdrawals.ts
+    - convex/paymentMode.ts
+    - convex/adminTransactions.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: backend/payment_gateways
+    - path: backend/user_support
+    - path: frontend

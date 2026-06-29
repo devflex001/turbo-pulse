@@ -1,0 +1,15 @@
+schema_version: 1
+module_path: build_system
+title: Next.js & Convex Build System
+scope: []
+source_files:
+    - package.json
+    - next.config.ts
+    - tsconfig.json
+    - vitest.config.ts
+    - convex/convex.config.ts
+    - eslint.config.mjs
+    - postcss.config.mjs
+    - pnpm-workspace.yaml
+depends_on: []
+related_to: []

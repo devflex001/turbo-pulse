@@ -1,5 +1,5 @@
 import { v } from "convex/values"
-import { mutation, query } from "./_generated/server"
+import { mutation, query, action } from "./_generated/server"
 import type { MutationCtx } from "./_generated/server"
 import { Id } from "./_generated/dataModel"
 import { notifyAdmins, notifyUser } from "./notifications"
@@ -129,7 +129,7 @@ export const deleteConfig = mutation({
 /**
  * Test configuration
  */
-export const testConfig = mutation({
+export const testConfig = action({
   args: {
     secretKey: v.string(),
   },
