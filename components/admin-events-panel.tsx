@@ -141,7 +141,7 @@ export function AdminEventsPanel() {
       })
       setShowClearDialog(false)
       toast.success(
-        `Successfully cleared ${result.matchesDeleted} old events, ${result.marketsDeleted} markets, and ${result.oddsDeleted} odds from the database.`
+        `Successfully cleared ${result.matchesDeleted} old events from the database.`
       )
       // Refresh to show updated data
       setTimeout(() => window.location.reload(), 1000)
@@ -491,21 +491,9 @@ export function AdminEventsPanel() {
               <div className="rounded-lg bg-muted p-3 space-y-1 text-xs">
                 <div className="font-semibold text-foreground mb-2">Will be deleted:</div>
                 <div className="flex items-center justify-between text-muted-foreground">
-                  <span>Events</span>
+                  <span>Old Events</span>
                   <span className="font-mono font-semibold">
                     {analyzeEventsQuery.deletableMatches}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-muted-foreground">
-                  <span>Markets</span>
-                  <span className="font-mono font-semibold">
-                    {analyzeEventsQuery.deletableMarkets}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-muted-foreground">
-                  <span>Odds</span>
-                  <span className="font-mono font-semibold">
-                    {analyzeEventsQuery.deletableOdds}
                   </span>
                 </div>
               </div>

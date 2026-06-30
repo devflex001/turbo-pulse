@@ -289,7 +289,7 @@ export const listOddsByMatch = query({
   },
 });
 
-// Query to analyze events before clearing
+// Query to analyze events before clearing - SIMPLE, only count events
 export const analyzeEventsForClear = query({
   args: {},
   handler: async (ctx) => {
@@ -297,29 +297,24 @@ export const analyzeEventsForClear = query({
     const lowerBound = now - 24 * 60 * 60 * 1000;
     const upperBound = now + 30 * 24 * 60 * 60 * 1000;
 
-    // Get all matches
+    // Get all matches only
     const allMatches = await ctx.db.query("sportsMatches").take(10000);
 
-    // Get all active bets
-    const allBets = await ctx.db.query("bets").take(50000);
+    // Get active bet match IDs only
+    const allBets = await ctx.db.query("bets").take(10000);
     const activeBetsMatchIds = new Set<string>();
 
     for (const bet of allBets) {
       if (bet.status === "active") {
         for (const selection of bet.selections) {
           if (selection.sourceOddId) {
-            // Find the match ID from odds
-            const allOdds = await ctx.db.query("sportsOdds").take(50000);
-            const odd = allOdds.find((o) => o.sourceOddId === selection.sourceOddId);
-            if (odd) {
-              activeBetsMatchIds.add(odd.sourceMatchId);
-            }
+            activeBetsMatchIds.add(selection.sourceOddId);
           }
         }
       }
     }
 
-    // Categorize matches
+    // Categorize matches ONLY
     let totalMatches = 0;
     let activeMatches = 0;
     let matchesWithActiveBets = 0;
@@ -329,8 +324,8 @@ export const analyzeEventsForClear = query({
       totalMatches++;
 
       const isActive =
-        match.status === 1 || // Live
-        (match.startTime >= lowerBound && match.startTime <= upperBound); // Within display range
+        match.status === 1 ||
+        (match.startTime >= lowerBound && match.startTime <= upperBound);
 
       const hasActiveBets = activeBetsMatchIds.has(match.sourceMatchId);
 
@@ -343,39 +338,11 @@ export const analyzeEventsForClear = query({
       }
     }
 
-    // Count markets and odds to delete
-    const marketIds: string[] = [];
-    for (const match of allMatches) {
-      const isActive =
-        match.status === 1 ||
-        (match.startTime >= lowerBound && match.startTime <= upperBound);
-      const hasActiveBets = activeBetsMatchIds.has(match.sourceMatchId);
-
-      if (!isActive && !hasActiveBets) {
-        const markets = await ctx.db
-          .query("sportsMarkets")
-          .take(1000);
-        const matchMarkets = markets.filter(
-          (m) => m.sourceMatchId === match.sourceMatchId
-        );
-        for (const market of matchMarkets) {
-          marketIds.push(market._id.toString());
-        }
-      }
-    }
-
-    const allOdds = await ctx.db.query("sportsOdds").take(10000);
-    const deletableOdds = allOdds.filter((odd) =>
-      marketIds.includes(odd.marketId?.toString() || "")
-    );
-
     return {
       totalMatches,
       activeMatches,
       matchesWithActiveBets,
       deletableMatches,
-      deletableMarkets: marketIds.length,
-      deletableOdds: deletableOdds.length,
     };
   },
 });
@@ -393,21 +360,15 @@ export const clearJunkEvents = mutation({
     // Get all matches
     const allMatches = await ctx.db.query("sportsMatches").take(10000);
 
-    // Get all active bets
-    const allBets = await ctx.db.query("bets").take(50000);
+    // Get active bet match IDs
+    const allBets = await ctx.db.query("bets").take(10000);
     const activeBetsMatchIds = new Set<string>();
 
     for (const bet of allBets) {
       if (bet.status === "active") {
         for (const selection of bet.selections) {
           if (selection.sourceOddId) {
-            const odd = await ctx.db
-              .query("sportsOdds")
-              .filter((q) => q.eq(q.field("sourceOddId"), selection.sourceOddId))
-              .first();
-            if (odd) {
-              activeBetsMatchIds.add(odd.sourceMatchId);
-            }
+            activeBetsMatchIds.add(selection.sourceOddId);
           }
         }
       }
@@ -466,7 +427,7 @@ export const clearJunkEvents = mutation({
           resourceType: "scraper_data",
           resourceDescription: "Cleared junk events from database",
           details: {
-            newValue: `${matchesDeleted} matches, ${marketsDeleted} markets, ${oddsDeleted} odds deleted`,
+            newValue: `${matchesDeleted} matches deleted`,
           },
         });
       }
