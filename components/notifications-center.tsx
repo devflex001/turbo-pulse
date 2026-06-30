@@ -265,7 +265,7 @@ export function NotificationsCenter({ className }: NotificationsCenterProps) {
         <SheetContent side="right" className="w-[420px] p-0 sm:max-w-[420px]">
           <SheetHeader className="p-4 pr-12">
             <SheetTitle>Notifications</SheetTitle>
-            <SheetDescription>Account activity and betting updates.</SheetDescription>
+            {/* <SheetDescription>Account activity and betting updates.</SheetDescription> */}
           </SheetHeader>
           {body}
         </SheetContent>
@@ -279,7 +279,7 @@ export function NotificationsCenter({ className }: NotificationsCenterProps) {
       <DrawerContent className="h-[82vh]">
         <DrawerHeader className="px-4 pb-4 pt-5 text-left">
           <DrawerTitle>Notifications</DrawerTitle>
-          <DrawerDescription>Account activity and betting updates.</DrawerDescription>
+          {/* <DrawerDescription>Account activity and betting updates.</DrawerDescription> */}
         </DrawerHeader>
         {body}
       </DrawerContent>
