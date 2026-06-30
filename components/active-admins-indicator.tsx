@@ -42,19 +42,34 @@ export function ActiveAdminsIndicator({ mobileStrip = false }: ActiveAdminsIndic
 
   if (!isAdmin) return null
 
-  const otherActiveAdmins =
+  // Filter out current admin
+  const otherSessions =
     activeAdmins?.filter((admin) => admin.adminName !== adminName) ?? []
 
-  if (otherActiveAdmins.length === 0) return null
+  if (otherSessions.length === 0) return null
+
+  // Deduplicate by admin name and count devices
+  const adminDeviceMap = new Map<string, number>()
+  for (const session of otherSessions) {
+    adminDeviceMap.set(
+      session.adminName,
+      (adminDeviceMap.get(session.adminName) ?? 0) + 1
+    )
+  }
+
+  // Build display text
+  const adminEntries = Array.from(adminDeviceMap.entries()).map(([name, count]) =>
+    count === 1 ? name : `${name} (${count} devices)`
+  )
 
   let adminText: string
-  if (otherActiveAdmins.length === 1) {
-    adminText = `${otherActiveAdmins[0].adminName} is online`
-  } else if (otherActiveAdmins.length === 2) {
-    adminText = `${otherActiveAdmins[0].adminName} and ${otherActiveAdmins[1].adminName} are online`
+  if (adminEntries.length === 1) {
+    adminText = `${adminEntries[0]} is online`
+  } else if (adminEntries.length === 2) {
+    adminText = `${adminEntries[0]} and ${adminEntries[1]} are online`
   } else {
-    const names = otherActiveAdmins.slice(0, -1).map((a) => a.adminName).join(", ")
-    const lastName = otherActiveAdmins[otherActiveAdmins.length - 1].adminName
+    const names = adminEntries.slice(0, -1).join(", ")
+    const lastName = adminEntries[adminEntries.length - 1]
     adminText = `${names}, and ${lastName} are online`
   }
 
