@@ -199,26 +199,25 @@ function NotificationsList({
                       </p>
                       <div className="flex items-center gap-2 pt-1">
                         <NotificationTypeBadge type={notification.type} />
-                        <span className="text-[10px] text-muted-foreground">
-                          {formatRelativeTime(notification.createdAt)}
-                        </span>
-                      </div>
-                      {isWinningBet && (
-                        <div className="pt-2">
+                        {isWinningBet && (
                           <Button
                             type="button"
                             size="sm"
-                            className="h-7 gap-1.5 text-xs bg-[#4b9f71] hover:bg-[#3e865f] text-white"
+                            variant="ghost"
+                            className="h-5 px-2 gap-1 text-[10px] font-medium text-[#4b9f71] hover:bg-[#4b9f71]/10 hover:text-[#4b9f71]"
                             onClick={(e) => {
                               e.stopPropagation()
                               setWithdrawOpen(true)
                             }}
                           >
                             <ArrowUpFromLine className="size-3" />
-                            Withdraw
+                            <span>Withdraw</span>
                           </Button>
-                        </div>
-                      )}
+                        )}
+                        <span className="text-[10px] text-muted-foreground">
+                          {formatRelativeTime(notification.createdAt)}
+                        </span>
+                      </div>
                     </div>
                     <Button
                       type="button"
