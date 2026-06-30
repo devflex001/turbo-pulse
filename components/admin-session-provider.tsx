@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useAuth } from "@/lib/auth/useAuth"
+import { useAuth } from "@/lib/auth/AuthContext"
 import { AdminNameModal } from "./admin-name-modal"
 
 /**
@@ -27,7 +27,7 @@ export function AdminSessionProvider({
 
   // Don't render children until admin session is established (if admin)
   const isAdminWithoutSession = isAdmin && !adminName && !showAdminNameModal
-  
+
   // Show loading state while checking for admin session
   if (isAdminWithoutSession) {
     return (

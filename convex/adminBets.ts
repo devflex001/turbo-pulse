@@ -3,7 +3,7 @@ import { query, mutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { requireAdmin } from "./auth/authorization";
 import { notifyAdmins, notifyUser } from "./notifications";
-import { logAdminAction } from "./audit/logger";
+import { logAdminActionInternal } from "./audit/logs";
 import { getCurrentAdminSession } from "./admin/sessions";
 
 function formatKes(amount: number) {
@@ -230,7 +230,7 @@ export const updateBetStatus = mutation({
       });
 
       if (adminSession) {
-        await logAdminAction(ctx, {
+        await logAdminActionInternal(ctx, {
           adminName: adminSession.adminName,
           userId: admin._id,
           actionType: "update_bet_status",

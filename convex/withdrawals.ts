@@ -4,7 +4,7 @@ import { Doc } from "./_generated/dataModel";
 import { requireAdmin, requireAuth } from "./auth/authorization";
 import { updateWalletBalance } from "./mpesa";
 import { notifyAdmins, notifyUser } from "./notifications";
-import { logAdminAction } from "./audit/logger";
+import { logAdminActionInternal } from "./audit/logs";
 import { getCurrentAdminSession } from "./admin/sessions";
 
 const CONFIG_KEY = "main";
@@ -313,7 +313,7 @@ export const approveWithdrawal = mutation({
       });
 
       if (adminSession) {
-        await logAdminAction(ctx, {
+        await logAdminActionInternal(ctx, {
           adminName: adminSession.adminName,
           userId: admin._id,
           actionType: "approve_withdrawal",
@@ -395,7 +395,7 @@ export const rejectWithdrawal = mutation({
       });
 
       if (adminSession) {
-        await logAdminAction(ctx, {
+        await logAdminActionInternal(ctx, {
           adminName: adminSession.adminName,
           userId: admin._id,
           actionType: "reject_withdrawal",

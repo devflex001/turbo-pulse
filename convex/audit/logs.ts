@@ -4,8 +4,8 @@ import type { MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 
 /**
- * Audit Logger Module
- * Centralizes all admin activity logging
+ * Audit Logging Module
+ * Centralized logging for all admin actions
  */
 
 export type AdminActionType =
@@ -39,16 +39,17 @@ export interface AdminLogInput {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// MUTATIONS
+// INTERNAL HELPERS
 // ────────────────────────────────────────────────────────────────────────────
 
 /**
- * Log an admin action (internal mutation - call from other mutations)
+ * Internal helper to log admin actions
+ * Called from other mutations to record activities
  */
-const logAdminActionInternal = async (
+export async function logAdminActionInternal(
   ctx: MutationCtx,
   input: AdminLogInput
-): Promise<Id<"admin_logs">> => {
+): Promise<Id<"admin_logs">> {
   const now = Date.now();
 
   const logId = await ctx.db.insert("admin_logs", {
@@ -63,45 +64,21 @@ const logAdminActionInternal = async (
   });
 
   return logId;
-};
-
-/**
- * Public mutation to log actions from client/mutations
- */
-export const logAdminAction = mutation({
-  args: {
-    adminName: v.string(),
-    userId: v.id("users"),
-    actionType: v.string(),
-    resourceType: v.string(),
-    resourceDescription: v.string(),
-    details: v.optional(
-      v.object({
-        previousValue: v.optional(v.string()),
-        newValue: v.optional(v.string()),
-        reason: v.optional(v.string()),
-        amount: v.optional(v.number()),
-      })
-    ),
-  },
-  handler: async (ctx, args) => {
-    return await logAdminActionInternal(ctx, args as AdminLogInput);
-  },
-});
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // QUERIES
 // ────────────────────────────────────────────────────────────────────────────
 
 /**
- * Get most recent admin logs (for real-time activity feed)
+ * Get recent admin logs for real-time activity feed
  */
 export const getRecentAdminLogs = query({
   args: {
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const limit = args.limit ?? 20;
+    const limit = Math.min(args.limit ?? 20, 100);
     return await ctx.db
       .query("admin_logs")
       .order("desc")
@@ -110,28 +87,45 @@ export const getRecentAdminLogs = query({
 });
 
 /**
- * Get all admin logs with pagination
+ * Get admin logs with pagination and filters
  */
 export const getAdminLogs = query({
   args: {
+    adminNameFilter: v.optional(v.string()),
+    actionTypeFilter: v.optional(v.string()),
+    resourceTypeFilter: v.optional(v.string()),
     limit: v.optional(v.number()),
-    cursor: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const limit = args.limit ?? 50;
-    const logs = await ctx.db
-      .query("admin_logs")
-      .order("desc")
-      .take(limit + 1);
+    const limit = Math.min(args.limit ?? 100, 500);
+    let query = ctx.db.query("admin_logs");
 
-    const cursor = args.cursor ? parseInt(args.cursor, 10) : 0;
-    const page = logs.slice(cursor, cursor + limit);
-    const hasMore = logs.length > cursor + limit;
+    // Apply filters
+    if (args.adminNameFilter) {
+      query = query.withIndex("by_adminName", (q) =>
+        q.eq("adminName", args.adminNameFilter)
+      );
+    }
 
+    const logs = await query.order("desc").take(limit);
+
+    // Filter further if needed (for multiple filters)
     return {
-      logs: page,
-      hasMore,
-      nextCursor: hasMore ? (cursor + limit).toString() : null,
+      logs: logs.filter((log) => {
+        if (
+          args.actionTypeFilter &&
+          log.actionType !== args.actionTypeFilter
+        ) {
+          return false;
+        }
+        if (
+          args.resourceTypeFilter &&
+          log.resourceType !== args.resourceTypeFilter
+        ) {
+          return false;
+        }
+        return true;
+      }),
     };
   },
 });
@@ -145,7 +139,7 @@ export const getAdminPersonalLogs = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const limit = args.limit ?? 30;
+    const limit = Math.min(args.limit ?? 50, 200);
     return await ctx.db
       .query("admin_logs")
       .withIndex("by_adminName_and_timestamp", (q) =>
@@ -165,7 +159,7 @@ export const getLogsByActionType = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const limit = args.limit ?? 30;
+    const limit = Math.min(args.limit ?? 50, 200);
     return await ctx.db
       .query("admin_logs")
       .withIndex("by_actionType_and_timestamp", (q) =>
@@ -189,28 +183,35 @@ export const getAdminLogStats = query({
     if (args.adminName) {
       logs = await ctx.db
         .query("admin_logs")
-        .withIndex("by_adminName", (q) => q.eq("adminName", args.adminName))
+        .withIndex("by_adminName", (q) =>
+          q.eq("adminName", args.adminName)
+        )
         .collect();
     } else {
-      logs = await ctx.db.query("admin_logs").collect();
+      // Get recent logs for stats (last 1000 for performance)
+      logs = await ctx.db
+        .query("admin_logs")
+        .order("desc")
+        .take(1000);
     }
 
     // Count by action type
     const actionCounts: Record<string, number> = {};
     const resourceCounts: Record<string, number> = {};
+    const adminCounts: Record<string, number> = {};
 
     logs.forEach((log) => {
       actionCounts[log.actionType] = (actionCounts[log.actionType] ?? 0) + 1;
-      resourceCounts[log.resourceType] = (resourceCounts[log.resourceType] ?? 0) + 1;
+      resourceCounts[log.resourceType] =
+        (resourceCounts[log.resourceType] ?? 0) + 1;
+      adminCounts[log.adminName] = (adminCounts[log.adminName] ?? 0) + 1;
     });
 
     return {
       totalActions: logs.length,
       actionCounts,
       resourceCounts,
+      adminCounts,
     };
   },
 });
-
-// Export the internal function for use in other modules
-export { logAdminActionInternal };

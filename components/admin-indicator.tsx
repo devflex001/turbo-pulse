@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useAuth } from "@/lib/auth/useAuth"
+import { useAuth } from "@/lib/auth/AuthContext"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import {

@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { requireAdmin, requireAuth } from "./auth/authorization";
-import { logAdminAction } from "./audit/logger";
+import { logAdminActionInternal } from "./audit/logs";
 import { getCurrentAdminSession } from "./admin/sessions";
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -181,7 +181,7 @@ export const editUser = mutation({
       });
 
       if (adminSession) {
-        await logAdminAction(ctx, {
+        await logAdminActionInternal(ctx, {
           adminName: adminSession.adminName,
           userId: admin._id,
           actionType: "edit_user",
@@ -260,7 +260,7 @@ export const banUser = mutation({
           ? "Permanent"
           : `${args.durationHours} hours`;
 
-        await logAdminAction(ctx, {
+        await logAdminActionInternal(ctx, {
           adminName: adminSession.adminName,
           userId: admin._id,
           actionType: "ban_user",
@@ -320,7 +320,7 @@ export const unbanUser = mutation({
       });
 
       if (adminSession) {
-        await logAdminAction(ctx, {
+        await logAdminActionInternal(ctx, {
           adminName: adminSession.adminName,
           userId: admin._id,
           actionType: "unban_user",
