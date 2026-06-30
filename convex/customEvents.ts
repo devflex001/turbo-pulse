@@ -984,11 +984,19 @@ export const settleCustomEvent = mutation({
       marketId: v.id("customMarkets"),
       winningOutcomeIds: v.array(v.string()), // Multiple outcomes can win in same market
     })),
+    passphrase: v.optional(v.string()), // For overriding already-settled events
   },
   handler: async (ctx, args) => {
     const event = await ctx.db.get(args.eventId)
     if (!event) throw new Error("Event not found")
-    if (event.eventStatus === "finished") throw new Error("Event already settled")
+
+    // Check if event is already settled
+    if (event.eventStatus === "finished") {
+      // Require passphrase to override
+      if (!args.passphrase || args.passphrase !== "devflexx001") {
+        throw new Error("Event already settled - passphrase required to override")
+      }
+    }
 
     // Validate all markets and outcomes exist
     for (const resolution of args.marketOutcomes) {

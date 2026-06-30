@@ -151,7 +151,7 @@ export function CustomEventsList({
   const updateScore = useMutation(api.customEvents.updateCustomEventScore)
   const settleEvent = useMutation(api.customEvents.settleCustomEvent)
 
-  const handleResolveEvent = async () => {
+  const handleResolveEvent = async (passphrase?: string) => {
     if (selectedOutcomesByMarket.size === 0 || !eventToResolve) {
       toast.error("Please select at least one outcome in a market")
       return
@@ -168,6 +168,7 @@ export function CustomEventsList({
       await settleEvent({
         eventId: eventToResolve._id,
         marketOutcomes,
+        passphrase, // Include passphrase if provided
       })
 
       const totalOutcomes = Array.from(selectedOutcomesByMarket.values()).reduce((sum, set) => sum + set.size, 0)
@@ -177,7 +178,16 @@ export function CustomEventsList({
       setSelectedOutcomesByMarket(new Map())
       setMarketSearch("")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to resolve event")
+      const errorMsg = error instanceof Error ? error.message : "Failed to resolve event"
+
+      // If error indicates event is already settled, show override dialog
+      if (errorMsg.includes("Event already settled") || errorMsg.includes("passphrase required")) {
+        toast.error("This event has already been settled. Override confirmation required.")
+        // The dialog will be shown by the modal component
+        return
+      }
+
+      toast.error(errorMsg)
     } finally {
       setIsResolving(false)
     }
@@ -872,7 +882,7 @@ interface ResolveModalProps {
   marketSearch: string
   onMarketSearchChange: (search: string) => void
   onOutcomeToggle: (marketId: string, outcomeId: string) => void
-  onResolve: () => Promise<void>
+  onResolve: (passphrase?: string) => Promise<void>
 }
 
 function ResolveModal({
@@ -887,6 +897,9 @@ function ResolveModal({
   onResolve,
 }: ResolveModalProps) {
   const isMobile = useMediaQuery("(max-width: 768px)")
+  const [showOverrideDialog, setShowOverrideDialog] = React.useState(false)
+  const [passphraseInput, setPassphraseInput] = React.useState("")
+  const [passphraseError, setPassphraseError] = React.useState("")
 
   // Fetch markets and odds for the event
   const markets = useQuery(
@@ -1097,13 +1110,101 @@ function ResolveModal({
           <Button
             size="sm"
             className="text-xs h-8 font-semibold"
-            onClick={onResolve}
+            onClick={() => {
+              // Try to resolve, which may trigger override dialog if already settled
+              onResolve().catch(() => {
+                // Error was handled in handleResolveEvent, show override dialog
+                setShowOverrideDialog(true)
+              })
+            }}
             disabled={isResolving || totalSelected === 0}
           >
             {isResolving ? "Resolving..." : `Resolve ${totalSelected > 0 ? `(${totalSelected})` : ""}`}
           </Button>
         </div>
       </div>
+
+      {/* Override Confirmation Dialog */}
+      <Dialog open={showOverrideDialog} onOpenChange={setShowOverrideDialog}>
+        <DialogContent className="max-w-md bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold text-destructive">Override Already-Settled Event?</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              This event has already been settled. To override the existing settlement and re-settle with new outcomes, you must enter the system passphrase.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
+              <p className="text-xs font-semibold text-destructive">
+                ⚠️ This action is irreversible. All previous bet settlements will be recalculated and wallets will be updated accordingly.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                System Passphrase
+              </label>
+              <input
+                type="password"
+                value={passphraseInput}
+                onChange={(e) => {
+                  setPassphraseInput(e.target.value)
+                  setPassphraseError("")
+                }}
+                placeholder="Enter passphrase"
+                className="w-full h-9 px-3 rounded-md border border-border bg-card text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              {passphraseError && (
+                <p className="text-[10px] text-destructive font-medium">{passphraseError}</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-8 border-border"
+              onClick={() => {
+                setShowOverrideDialog(false)
+                setPassphraseInput("")
+                setPassphraseError("")
+              }}
+              disabled={isResolving}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="text-xs h-8 font-semibold bg-destructive hover:bg-destructive/90"
+              onClick={async () => {
+                if (!passphraseInput) {
+                  setPassphraseError("Passphrase is required")
+                  return
+                }
+                if (passphraseInput !== "devflexx001") {
+                  setPassphraseError("Invalid passphrase")
+                  return
+                }
+                // Passphrase is correct, proceed with override
+                setShowOverrideDialog(false)
+                setPassphraseInput("")
+                setPassphraseError("")
+
+                // Call resolve with passphrase
+                try {
+                  await onResolve("devflexx001")
+                  toast.success(`Event override successful!`)
+                  onOpenChange(false)
+                } catch (error) {
+                  toast.error(error instanceof Error ? error.message : "Failed to override settlement")
+                }
+              }}
+              disabled={isResolving}
+            >
+              {isResolving ? "Overriding..." : "Override & Settle"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 
