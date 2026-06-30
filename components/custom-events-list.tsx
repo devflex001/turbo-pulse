@@ -431,6 +431,14 @@ export function CustomEventsList({
                       </TableCell>
                       <TableCell className="py-2">
                         {(() => {
+                          // Check if event has been resolved/settled
+                          if (event.settledAt) {
+                            return (
+                              <Badge className="bg-blue-500/15 text-blue-600 border border-blue-500/20 text-[9px] font-bold">
+                                resolved
+                              </Badge>
+                            )
+                          }
                           if (event.status === "draft") {
                             return (
                               <Badge className="bg-yellow-500/15 text-yellow-600 border border-yellow-500/20 text-[9px] font-bold">
