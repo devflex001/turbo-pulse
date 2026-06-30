@@ -327,12 +327,6 @@ export function PaymentModal({
               )}
             </div>
           )}
-
-          {/* Security Badge */}
-          <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-            <Lock className="h-3 w-3" />
-            <span>Secured & Encrypted</span>
-          </div>
         </div>
       </DialogContent>
     </Dialog>

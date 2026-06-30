@@ -66,19 +66,36 @@ function formatRelativeTime(value: number) {
 }
 
 function NotificationTypeBadge({ type }: { type: Notification["type"] }) {
-  const label =
-    type === "payment"
-      ? "Payment"
-      : type === "bet"
-        ? "Bet"
-        : type === "match"
-          ? "Match"
-          : type === "withdrawal"
-            ? "Withdrawal"
-            : "System"
+  const config = {
+    payment: {
+      label: "Payment",
+      className: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20 dark:text-emerald-400",
+    },
+    bet: {
+      label: "Bet",
+      className: "bg-blue-500/10 text-blue-700 border-blue-500/20 dark:text-blue-400",
+    },
+    match: {
+      label: "Match",
+      className: "bg-purple-500/10 text-purple-700 border-purple-500/20 dark:text-purple-400",
+    },
+    withdrawal: {
+      label: "Withdrawal",
+      className: "bg-amber-500/10 text-amber-700 border-amber-500/20 dark:text-amber-400",
+    },
+    system: {
+      label: "System",
+      className: "bg-gray-500/10 text-gray-700 border-gray-500/20 dark:text-gray-400",
+    },
+  }
+
+  const { label, className } = config[type]
 
   return (
-    <Badge variant="outline" className="h-5 rounded px-1.5 text-[10px] font-medium">
+    <Badge
+      variant="outline"
+      className={cn("h-5 rounded px-1.5 text-[10px] font-medium", className)}
+    >
       {label}
     </Badge>
   )
