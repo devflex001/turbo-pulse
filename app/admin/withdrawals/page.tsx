@@ -422,23 +422,11 @@ export default function WithdrawalsPage() {
                 </tr>
               )}
               {requests.map((req) => (
-                <tr key={req._id} className="hover:bg-muted/30 transition-colors">
-                  {/* User */}
-                  <td className="py-2.5 px-4">
-                    <p className="text-xs font-semibold font-mono">{req.userPhone}</p>
-                    <p className="text-[11px] text-muted-foreground font-mono mt-0.5">{req.phone}</p>
-                  </td>
-                  {/* Amount + fee */}
-                  <td className="py-2.5 px-4">
-                    <p className="text-xs font-semibold font-mono">KES {req.amount.toLocaleString()}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">fee KES {req.feeAmount.toLocaleString()}</p>
-                  </td>
-                  {/* Requested */}
-                  <td className="py-2.5 px-4 text-xs text-muted-foreground whitespace-nowrap">
-                    {formatDate(req.requestedAt)}
-                  </td>
-                  {/* Status */}
-                  <td className="py-2.5 px-4">
+                <tr key={req._id} className="hover:bg-muted/30 transition-colors h-11">
+                  <td className="py-2 px-4 font-mono text-xs font-semibold">{req.userPhone}</td>
+                  <td className="py-2 px-4 font-mono text-xs font-semibold">KES {req.amount.toLocaleString()}</td>
+                  <td className="py-2 px-4 text-xs text-muted-foreground whitespace-nowrap">{formatDate(req.requestedAt)}</td>
+                  <td className="py-2 px-4">
                     <div className="flex items-center gap-1.5">
                       <StatusBadge status={req.status} />
                       {req.isInstant && (
@@ -449,13 +437,12 @@ export default function WithdrawalsPage() {
                       )}
                     </div>
                     {req.rejectionReason && (
-                      <p className="text-[11px] text-rose-500 mt-0.5 max-w-[200px] truncate" title={req.rejectionReason}>
+                      <p className="text-[11px] text-rose-500 mt-0.5 truncate max-w-[180px]" title={req.rejectionReason}>
                         {req.rejectionReason}
                       </p>
                     )}
                   </td>
-                  {/* Actions */}
-                  <td className="py-2.5 px-4 text-right">
+                  <td className="py-2 px-4 text-right">
                     {req.status === "pending" ? (
                       <div className="flex items-center justify-end gap-1.5">
                         <Button

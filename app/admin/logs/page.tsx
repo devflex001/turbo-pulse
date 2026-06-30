@@ -110,19 +110,33 @@ const actionIconMap: Record<
   },
 }
 
-interface AdminLog {
-  _id: string
-  adminName: string
-  actionType: string
-  resourceType: string
-  resourceDescription: string
-  timestamp: number
-  details?: {
-    previousValue?: string
+// Per-admin color map: dikie → purple, hellen → pink, mwalimu → blue
+const ADMIN_COLORS: Record<string, string> = {
+  dikie: "bg-purple-500/15 text-purple-700 border-purple-500/30 dark:text-purple-400",
+  hellen: "bg-pink-500/15 text-pink-700 border-pink-500/30 dark:text-pink-400",
+  mwalimu: "bg-blue-500/15 text-blue-700 border-blue-500/30 dark:text-blue-400",
+}
+
+function AdminBadge({ name }: { name: string }) {
+  const cls = ADMIN_COLORS[name.toLowerCase()] ?? "bg-muted text-foreground border-border"
+  return (
+    <Badge variant="outline" className={`text-xs capitalize ${cls}`}>
+      {name}
+    </Badge>
+  )
+}
+_id: string
+adminName: string
+actionType: string
+resourceType: string
+resourceDescription: string
+timestamp: number
+details ?: {
+  previousValue?: string
     newValue?: string
     reason?: string
     amount?: number
-  }
+}
 }
 
 function AdminLogsContent() {
@@ -340,7 +354,7 @@ function AdminLogsContent() {
                   return (
                     <TableRow key={log._id} className="border-border hover:bg-muted/30 transition-colors h-9">
                       <TableCell className="py-1.5 text-xs">
-                        <Badge variant="secondary" className="text-xs capitalize">{log.adminName}</Badge>
+                        <AdminBadge name={log.adminName} />
                       </TableCell>
                       <TableCell className="py-1.5">
                         <div className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium", action.color)}>
@@ -370,7 +384,7 @@ function AdminLogsContent() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="space-y-1.5 min-w-0">
                       <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs capitalize shrink-0">{log.adminName}</Badge>
+                        <AdminBadge name={log.adminName} />
                         <div className={cn("inline-flex shrink-0 items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium", action.color)}>
                           {action.icon}
                           <span>{ACTION_TYPES.find((a) => a.value === log.actionType)?.label || log.actionType}</span>
