@@ -297,13 +297,13 @@ export const clearJunkEvents = mutation({
   handler: async (ctx, args) => {
     const cutoffTime = Date.now() - 24 * 60 * 60 * 1000; // 24 hours ago
 
-    // Get old matches using index (500 at a time)
+    // Get old matches using index (ONLY 10 at a time to stay under read limits)
     const oldMatches = await ctx.db
       .query("sportsMatches")
       .withIndex("by_source_and_startTime", (q) =>
         q.eq("source", SOURCE).lt("startTime", cutoffTime)
       )
-      .take(500);
+      .take(10);
 
     let matchesDeleted = 0;
     let marketsDeleted = 0;
@@ -313,24 +313,24 @@ export const clearJunkEvents = mutation({
       // Skip live matches
       if (match.status === 1) continue;
 
-      // Delete markets using index
+      // Delete markets using index (small batch)
       const markets = await ctx.db
         .query("sportsMarkets")
         .withIndex("by_sourceMatchId_and_marketPriority", (q) =>
           q.eq("sourceMatchId", match.sourceMatchId)
         )
-        .take(100);
+        .take(50);
 
       for (const market of markets) {
         await ctx.db.delete(market._id);
         marketsDeleted++;
       }
 
-      // Delete odds using index
+      // Delete odds using index (small batch)
       const odds = await ctx.db
         .query("sportsOdds")
         .withIndex("by_sourceMatchId", (q) => q.eq("sourceMatchId", match.sourceMatchId))
-        .take(200);
+        .take(50);
 
       for (const odd of odds) {
         await ctx.db.delete(odd._id);
@@ -342,8 +342,8 @@ export const clearJunkEvents = mutation({
       matchesDeleted++;
     }
 
-    // Log
-    if (args.sessionToken) {
+    // Log only on first batch
+    if (matchesDeleted > 0 && args.sessionToken) {
       const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
       if (adminSession) {
         await logAdminActionInternal(ctx, {
@@ -353,7 +353,7 @@ export const clearJunkEvents = mutation({
           resourceType: "scraper_data",
           resourceDescription: "Cleared old events",
           details: {
-            newValue: `${matchesDeleted} events deleted`,
+            newValue: `Batch: ${matchesDeleted} events deleted`,
           },
         });
       }
@@ -363,7 +363,7 @@ export const clearJunkEvents = mutation({
       matchesDeleted,
       marketsDeleted,
       oddsDeleted,
-      hasMore: oldMatches.length === 500,
+      hasMore: oldMatches.length === 10,
     };
   },
 });

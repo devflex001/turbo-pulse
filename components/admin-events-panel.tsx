@@ -450,6 +450,26 @@ export function AdminEventsPanel() {
           </AlertDialogHeader>
 
           <div className="space-y-3 py-4">
+            {/* Progress Bar */}
+            {isClearing && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold">Clearing events...</span>
+                  <span className="font-mono">{clearProgress.deleted} deleted</span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-green-600 transition-all duration-300"
+                    style={{
+                      width: clearProgress.total > 0
+                        ? `${(clearProgress.deleted / clearProgress.total) * 100}%`
+                        : "100%",
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Protection Notice */}
             <div className="rounded-lg bg-blue-500/10 p-3 border border-blue-500/20 space-y-1">
               <div className="text-xs font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-1.5">
