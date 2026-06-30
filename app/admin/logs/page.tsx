@@ -322,121 +322,104 @@ function AdminLogsContent() {
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-lg border border-border bg-card">
-          <Table>
-            <TableHeader className="bg-muted/30">
-              <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="h-9 font-semibold text-xs text-foreground">
-                  Admin
-                </TableHead>
-                <TableHead className="h-9 font-semibold text-xs text-foreground">
-                  Action
-                </TableHead>
-                <TableHead className="h-9 font-semibold text-xs text-foreground">
-                  Resource
-                </TableHead>
-                <TableHead className="h-9 font-semibold text-xs text-foreground">
-                  Description
-                </TableHead>
-                <TableHead className="h-9 font-semibold text-xs text-foreground">
-                  Time
-                </TableHead>
-                <TableHead className="h-9 text-right font-semibold text-xs text-foreground w-16">
-                  Details
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredLogs.map((log: AdminLog) => {
-                const action = actionIconMap[log.actionType] || actionIconMap.other
-                return (
-                  <TableRow
-                    key={log._id}
-                    className="border-border hover:bg-muted/30 transition-colors h-9"
-                  >
-                    {/* Admin Name */}
-                    <TableCell className="py-1.5 text-xs font-mono font-semibold">
-                      <Badge variant="secondary" className="text-xs">
-                        {log.adminName}
-                      </Badge>
-                    </TableCell>
-
-                    {/* Action */}
-                    <TableCell className="py-1.5">
-                      <div className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium", action.color)}>
-                        {action.icon}
-                        <span>
-                          {ACTION_TYPES.find(
-                            (a) => a.value === log.actionType
-                          )?.label || log.actionType}
-                        </span>
-                      </div>
-                    </TableCell>
-
-                    {/* Resource Type */}
-                    <TableCell className="py-1.5">
-                      <span className="text-xs text-muted-foreground capitalize">
-                        {log.resourceType}
-                      </span>
-                    </TableCell>
-
-                    {/* Description */}
-                    <TableCell className="py-1.5">
-                      <span className="text-xs truncate max-w-sm">
-                        {log.resourceDescription}
-                      </span>
-                    </TableCell>
-
-                    {/* Timestamp */}
-                    <TableCell className="py-1.5">
-                      <span className="text-xs text-muted-foreground">
-                        {format(
-                          new Date(log.timestamp),
-                          "MMM dd, HH:mm"
+        <>
+          {/* ── Desktop table ── */}
+          <div className="hidden sm:block overflow-hidden rounded-lg border border-border bg-card">
+            <Table>
+              <TableHeader className="bg-muted/30">
+                <TableRow className="border-border hover:bg-transparent">
+                  <TableHead className="h-9 font-semibold text-xs text-foreground">Admin</TableHead>
+                  <TableHead className="h-9 font-semibold text-xs text-foreground">Action</TableHead>
+                  <TableHead className="h-9 font-semibold text-xs text-foreground">Resource</TableHead>
+                  <TableHead className="h-9 font-semibold text-xs text-foreground">Description</TableHead>
+                  <TableHead className="h-9 font-semibold text-xs text-foreground">Time</TableHead>
+                  <TableHead className="h-9 text-right font-semibold text-xs text-foreground w-16">Details</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredLogs.map((log: AdminLog) => {
+                  const action = actionIconMap[log.actionType] || actionIconMap.other
+                  return (
+                    <TableRow key={log._id} className="border-border hover:bg-muted/30 transition-colors h-9">
+                      <TableCell className="py-1.5 text-xs font-mono font-semibold">
+                        <Badge variant="secondary" className="text-xs">{log.adminName}</Badge>
+                      </TableCell>
+                      <TableCell className="py-1.5">
+                        <div className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium", action.color)}>
+                          {action.icon}
+                          <span>{ACTION_TYPES.find((a) => a.value === log.actionType)?.label || log.actionType}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-1.5">
+                        <span className="text-xs text-muted-foreground capitalize">{log.resourceType}</span>
+                      </TableCell>
+                      <TableCell className="py-1.5">
+                        <span className="text-xs truncate max-w-sm">{log.resourceDescription}</span>
+                      </TableCell>
+                      <TableCell className="py-1.5">
+                        <span className="text-xs text-muted-foreground">{format(new Date(log.timestamp), "MMM dd, HH:mm")}</span>
+                      </TableCell>
+                      <TableCell className="py-1.5 text-right">
+                        {log.details && (
+                          <details className="cursor-pointer group inline-block">
+                            <summary className="text-xs font-medium text-primary hover:underline">View</summary>
+                            <div className="absolute right-2 z-10 mt-1 bg-popover border rounded shadow-lg p-2 text-xs space-y-1 w-48">
+                              {log.details.reason && <div><strong>Reason:</strong> {log.details.reason}</div>}
+                              {log.details.previousValue && <div><strong>Previous:</strong> {log.details.previousValue}</div>}
+                              {log.details.newValue && <div><strong>New:</strong> {log.details.newValue}</div>}
+                              {log.details.amount !== undefined && <div><strong>Amount:</strong> KES {log.details.amount.toLocaleString()}</div>}
+                            </div>
+                          </details>
                         )}
-                      </span>
-                    </TableCell>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
+              </TableBody>
+            </Table>
+          </div>
 
-                    {/* Details */}
-                    <TableCell className="py-1.5 text-right">
-                      {log.details && (
-                        <details className="cursor-pointer group inline-block">
-                          <summary className="text-xs font-medium text-primary hover:underline">
-                            View
-                          </summary>
-                          <div className="absolute right-2 z-10 mt-1 bg-popover border rounded shadow-lg p-2 text-xs space-y-1 w-48">
-                            {log.details.reason && (
-                              <div>
-                                <strong>Reason:</strong> {log.details.reason}
-                              </div>
-                            )}
-                            {log.details.previousValue && (
-                              <div>
-                                <strong>Previous:</strong>{" "}
-                                {log.details.previousValue}
-                              </div>
-                            )}
-                            {log.details.newValue && (
-                              <div>
-                                <strong>New:</strong> {log.details.newValue}
-                              </div>
-                            )}
-                            {log.details.amount !== undefined && (
-                              <div>
-                                <strong>Amount:</strong> KES{" "}
-                                {log.details.amount.toLocaleString()}
-                              </div>
-                            )}
-                          </div>
-                        </details>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        </div>
+          {/* ── Mobile cards ── */}
+          <div className="sm:hidden space-y-2">
+            {filteredLogs.map((log: AdminLog) => {
+              const action = actionIconMap[log.actionType] || actionIconMap.other
+              return (
+                <div key={log._id} className="rounded-lg border border-border bg-card px-4 py-3 space-y-2">
+                  {/* Top row: admin badge + timestamp */}
+                  <div className="flex items-center justify-between">
+                    <Badge variant="secondary" className="text-xs capitalize">{log.adminName}</Badge>
+                    <span className="text-[11px] text-muted-foreground">{format(new Date(log.timestamp), "MMM dd, HH:mm")}</span>
+                  </div>
+
+                  {/* Action */}
+                  <div className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium", action.color)}>
+                    {action.icon}
+                    <span>{ACTION_TYPES.find((a) => a.value === log.actionType)?.label || log.actionType}</span>
+                  </div>
+
+                  {/* Description */}
+                  <p className="text-xs text-foreground leading-relaxed">{log.resourceDescription}</p>
+
+                  {/* Resource type + optional details */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-muted-foreground capitalize">{log.resourceType}</span>
+                    {log.details && (
+                      <details className="cursor-pointer">
+                        <summary className="text-xs font-medium text-primary">Details</summary>
+                        <div className="mt-1 bg-muted/50 rounded p-2 text-xs space-y-1">
+                          {log.details.reason && <div><strong>Reason:</strong> {log.details.reason}</div>}
+                          {log.details.previousValue && <div><strong>Previous:</strong> {log.details.previousValue}</div>}
+                          {log.details.newValue && <div><strong>New:</strong> {log.details.newValue}</div>}
+                          {log.details.amount !== undefined && <div><strong>Amount:</strong> KES {log.details.amount.toLocaleString()}</div>}
+                        </div>
+                      </details>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </>
       )}
     </div>
   )
