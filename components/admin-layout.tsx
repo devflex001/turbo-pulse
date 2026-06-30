@@ -117,10 +117,15 @@ function SidebarContent({ currentPath, collapsed = false, onNavigate }: SidebarC
   }
 
   return (
-    <div className="flex-1 flex flex-col gap-5 overflow-y-auto px-3 py-2">
-      {renderNavGroup("Core", coreNavItems)}
-      {renderNavGroup("Operations", operationsNavItems)}
-      <div className="mt-auto space-y-5">
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Scrollable main nav - takes remaining space */}
+      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-5">
+        {renderNavGroup("Core", coreNavItems)}
+        {renderNavGroup("Operations", operationsNavItems)}
+      </div>
+
+      {/* Fixed settings at bottom - never scrolls */}
+      <div className="border-t border-border px-3 py-3 space-y-1 shrink-0 bg-card">
         {renderNavGroup("System", settingsNavItems)}
       </div>
     </div>
