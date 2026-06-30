@@ -228,8 +228,8 @@ export function PaymentModal({
                 <p className="text-sm text-muted-foreground">{config.description}</p>
               </div>
 
-              {/* Amount Display */}
-              {amount && (
+              {/* Amount Display - Only show if NOT success */}
+              {amount && safeStage !== "success" && (
                 <div className="w-full bg-background/50 rounded-lg p-3 space-y-1.5">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Amount:</span>
@@ -245,7 +245,7 @@ export function PaymentModal({
               )}
 
               {/* Custom Message */}
-              {message && (
+              {message && safeStage !== "success" && (
                 <div className="w-full">
                   <div className="text-xs rounded-lg p-3 bg-background/50 border">
                     <div className="flex items-start gap-2">
@@ -256,8 +256,8 @@ export function PaymentModal({
                 </div>
               )}
 
-              {/* Receipt Number */}
-              {(mpesaReceiptNumber || paystackReference) && (
+              {/* Receipt Number - Only show if NOT success */}
+              {(mpesaReceiptNumber || paystackReference) && safeStage !== "success" && (
                 <div className="w-full pt-2 space-y-1">
                   <div className="text-xs text-muted-foreground">Transaction Receipt</div>
                   <code className="block text-xs font-mono bg-background/50 border rounded p-2 break-all">

@@ -485,11 +485,7 @@ export function PaystackDepositSheet() {
             </>
           )}
         </Button>
-
-        <div className="flex items-center justify-center gap-1.5 pt-2 text-[10px] text-muted-foreground/80 font-medium font-sans">
-          <Lock className="h-3 w-3 text-emerald-600" />
-          <span>Secured by Paystack. PCI-DSS Compliant.</span>
-        </div>
+       
       </form>
 
       <PaymentModal
