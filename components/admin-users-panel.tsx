@@ -103,7 +103,7 @@ interface BanModalProps {
 }
 
 function BanModal({ user, open, onClose, adminUserId }: BanModalProps) {
-  const { sessionToken } = useAuth()
+  const { sessionToken } = useAuthClient()
   const banUser = useMutation(api.adminUsers.banUser)
   const [reason, setReason] = React.useState("")
   const [duration, setDuration] = React.useState<string>("permanent")

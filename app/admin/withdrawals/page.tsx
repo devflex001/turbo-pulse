@@ -109,7 +109,7 @@ interface RejectModalProps {
 }
 
 function RejectModal({ request, open, onClose, adminUserId }: RejectModalProps) {
-  const { sessionToken } = useAuth()
+  const { sessionToken } = useAuthClient()
   const rejectWithdrawal = useMutation(api.withdrawals.rejectWithdrawal)
   const [reason, setReason] = React.useState("")
   const [loading, setLoading] = React.useState(false)

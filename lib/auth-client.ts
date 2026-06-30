@@ -12,12 +12,13 @@ interface User {
 }
 
 export function useAuthClient() {
-  const { user, isAuthenticated, isLoading, login, register, logout } = useAuth();
+  const { user, isAuthenticated, isLoading, login, register, logout, sessionToken } = useAuth();
 
   return {
     user,
     isAuthenticated,
     isLoading,
+    sessionToken,
     signIn: login,
     signUp: register,
     signOut: logout,
