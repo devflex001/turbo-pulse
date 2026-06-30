@@ -47,26 +47,53 @@ import {
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
 
-const coreNavItems = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
-  { id: "users", label: "Users", icon: Users, href: "/admin/users" },
-  { id: "visitors", label: "Visitors", icon: Globe, href: "/admin/visitors" },
-  { id: "bets", label: "Bets", icon: Trophy, href: "/admin/bets" },
-  { id: "referrals", label: "Referrals", icon: Zap, href: "/admin/referrals" },
-  { id: "payments", label: "Payments", icon: ArrowUpRight, href: "/admin/payments" },
-  { id: "withdrawals", label: "Withdrawals", icon: ArrowDownLeft, href: "/admin/withdrawals" },
-  { id: "logs", label: "Logs", icon: Logs, href: "/admin/logs" },
-  { id: "support", label: "Support", icon: MessageSquare, href: "/admin/support" },
+const navigationItems = [
+  {
+    section: "Main",
+    items: [
+      { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
+    ],
+  },
+  {
+    section: "Users & Data",
+    items: [
+      { id: "users", label: "Users", icon: Users, href: "/admin/users" },
+      { id: "visitors", label: "Visitors", icon: Globe, href: "/admin/visitors" },
+    ],
+  },
+  {
+    section: "Betting",
+    items: [
+      { id: "bets", label: "Bets", icon: Trophy, href: "/admin/bets" },
+      { id: "payments", label: "Payments", icon: ArrowUpRight, href: "/admin/payments" },
+      { id: "withdrawals", label: "Withdrawals", icon: ArrowDownLeft, href: "/admin/withdrawals" },
+    ],
+  },
+  {
+    section: "Growth",
+    items: [
+      { id: "referrals", label: "Referrals", icon: Zap, href: "/admin/referrals" },
+    ],
+  },
+  {
+    section: "Events",
+    items: [
+      { id: "events", label: "Events", icon: PlayCircle, href: "/admin/events" },
+      { id: "custom-events", label: "Custom Events", icon: PlusCircle, href: "/admin/custom-events" },
+    ],
+  },
+  {
+    section: "Operations",
+    items: [
+      { id: "scraper", label: "Scraper", icon: Database, href: "/admin/scraper" },
+      { id: "redis", label: "Redis", icon: ServerCog, href: "/admin/redis" },
+      { id: "logs", label: "Logs", icon: Logs, href: "/admin/logs" },
+      { id: "support", label: "Support", icon: MessageSquare, href: "/admin/support" },
+    ],
+  },
 ]
 
-const operationsNavItems = [
-  { id: "scraper", label: "Scraper", icon: Database, href: "/admin/scraper" },
-  { id: "events", label: "Events", icon: PlayCircle, href: "/admin/events" },
-  { id: "custom-events", label: "Custom Events", icon: PlusCircle, href: "/admin/custom-events" },
-  { id: "redis", label: "Redis", icon: ServerCog, href: "/admin/redis" },
-]
-
-const settingsNavItems = [
+const settingsItems = [
   { id: "settings", label: "Settings", icon: Settings, href: "/admin/settings" },
 ]
 
@@ -81,52 +108,51 @@ interface SidebarContentProps {
 function SidebarContent({ currentPath, collapsed = false, onNavigate }: SidebarContentProps) {
   const router = useRouter()
 
-  function renderNavGroup(label: string, items: typeof coreNavItems) {
+  function renderNavItem(item: { id: string; label: string; icon: React.ComponentType<{ className: string }>; href: string }, isActive: boolean) {
+    const Icon = item.icon
     return (
-      <div className="space-y-1">
-        {!collapsed && (
-          <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 px-2.5">
-            {label}
-          </h3>
-        )}
-        {items.map((item) => {
-          const Icon = item.icon
-          const isActive = currentPath === item.href
-          return (
-            <Button
-              key={item.id}
-              variant="ghost"
-              className={`w-full justify-start h-9 px-2.5 gap-2.5 font-normal text-xs ${isActive
-                ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary font-semibold"
-                : "hover:bg-accent/50 text-muted-foreground hover:text-foreground"
-                }`}
-              onClick={() => {
-                router.push(item.href)
-                onNavigate?.()
-              }}
-            >
-              <Icon
-                className={`size-4 shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`}
-              />
-              {!collapsed && <span>{item.label}</span>}
-            </Button>
-          )
-        })}
-      </div>
+      <Button
+        key={item.id}
+        variant="ghost"
+        className={`w-full justify-start h-8 px-2.5 gap-2.5 font-normal text-xs ${isActive
+          ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary font-semibold"
+          : "hover:bg-accent/50 text-muted-foreground hover:text-foreground"
+          }`}
+        onClick={() => {
+          router.push(item.href)
+          onNavigate?.()
+        }}
+      >
+        <Icon className={`size-4 shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+        {!collapsed && <span>{item.label}</span>}
+      </Button>
     )
   }
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Scrollable main nav - takes remaining space */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-5">
-        {renderNavGroup("Core", coreNavItems)}
-        {renderNavGroup("Operations", operationsNavItems)}
+      {/* Scrollable nav sections */}
+      <div className="flex-1 overflow-y-auto px-2.5 py-2 space-y-4">
+        {navigationItems.map((section) => (
+          <div key={section.section} className="space-y-1">
+            {!collapsed && (
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1.5">
+                {section.section}
+              </h3>
+            )}
+            {section.items.map((item) => renderNavItem(item, currentPath === item.href))}
+          </div>
+        ))}
       </div>
 
-      {/* Fixed settings at bottom - never scrolls */}
-      <div className="border-t border-border px-3 py-3 space-y-1 shrink-0 bg-card">
-        {renderNavGroup("System", settingsNavItems)}
+      {/* Fixed settings at bottom */}
+      <div className="border-t border-border px-2.5 py-2 shrink-0 bg-card">
+        {/* {!collapsed && (
+          <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1.5">
+            System
+          </h3>
+        )} */}
+        {settingsItems.map((item) => renderNavItem(item, currentPath === item.href))}
       </div>
     </div>
   )
