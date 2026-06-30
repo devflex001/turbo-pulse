@@ -243,7 +243,7 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
             {/* Top Navbar */}
             <header className="flex h-14 items-center justify-between px-3 sm:px-5 border-b border-border bg-background/95 backdrop-blur-md shrink-0 gap-3">
 
-              {/* Left: Hamburger (mobile) + Page label (mobile) + Active Admins (desktop) */}
+              {/* Left: Hamburger (mobile) + Active Admins (desktop) */}
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <Button
                   variant="ghost"
@@ -254,18 +254,6 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
                 >
                   <Menu className="size-4" />
                 </Button>
-                {/* Mobile page title with icon */}
-                {(() => {
-                  const allItems = [...coreNavItems, ...operationsNavItems, ...settingsNavItems]
-                  const current = allItems.find(item => item.href === pathname)
-                  const Icon = current?.icon
-                  return (
-                    <span className="sm:hidden flex items-center gap-1.5 text-sm font-semibold text-foreground truncate">
-                      {Icon && <Icon className="size-4 shrink-0 text-primary" />}
-                      {current?.label || pageTitle || "Admin"}
-                    </span>
-                  )
-                })()}
                 <div className="hidden md:block ml-auto">
                   <ActiveAdminsIndicator />
                 </div>

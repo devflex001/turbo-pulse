@@ -330,10 +330,8 @@ function AdminLogsContent() {
                 <TableRow className="border-border hover:bg-transparent">
                   <TableHead className="h-9 font-semibold text-xs text-foreground">Admin</TableHead>
                   <TableHead className="h-9 font-semibold text-xs text-foreground">Action</TableHead>
-                  <TableHead className="h-9 font-semibold text-xs text-foreground">Resource</TableHead>
                   <TableHead className="h-9 font-semibold text-xs text-foreground">Description</TableHead>
                   <TableHead className="h-9 font-semibold text-xs text-foreground">Time</TableHead>
-                  <TableHead className="h-9 text-right font-semibold text-xs text-foreground w-16">Details</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -341,8 +339,8 @@ function AdminLogsContent() {
                   const action = actionIconMap[log.actionType] || actionIconMap.other
                   return (
                     <TableRow key={log._id} className="border-border hover:bg-muted/30 transition-colors h-9">
-                      <TableCell className="py-1.5 text-xs font-mono font-semibold">
-                        <Badge variant="secondary" className="text-xs">{log.adminName}</Badge>
+                      <TableCell className="py-1.5 text-xs">
+                        <Badge variant="secondary" className="text-xs capitalize">{log.adminName}</Badge>
                       </TableCell>
                       <TableCell className="py-1.5">
                         <div className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium", action.color)}>
@@ -351,26 +349,10 @@ function AdminLogsContent() {
                         </div>
                       </TableCell>
                       <TableCell className="py-1.5">
-                        <span className="text-xs text-muted-foreground capitalize">{log.resourceType}</span>
+                        <span className="text-xs text-muted-foreground">{log.resourceDescription}</span>
                       </TableCell>
-                      <TableCell className="py-1.5">
-                        <span className="text-xs truncate max-w-sm">{log.resourceDescription}</span>
-                      </TableCell>
-                      <TableCell className="py-1.5">
+                      <TableCell className="py-1.5 whitespace-nowrap">
                         <span className="text-xs text-muted-foreground">{format(new Date(log.timestamp), "MMM dd, HH:mm")}</span>
-                      </TableCell>
-                      <TableCell className="py-1.5 text-right">
-                        {log.details && (
-                          <details className="cursor-pointer group inline-block">
-                            <summary className="text-xs font-medium text-primary hover:underline">View</summary>
-                            <div className="absolute right-2 z-10 mt-1 bg-popover border rounded shadow-lg p-2 text-xs space-y-1 w-48">
-                              {log.details.reason && <div><strong>Reason:</strong> {log.details.reason}</div>}
-                              {log.details.previousValue && <div><strong>Previous:</strong> {log.details.previousValue}</div>}
-                              {log.details.newValue && <div><strong>New:</strong> {log.details.newValue}</div>}
-                              {log.details.amount !== undefined && <div><strong>Amount:</strong> KES {log.details.amount.toLocaleString()}</div>}
-                            </div>
-                          </details>
-                        )}
                       </TableCell>
                     </TableRow>
                   )
@@ -379,41 +361,24 @@ function AdminLogsContent() {
             </Table>
           </div>
 
-          {/* ── Mobile cards ── */}
+          {/* ── Mobile list (cards) ── */}
           <div className="sm:hidden space-y-2">
             {filteredLogs.map((log: AdminLog) => {
               const action = actionIconMap[log.actionType] || actionIconMap.other
               return (
-                <div key={log._id} className="rounded-lg border border-border bg-card px-4 py-3 space-y-2">
-                  {/* Top row: admin badge + timestamp */}
-                  <div className="flex items-center justify-between">
-                    <Badge variant="secondary" className="text-xs capitalize">{log.adminName}</Badge>
-                    <span className="text-[11px] text-muted-foreground">{format(new Date(log.timestamp), "MMM dd, HH:mm")}</span>
-                  </div>
-
-                  {/* Action */}
-                  <div className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium", action.color)}>
-                    {action.icon}
-                    <span>{ACTION_TYPES.find((a) => a.value === log.actionType)?.label || log.actionType}</span>
-                  </div>
-
-                  {/* Description */}
-                  <p className="text-xs text-foreground leading-relaxed">{log.resourceDescription}</p>
-
-                  {/* Resource type + optional details */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-muted-foreground capitalize">{log.resourceType}</span>
-                    {log.details && (
-                      <details className="cursor-pointer">
-                        <summary className="text-xs font-medium text-primary">Details</summary>
-                        <div className="mt-1 bg-muted/50 rounded p-2 text-xs space-y-1">
-                          {log.details.reason && <div><strong>Reason:</strong> {log.details.reason}</div>}
-                          {log.details.previousValue && <div><strong>Previous:</strong> {log.details.previousValue}</div>}
-                          {log.details.newValue && <div><strong>New:</strong> {log.details.newValue}</div>}
-                          {log.details.amount !== undefined && <div><strong>Amount:</strong> KES {log.details.amount.toLocaleString()}</div>}
+                <div key={log._id} className="rounded-lg border border-border bg-card px-4 py-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="space-y-1.5 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="text-xs capitalize shrink-0">{log.adminName}</Badge>
+                        <div className={cn("inline-flex shrink-0 items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium", action.color)}>
+                          {action.icon}
+                          <span>{ACTION_TYPES.find((a) => a.value === log.actionType)?.label || log.actionType}</span>
                         </div>
-                      </details>
-                    )}
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-snug">{log.resourceDescription}</p>
+                    </div>
+                    <span className="shrink-0 text-[11px] text-muted-foreground whitespace-nowrap pt-0.5">{format(new Date(log.timestamp), "MMM dd, HH:mm")}</span>
                   </div>
                 </div>
               )
