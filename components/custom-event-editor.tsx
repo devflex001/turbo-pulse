@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
+import { useAuth } from "@/lib/auth/AuthContext"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,6 +39,7 @@ export function CustomEventEditor({
   onSuccess,
 }: CustomEventEditorProps) {
   const router = useRouter()
+  const { sessionToken } = useAuth()
   const isMobile = useMediaQuery("(max-width: 640px)")
   const createEvent = useMutation(api.customEvents.createCustomEvent)
   const updateEvent = useMutation(api.customEvents.updateCustomEvent)
@@ -110,6 +112,7 @@ export function CustomEventEditor({
           startTime: startTimeMs,
           sport: formData.sport,
           competition: formData.competition,
+          sessionToken: sessionToken || undefined,
         });
         toast.success("Event updated successfully");
       } else {
@@ -122,6 +125,7 @@ export function CustomEventEditor({
           startTime: startTimeMs,
           sport: formData.sport,
           competition: formData.competition,
+          sessionToken: sessionToken || undefined,
         });
         toast.success("Event created successfully");
         // Navigate to the custom event detail page to configure markets and odds

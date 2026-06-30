@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
+import { useAuth } from "@/lib/auth/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -95,6 +96,7 @@ export function CustomEventsList({
   status,
 }: CustomEventsListProps) {
   const router = useRouter()
+  const { sessionToken } = useAuth()
   const [search, setSearch] = React.useState("")
   const [sort, setSort] = React.useState<SortOption>("newest")
   const [filterStatus, setFilterStatus] = React.useState<
@@ -169,6 +171,7 @@ export function CustomEventsList({
         eventId: eventToResolve._id,
         marketOutcomes,
         passphrase, // Include passphrase if provided
+        sessionToken: sessionToken || undefined,
       })
 
       const totalOutcomes = Array.from(selectedOutcomesByMarket.values()).reduce((sum, set) => sum + set.size, 0)
@@ -199,7 +202,7 @@ export function CustomEventsList({
     if (!confirm("Are you sure? This cannot be undone.")) return
 
     try {
-      await deleteEvent({ eventId: eventId as any })
+      await deleteEvent({ eventId: eventId as any, sessionToken: sessionToken || undefined })
       toast.success("Event deleted")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete")
@@ -209,7 +212,7 @@ export function CustomEventsList({
   const handlePublish = async (eventId: string, e: React.MouseEvent) => {
     e.stopPropagation()
     try {
-      await publishEvent({ eventId: eventId as any })
+      await publishEvent({ eventId: eventId as any, sessionToken: sessionToken || undefined })
       toast.success("Event published")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to publish")
@@ -219,7 +222,7 @@ export function CustomEventsList({
   const handleUnpublish = async (eventId: string, e: React.MouseEvent) => {
     e.stopPropagation()
     try {
-      await unpublishEvent({ eventId: eventId as any })
+      await unpublishEvent({ eventId: eventId as any, sessionToken: sessionToken || undefined })
       toast.success("Event unpublished")
     } catch (error) {
       toast.error(
@@ -238,7 +241,7 @@ export function CustomEventsList({
     }
     setSavingScore(true)
     try {
-      await updateScore({ eventId: selectedEvent._id, homeScore: h, awayScore: a })
+      await updateScore({ eventId: selectedEvent._id, homeScore: h, awayScore: a, sessionToken: sessionToken || undefined })
       toast.success("Score updated successfully")
       setScoreDialogOpen(false)
     } catch (error) {

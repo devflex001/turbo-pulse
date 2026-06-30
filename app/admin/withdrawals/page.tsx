@@ -109,6 +109,7 @@ interface RejectModalProps {
 }
 
 function RejectModal({ request, open, onClose, adminUserId }: RejectModalProps) {
+  const { sessionToken } = useAuth()
   const rejectWithdrawal = useMutation(api.withdrawals.rejectWithdrawal)
   const [reason, setReason] = React.useState("")
   const [loading, setLoading] = React.useState(false)
@@ -131,6 +132,7 @@ function RejectModal({ request, open, onClose, adminUserId }: RejectModalProps) 
       setLoading(true)
       await rejectWithdrawal({
         userId: adminUserId,
+        sessionToken: sessionToken || undefined,
         requestId: request._id,
         rejectionReason: reason.trim(),
       })
@@ -200,7 +202,7 @@ function RejectModal({ request, open, onClose, adminUserId }: RejectModalProps) 
 const PAGE_SIZE = 20
 
 export default function WithdrawalsPage() {
-  const { user } = useAuthClient()
+  const { user, sessionToken } = useAuthClient()
   const stats = useQuery(api.withdrawals.getWithdrawalStats, { userId: user?._id })
   const approveWithdrawal = useMutation(api.withdrawals.approveWithdrawal)
 
@@ -221,6 +223,7 @@ export default function WithdrawalsPage() {
       setApprovingId(req._id)
       await approveWithdrawal({
         userId: user?._id,
+        sessionToken: sessionToken || undefined,
         requestId: req._id,
       })
       toast.success(`Approved KES ${req.amount.toLocaleString()} for ${req.userPhone}`)

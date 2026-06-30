@@ -61,11 +61,11 @@ const actionIconMap: Record<
   { icon: React.ReactNode; color: string }
 > = {
   login: {
-    icon: <LogIn className="h-3.5 w-3.5" />,
+    icon: <LogIn className="h-3 w-3" />,
     color: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
   },
   logout: {
-    icon: <LogOut className="h-3.5 w-3.5" />,
+    icon: <LogOut className="h-3 w-3" />,
     color: "bg-slate-500/10 text-slate-700 dark:text-slate-400",
   },
   ban_user: {
