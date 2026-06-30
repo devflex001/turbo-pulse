@@ -1,9 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { useQuery } from "convex/react"
+import { useQuery, usePaginatedQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useBetStore } from "@/hooks/use-bet-store"
+import { useAuth } from "@/lib/auth/AuthContext"
 import { AdminLayout } from "@/components/admin-layout"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -38,11 +39,24 @@ import { toast } from "sonner"
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
-  const { transactions, adminStats, updateAdminTransactionStatus } = useBetStore()
+  const { user: authUser } = useAuth()
+  const { adminStats, updateAdminTransactionStatus } = useBetStore()
 
   // Real analytics from Convex queries
   const depositTrend = useQuery(api.bets.getDepositTrend, { daysBack: 7 })
   const userRegistrationTrend = useQuery(api.bets.getUserRegistrationTrend, { daysBack: 7 })
+
+  // Fetch admin transactions from admin query
+  const adminTransactionsPage = usePaginatedQuery(
+    api.adminTransactions.listTransactions,
+    {
+      typeFilter: "deposit",
+      statusFilter: undefined,
+      search: undefined,
+      userId: authUser?._id,
+    },
+    { initialNumItems: 5 }
+  )
 
   const [currentPage, setCurrentPage] = React.useState(1)
   const [currentTime, setCurrentTime] = React.useState("")
@@ -61,10 +75,28 @@ export default function AdminDashboard() {
     return () => { a = false; clearTimeout(t) }
   }, [])
 
-  const filteredTransactions = transactions
+  // Convert admin transactions to the format expected by the Recent Activity table
+  const filteredTransactions = (adminTransactionsPage.results as any[]).map((tx) => ({
+    id: tx._id,
+    type: tx.type,
+    amount: tx.amount,
+    phone: tx.phone,
+    status: tx.status,
+    errorDetail: tx.errorDetail,
+    time:
+      new Date(tx.time).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+      }) +
+      ", " +
+      new Date(tx.time).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+  }))
 
   const itemsPerPage = 5
-  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage)
+  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / itemsPerPage))
   const paginatedTransactions = React.useMemo(() => {
     const startIdx = (currentPage - 1) * itemsPerPage
     return filteredTransactions.slice(startIdx, startIdx + itemsPerPage)

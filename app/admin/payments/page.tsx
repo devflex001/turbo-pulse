@@ -173,7 +173,7 @@ function TransactionDetailsModal({ tx, open, onClose }: DetailsModalProps) {
 
         <div className="space-y-2">
           <h3 className="font-bold text-foreground text-[10px] uppercase tracking-wider">Gateway Reference Data</h3>
-          
+
           <div className="grid grid-cols-3 gap-y-2 gap-x-2 rounded-lg border border-border bg-muted/20 p-2.5 font-mono text-[10px]">
             {tx.mpesaReceiptNumber && (
               <>
@@ -435,7 +435,7 @@ export default function PaymentsPage() {
                   <th className="py-3 px-4">Phone / Account</th>
                   <th className="py-3 px-4 text-right">Amount</th>
                   <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">M-Pesa Receipt</th>
+                  <th className="py-3 px-4">Reference / Receipt</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -489,7 +489,7 @@ export default function PaymentsPage() {
                         <StatusBadge status={t.status} />
                       </td>
                       <td className="py-3.5 px-4 font-mono text-foreground font-bold">
-                        {t.mpesaReceiptNumber ?? "-"}
+                        {t.checkoutRequestID ? t.checkoutRequestID : (t.mpesaReceiptNumber ?? "-")}
                       </td>
                     </tr>
                   )
