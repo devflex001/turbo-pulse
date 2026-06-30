@@ -899,6 +899,20 @@ function ResolveModal({
     event ? { eventId: event._id } : "skip"
   )
 
+  // Fetch settlement summary when outcomes are selected
+  const settlementSummary = useQuery(
+    api.customEvents.calculateSettlementSummary,
+    event && selectedOutcomesByMarket.size > 0
+      ? {
+        eventId: event._id,
+        marketOutcomes: Array.from(selectedOutcomesByMarket.entries()).map(([marketId, outcomeIds]) => ({
+          marketId: marketId as any,
+          winningOutcomeIds: Array.from(outcomeIds),
+        })),
+      }
+      : "skip"
+  )
+
   // Group odds by market
   const oddsByMarket = React.useMemo(() => {
     const groups = new Map<string, any[]>()
@@ -1040,24 +1054,55 @@ function ResolveModal({
       </ScrollArea>
 
       {/* Action Buttons */}
-      <div className="shrink-0 border-t border-border bg-muted/30 p-4 flex gap-2 justify-end">
-        <Button
-          variant="outline"
-          size="sm"
-          className="text-xs h-8 border-border"
-          onClick={() => onOpenChange(false)}
-          disabled={isResolving}
-        >
-          Cancel
-        </Button>
-        <Button
-          size="sm"
-          className="text-xs h-8 font-semibold"
-          onClick={onResolve}
-          disabled={isResolving || totalSelected === 0}
-        >
-          {isResolving ? "Resolving..." : `Resolve ${totalSelected > 0 ? `(${totalSelected})` : ""}`}
-        </Button>
+      <div className="shrink-0 border-t border-border bg-muted/30 p-4 space-y-3">
+        {/* Settlement Summary */}
+        {settlementSummary && selectedOutcomesByMarket.size > 0 && (
+          <div className="grid grid-cols-4 gap-2 bg-card border border-border rounded-lg p-3">
+            <div className="space-y-1">
+              <p className="text-[9px] font-semibold text-muted-foreground uppercase">Bets to Settle</p>
+              <p className="text-sm font-bold text-foreground">{settlementSummary.totalBets}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[9px] font-semibold text-muted-foreground uppercase">Winners</p>
+              <p className="text-sm font-bold text-emerald-600">{settlementSummary.winningBets}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[9px] font-semibold text-muted-foreground uppercase">Payouts</p>
+              <p className="text-sm font-bold text-foreground font-mono">
+                {(settlementSummary.totalPayouts / 1000).toFixed(1)}k
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[9px] font-semibold text-muted-foreground uppercase">Gain</p>
+              <p className={cn(
+                "text-sm font-bold font-mono",
+                settlementSummary.systemGain > 0 ? "text-emerald-600" : "text-rose-600"
+              )}>
+                {(settlementSummary.systemGain / 1000).toFixed(1)}k
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-2 justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs h-8 border-border"
+            onClick={() => onOpenChange(false)}
+            disabled={isResolving}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            className="text-xs h-8 font-semibold"
+            onClick={onResolve}
+            disabled={isResolving || totalSelected === 0}
+          >
+            {isResolving ? "Resolving..." : `Resolve ${totalSelected > 0 ? `(${totalSelected})` : ""}`}
+          </Button>
+        </div>
       </div>
     </div>
   )

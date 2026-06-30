@@ -877,6 +877,104 @@ export const getEventBets = query({
   },
 })
 
+/**
+ * Calculate settlement summary before confirming
+ * Shows how many bets will win, total payouts, and system gain
+ */
+export const calculateSettlementSummary = query({
+  args: {
+    eventId: v.id("customEvents"),
+    marketOutcomes: v.array(v.object({
+      marketId: v.id("customMarkets"),
+      winningOutcomeIds: v.array(v.string()),
+    })),
+  },
+  handler: async (ctx, args) => {
+    // Get all active bets for this event
+    const allBets = await ctx.db.query("bets").collect()
+    const eventBets = allBets.filter((bet) =>
+      bet.selections.some((sel: any) => sel.matchId === args.eventId && bet.status === "active")
+    )
+
+    // Build a map of winning outcomes by market for quick lookup
+    const winningOutcomesByMarket = new Map<string, Set<string>>()
+    for (const resolution of args.marketOutcomes) {
+      const marketIdStr = resolution.marketId.toString()
+      winningOutcomesByMarket.set(
+        marketIdStr,
+        new Set(resolution.winningOutcomeIds)
+      )
+    }
+
+    // Get all odds for outcome validation
+    const allOdds = await ctx.db.query("customOdds").collect()
+
+    // Calculate settlement totals
+    let totalPayouts = 0
+    let winningBetsCount = 0
+    let losingBetsCount = 0
+    let totalStakeAmount = 0
+
+    for (const bet of eventBets) {
+      totalStakeAmount += bet.stake
+
+      // A bet wins only if ALL its selections for this event match winning outcomes
+      const eventSelections = bet.selections.filter((sel: any) => sel.matchId === args.eventId)
+
+      // Check if all selections are winners
+      let allSelectionsWon = eventSelections.length > 0
+
+      for (const sel of eventSelections) {
+        let selectionWon = false
+
+        for (const [marketIdStr, winningOutcomeIds] of winningOutcomesByMarket.entries()) {
+          // Find the odds for this market to verify the selection exists
+          const oddsInMarket = allOdds.filter((odd: any) =>
+            odd.marketId.toString() === marketIdStr &&
+            odd.eventId === args.eventId
+          )
+
+          // Check if this selection matches any winning outcome in this market
+          for (const odd of oddsInMarket) {
+            if (
+              winningOutcomeIds.has(odd.outcomeId) &&
+              (odd.outcomeName === sel.selectionName || odd.outcomeId === sel.selection)
+            ) {
+              selectionWon = true
+              break
+            }
+          }
+          if (selectionWon) break
+        }
+
+        if (!selectionWon) {
+          allSelectionsWon = false
+          break
+        }
+      }
+
+      if (allSelectionsWon) {
+        winningBetsCount += 1
+        totalPayouts += bet.potentialReturn
+      } else {
+        losingBetsCount += 1
+      }
+    }
+
+    // Calculate system gain = total stakes - total payouts
+    const systemGain = totalStakeAmount - totalPayouts
+
+    return {
+      totalBets: eventBets.length,
+      winningBets: winningBetsCount,
+      losingBets: losingBetsCount,
+      totalStakeAmount,
+      totalPayouts,
+      systemGain,
+    }
+  },
+})
+
 // Settle event: mark which market outcomes won
 // This will automatically settle all related bets
 export const settleCustomEvent = mutation({
@@ -927,22 +1025,66 @@ export const settleCustomEvent = mutation({
       bet.selections.some((sel: any) => sel.matchId === args.eventId && bet.status === "active")
     )
 
-    // Flatten all winning outcomeIds across markets
-    const winningOutcomeIds = new Set<string>()
+    // Build a map of winning outcomes by market for quick lookup
+    // Format: marketId -> Set of outcomeIds
+    const winningOutcomesByMarket = new Map<string, Set<string>>()
     for (const resolution of args.marketOutcomes) {
-      for (const outcomeId of resolution.winningOutcomeIds) {
-        winningOutcomeIds.add(outcomeId)
-      }
+      const marketIdStr = resolution.marketId.toString()
+      winningOutcomesByMarket.set(
+        marketIdStr,
+        new Set(resolution.winningOutcomeIds)
+      )
     }
+
+    // Get all markets and odds for outcome validation
+    const allMarkets = await ctx.db.query("customMarkets").collect()
+    const allOdds = await ctx.db.query("customOdds").collect()
+
+    // Track payout totals for admin summary
+    let totalPayouts = 0
+    let winningBetsCount = 0
+    let losingBetsCount = 0
+    let totalStakeAmount = 0
 
     // Settle each bet
     for (const bet of eventBets) {
-      // A bet wins only if ALL its selections for this event are in the winning outcomes
+      totalStakeAmount += bet.stake
+
+      // A bet wins only if ALL its selections for this event match winning outcomes
       const eventSelections = bet.selections.filter((sel: any) => sel.matchId === args.eventId)
 
-      const allSelectionsWon = eventSelections.length > 0 && eventSelections.every(
-        (sel: any) => winningOutcomeIds.has(sel.outcomeId)
-      )
+      // Check if all selections are winners
+      let allSelectionsWon = eventSelections.length > 0
+
+      for (const sel of eventSelections) {
+        // Find which market this selection belongs to by matching the selection name/sourceOddId
+        let selectionWon = false
+
+        for (const [marketIdStr, winningOutcomeIds] of winningOutcomesByMarket.entries()) {
+          // Find the odds for this market to verify the selection exists
+          const oddsInMarket = allOdds.filter((odd: any) =>
+            odd.marketId.toString() === marketIdStr &&
+            odd.eventId === args.eventId
+          )
+
+          // Check if this selection matches any winning outcome in this market
+          for (const odd of oddsInMarket) {
+            if (
+              winningOutcomeIds.has(odd.outcomeId) &&
+              (odd.outcomeName === sel.selectionName || odd.outcomeId === sel.selection)
+            ) {
+              selectionWon = true
+              break
+            }
+          }
+          if (selectionWon) break
+        }
+
+        if (!selectionWon) {
+          allSelectionsWon = false
+          break
+        }
+      }
 
       const isWon = allSelectionsWon
 
@@ -955,6 +1097,9 @@ export const settleCustomEvent = mutation({
 
       // If bet won, credit user's wallet with potential return
       if (isWon && bet.userId) {
+        winningBetsCount += 1
+        totalPayouts += bet.potentialReturn
+
         const userId = bet.userId as Id<"users">
         let wallet = await ctx.db
           .query("wallets")
@@ -993,6 +1138,7 @@ export const settleCustomEvent = mutation({
           },
         })
       } else if (!isWon && bet.userId) {
+        losingBetsCount += 1
         // Notify user they lost
         const userId = bet.userId as Id<"users">
         const betLabel = bet.selections.length === 1
@@ -1015,11 +1161,14 @@ export const settleCustomEvent = mutation({
       }
     }
 
-    // Notify admins
+    // Calculate system gain = total stakes - total payouts
+    const systemGain = totalStakeAmount - totalPayouts
+
+    // Notify admins with settlement summary
     await notifyAdmins(ctx, {
       type: "match",
       title: "Custom event settled",
-      message: `Event ${event.homeTeam} vs ${event.awayTeam} has been settled. ${eventBets.length} bets processed.`,
+      message: `Event ${event.homeTeam} vs ${event.awayTeam} settled. ${eventBets.length} bets: ${winningBetsCount} won, ${losingBetsCount} lost. Payouts: ${formatKes(totalPayouts)}, System gain: ${formatKes(systemGain)}`,
       href: `/admin/custom-events/${args.eventId}`,
       dedupeKey: `custom-event-settled:${args.eventId}`,
     })
