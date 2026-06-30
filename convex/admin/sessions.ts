@@ -3,6 +3,7 @@ import { query, mutation } from "../_generated/server";
 import type { Id, Doc } from "../_generated/dataModel";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import { requireAdmin } from "../auth/authorization";
+import { logAdminActionInternal } from "../audit/logs";
 
 /**
  * Admin Sessions Module
@@ -149,6 +150,15 @@ export const startAdminSession = mutation({
       isActive: true,
     });
 
+    // Log the admin login
+    await logAdminActionInternal(ctx, {
+      adminName: normalizedName,
+      userId: args.userId,
+      actionType: "login",
+      resourceType: "admin_session",
+      resourceDescription: `Admin login (${normalizedName})`,
+    });
+
     return {
       _id: sessionId,
       adminName: normalizedName,
@@ -202,6 +212,15 @@ export const endAdminSession = mutation({
     if (!session) {
       return { success: false, message: "Session not found" };
     }
+
+    // Log the admin logout
+    await logAdminActionInternal(ctx, {
+      adminName: session.adminName,
+      userId: session.userId,
+      actionType: "logout",
+      resourceType: "admin_session",
+      resourceDescription: `Admin logout (${session.adminName})`,
+    });
 
     await ctx.db.patch(session._id, {
       isActive: false,

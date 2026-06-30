@@ -53,15 +53,14 @@ const ACTION_TYPES = [
   { value: "login", label: "Login" },
   { value: "logout", label: "Logout" },
   { value: "ban_user", label: "Ban User" },
-]
-{ value: "unban_user", label: "Unban User" },
-{ value: "edit_user", label: "Edit User" },
-{ value: "update_bet_status", label: "Update Bet" },
-{ value: "approve_withdrawal", label: "Approve Withdrawal" },
-{ value: "reject_withdrawal", label: "Reject Withdrawal" },
-{ value: "create_custom_event", label: "Create Event" },
-{ value: "update_custom_event", label: "Update Event" },
-{ value: "settle_custom_event", label: "Settle Event" },
+  { value: "unban_user", label: "Unban User" },
+  { value: "edit_user", label: "Edit User" },
+  { value: "update_bet_status", label: "Update Bet" },
+  { value: "approve_withdrawal", label: "Approve Withdrawal" },
+  { value: "reject_withdrawal", label: "Reject Withdrawal" },
+  { value: "create_custom_event", label: "Create Event" },
+  { value: "update_custom_event", label: "Update Event" },
+  { value: "settle_custom_event", label: "Settle Event" },
 ]
 
 const actionIconMap: Record<

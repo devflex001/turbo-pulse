@@ -2,6 +2,8 @@ import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
 import { Id } from "./_generated/dataModel"
 import { notifyAdmins, notifyUser } from "./notifications"
+import { logAdminActionInternal } from "./audit/logs"
+import { getAdminSessionByTokenInternal } from "./admin/sessions"
 
 function formatKes(amount: number) {
   return `KES ${amount.toLocaleString("en-KE", {
@@ -400,6 +402,7 @@ export const createCustomEvent = mutation({
     startTime: v.number(),
     sport: v.string(),
     competition: v.string(),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = Date.now()
@@ -419,7 +422,7 @@ export const createCustomEvent = mutation({
       status: "draft",
       eventStatus: "not_started",
       totalMarkets: 0,
-      createdBy: "admin", // TODO: Use auth context when available
+      createdBy: "admin",
       createdAt: now,
       updatedAt: now,
     })
@@ -453,6 +456,20 @@ export const createCustomEvent = mutation({
       totalMarkets: CUSTOM_MARKET_TEMPLATE.length,
       updatedAt: now,
     })
+
+    // Log the action
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: adminSession.userId,
+          actionType: "create_custom_event",
+          resourceType: "custom_event",
+          resourceDescription: `Event created: ${args.title} (${args.homeTeam} vs ${args.awayTeam})`,
+        });
+      }
+    }
 
     return eventId
   },
@@ -665,6 +682,7 @@ export const updateCustomOdds = mutation({
 export const publishCustomEvent = mutation({
   args: {
     eventId: v.id("customEvents"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const event = await ctx.db.get(args.eventId)
@@ -677,6 +695,23 @@ export const publishCustomEvent = mutation({
       publishedAt: now,
       updatedAt: now,
     })
+
+    // Log the action
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: adminSession.userId,
+          actionType: "update_custom_event",
+          resourceType: "custom_event",
+          resourceDescription: `Event published: ${event.title}`,
+          details: {
+            newValue: "published",
+          },
+        });
+      }
+    }
 
     return args.eventId
   },
@@ -982,9 +1017,10 @@ export const settleCustomEvent = mutation({
     eventId: v.id("customEvents"),
     marketOutcomes: v.array(v.object({
       marketId: v.id("customMarkets"),
-      winningOutcomeIds: v.array(v.string()), // Multiple outcomes can win in same market
+      winningOutcomeIds: v.array(v.string()),
     })),
-    passphrase: v.optional(v.string()), // For overriding already-settled events
+    passphrase: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const event = await ctx.db.get(args.eventId)
@@ -993,7 +1029,7 @@ export const settleCustomEvent = mutation({
     // Check if event is already settled
     if (event.eventStatus === "finished") {
       // Require passphrase to override
-      const expectedPassphrase = process.env.SYSTEM_OVERRIDE_PASSPHRASE 
+      const expectedPassphrase = process.env.SYSTEM_OVERRIDE_PASSPHRASE
       if (!args.passphrase || args.passphrase !== expectedPassphrase) {
         throw new Error("Event already settled - passphrase required to override")
       }
@@ -1181,6 +1217,23 @@ export const settleCustomEvent = mutation({
       href: `/admin/custom-events/${args.eventId}`,
       dedupeKey: `custom-event-settled:${args.eventId}`,
     })
+
+    // Log the action
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: adminSession.userId,
+          actionType: "settle_custom_event",
+          resourceType: "custom_event",
+          resourceDescription: `Event settled: ${event.title}`,
+          details: {
+            amount: totalPayouts,
+          },
+        });
+      }
+    }
 
     return args.eventId
   },
