@@ -71,8 +71,14 @@ export const getCurrentAdminSession = query({
   },
 });
 
+// Sessions inactive for longer than this are treated as stale / offline.
+// Matches the heartbeat interval in the UI (5 min) with generous buffer.
+const SESSION_STALE_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
+
 /**
- * Get all active admin sessions (other admins currently online)
+ * Get all active admin sessions (other admins currently online).
+ * Excludes sessions whose lastActivityAt is older than SESSION_STALE_THRESHOLD_MS
+ * so crashed or abandoned tabs don't show as permanently online.
  */
 export const getActiveAdmins = query({
   args: {},
@@ -82,12 +88,16 @@ export const getActiveAdmins = query({
       .withIndex("by_isActive", (q) => q.eq("isActive", true))
       .collect();
 
-    return activeSessions.map((session) => ({
-      adminName: session.adminName,
-      loginAt: session.loginAt,
-      lastActivityAt: session.lastActivityAt,
-      userId: session.userId,
-    }));
+    const cutoff = Date.now() - SESSION_STALE_THRESHOLD_MS;
+
+    return activeSessions
+      .filter((session) => session.lastActivityAt >= cutoff)
+      .map((session) => ({
+        adminName: session.adminName,
+        loginAt: session.loginAt,
+        lastActivityAt: session.lastActivityAt,
+        userId: session.userId,
+      }));
   },
 });
 
@@ -168,8 +178,9 @@ export const startAdminSession = mutation({
 });
 
 /**
- * Update admin session activity timestamp
- * Call this on every admin action to keep session active
+ * Update admin session activity timestamp.
+ * Called as a heartbeat every few minutes to keep the session fresh.
+ * Silently no-ops if the session no longer exists.
  */
 export const updateAdminSessionActivity = mutation({
   args: {
@@ -181,8 +192,8 @@ export const updateAdminSessionActivity = mutation({
       .withIndex("by_sessionToken", (q) => q.eq("sessionToken", args.sessionToken))
       .first();
 
-    if (!session) {
-      throw new Error("Admin session not found");
+    if (!session || !session.isActive) {
+      return null;
     }
 
     await ctx.db.patch(session._id, {

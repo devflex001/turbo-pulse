@@ -275,7 +275,7 @@ export function NotificationsCenter({ className }: NotificationsCenterProps) {
     <Button
       variant="ghost"
       size="icon"
-      className={cn("relative size-8 rounded-full border border-border hover:bg-muted/50", className)}
+      className={cn("relative size-8 rounded-full hover:bg-muted/50", className)}
       aria-label="Notifications"
     >
       <Bell className="size-4 text-muted-foreground" />

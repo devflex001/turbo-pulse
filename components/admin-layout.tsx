@@ -19,14 +19,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { useBetStore } from "@/hooks/use-bet-store"
 import { NotificationsCenter } from "@/components/notifications-center"
 import { ActiveAdminsIndicator } from "@/components/active-admins-indicator"
 import {
   Sun,
   Moon,
   Menu,
-  User,
   LogOut,
   X,
   ChevronRight,
@@ -139,10 +137,9 @@ interface AdminLayoutProps {
 export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const { theme, setTheme } = useTheme()
-  const { user } = useBetStore()
-  const { isAdmin, isLoading } = useAuth()
+  const { isAdmin, isLoading, adminName } = useAuth()
 
+  const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = React.useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false)
@@ -279,11 +276,11 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="size-8 border border-border hover:bg-accent"
-                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    className="size-8 hover:bg-accent"
+                    onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
                     aria-label="Toggle theme"
                   >
-                    {theme === "dark" ? (
+                    {resolvedTheme === "dark" ? (
                       <Sun className="size-3.5 text-primary" />
                     ) : (
                       <Moon className="size-3.5" />
@@ -302,14 +299,14 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
                       aria-label="Admin account menu"
                     >
                       <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                        {(user?.username?.[0] ?? "A").toUpperCase()}
+                        {(adminName?.[0] ?? "A").toUpperCase()}
                       </span>
                       <span className="hidden min-w-0 flex-col text-left sm:flex">
-                        <span className="max-w-28 truncate text-xs font-semibold leading-tight">
-                          {user?.username ?? "Admin"}
+                        <span className="max-w-28 truncate text-xs font-semibold leading-tight capitalize">
+                          {adminName ?? "Admin"}
                         </span>
                         <span className="text-[9px] font-medium uppercase leading-none tracking-wider text-muted-foreground">
-                          Admin
+                          Administrator
                         </span>
                       </span>
                     </Button>
@@ -317,19 +314,14 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
                   <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex flex-col space-y-1">
-                        <p className="truncate text-sm font-semibold leading-none">
-                          {user?.username ?? "Admin"}
+                        <p className="truncate text-sm font-semibold leading-none capitalize">
+                          {adminName ?? "Admin"}
                         </p>
                         <p className="text-xs leading-none text-muted-foreground">
                           Administrator
                         </p>
                       </div>
                     </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => router.push("/")} className="text-xs">
-                      <User className="mr-2 size-4" />
-                      User site
-                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={handleLogout}
