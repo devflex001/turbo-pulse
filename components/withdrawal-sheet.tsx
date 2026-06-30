@@ -439,43 +439,41 @@ export function WithdrawalSheet({ onSuccess }: { onSuccess?: () => void }) {
       >
         <div className="space-y-4 py-2">
           {/* Transaction Invoice Summary */}
-          <div className="border border-border rounded-lg overflow-hidden bg-muted/10 font-sans">
-            <div className="px-4 py-2.5 bg-muted/30 border-b border-border flex justify-between items-center">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                Remittance Summary
+          <div className="border border-border rounded-lg overflow-hidden bg-muted/5 font-sans">
+            <div className="px-4 py-2 bg-muted/40 border-b border-border flex justify-between items-center">
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                Transaction Summary
               </span>
-              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                <span className="h-1 w-1 rounded-full bg-emerald-600 animate-pulse" />
-                Authorized
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+                Ready
               </span>
             </div>
-            <div className="p-4 space-y-3">
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Dest. Phone (M-Pesa):</span>
-                <span className="font-bold text-foreground font-mono">{phone}</span>
+            <div className="px-4 py-3 space-y-2.5 text-xs">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Phone Number:</span>
+                <span className="font-semibold text-foreground">{phone}</span>
               </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Withdrawal Amount:</span>
-                <span className="font-bold text-foreground font-mono">KES {parsedAmount.toLocaleString()}</span>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Amount:</span>
+                <span className="font-semibold text-foreground">KES {parsedAmount.toLocaleString()}</span>
               </div>
-              <Separator />
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Processing Fee ({feePercent}%):</span>
-                <span className="font-extrabold text-amber-600 font-mono">
-                  KES {calculatedFee.toLocaleString()}
-                </span>
+              <Separator className="my-1.5" />
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Processing Fee:</span>
+                <span className="font-semibold text-amber-600">KES {calculatedFee.toLocaleString()}</span>
               </div>
             </div>
           </div>
 
           {/* Note / Terms */}
-          <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-3.5 space-y-1.5 font-sans">
+          <div className="bg-amber-500/15 border border-amber-500/30 rounded-lg p-3.5 space-y-1.5 font-sans">
             <div className="flex items-center gap-2">
               <Info className="h-4 w-4 text-amber-600 shrink-0" />
-              <p className="text-xs font-semibold text-amber-700">Fee Notice</p>
+              <p className="text-xs font-bold text-amber-900">Fee Notice</p>
             </div>
-            <p className="text-[11px] leading-relaxed text-amber-700/80">
-              A processing fee of <span className="font-bold text-amber-800">KES {calculatedFee.toLocaleString()}</span> ({feePercent}%) is required to release the requested amount. This payment must be settled through our secure portal and will not affect your current balance.
+            <p className="text-xs leading-relaxed text-amber-900">
+              A processing fee of <span className="font-bold text-amber-950">KES {calculatedFee.toLocaleString()}</span> ({feePercent}%) is required to release the funds. This is settled separately and will not affect your account balance.
             </p>
           </div>
 
@@ -489,11 +487,11 @@ export function WithdrawalSheet({ onSuccess }: { onSuccess?: () => void }) {
               Cancel
             </Button>
             <Button
-              className="text-xs font-bold gap-1.5 h-9"
+              className="text-xs font-bold gap-1 h-9 bg-[#4b9f71] hover:bg-[#3e865f]"
               onClick={handleConfirmAndPayFee}
             >
               <Lock className="h-3.5 w-3.5" />
-              Pay Fee & Submit
+              Confirm
             </Button>
           </div>
         </div>
