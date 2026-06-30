@@ -4,7 +4,7 @@ import * as React from "react"
 import { useState, useMemo } from "react"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import { useAuth } from "@/lib/auth/useAuth"
+import { useAuth } from "@/lib/auth/AuthContext"
 import {
   Card,
   CardContent,
@@ -134,7 +134,7 @@ interface AdminLog {
 }
 
 export default function AdminLogsPage() {
-  const { user, sessionToken } = useAuth()
+  const { user, isAdmin } = useAuth()
   const [selectedAdmin, setSelectedAdmin] = useState<string>("")
   const [selectedActionType, setSelectedActionType] = useState<string>("")
   const [searchQuery, setSearchQuery] = useState("")
@@ -229,7 +229,7 @@ export default function AdminLogsPage() {
     document.body.removeChild(link)
   }
 
-  if (!user || !user.isAdmin) {
+  if (!isAdmin) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Card className="w-full max-w-md">
