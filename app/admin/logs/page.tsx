@@ -5,6 +5,7 @@ import { useState, useMemo } from "react"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useAuth } from "@/lib/auth/AuthContext"
+import { AdminLayout } from "@/components/admin-layout"
 import {
   Card,
   CardContent,
@@ -33,7 +34,6 @@ import { Badge } from "@/components/ui/badge"
 import {
   Loader2,
   Search,
-  Filter,
   Download,
   UserCheck,
   UserX,
@@ -44,24 +44,24 @@ import {
   LogIn,
   Zap,
   Eye,
-  TrendingUp,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { formatDistanceToNow, format } from "date-fns"
+import { format } from "date-fns"
 
 // Action type configuration
 const ACTION_TYPES = [
   { value: "login", label: "Login" },
   { value: "logout", label: "Logout" },
   { value: "ban_user", label: "Ban User" },
-  { value: "unban_user", label: "Unban User" },
-  { value: "edit_user", label: "Edit User" },
-  { value: "update_bet_status", label: "Update Bet" },
-  { value: "approve_withdrawal", label: "Approve Withdrawal" },
-  { value: "reject_withdrawal", label: "Reject Withdrawal" },
-  { value: "create_custom_event", label: "Create Event" },
-  { value: "update_custom_event", label: "Update Event" },
-  { value: "settle_custom_event", label: "Settle Event" },
+]
+{ value: "unban_user", label: "Unban User" },
+{ value: "edit_user", label: "Edit User" },
+{ value: "update_bet_status", label: "Update Bet" },
+{ value: "approve_withdrawal", label: "Approve Withdrawal" },
+{ value: "reject_withdrawal", label: "Reject Withdrawal" },
+{ value: "create_custom_event", label: "Create Event" },
+{ value: "update_custom_event", label: "Update Event" },
+{ value: "settle_custom_event", label: "Settle Event" },
 ]
 
 const actionIconMap: Record<
@@ -132,9 +132,8 @@ interface AdminLog {
     amount?: number
   }
 }
-
-export default function AdminLogsPage() {
-  const { user, isAdmin } = useAuth()
+function AdminLogsContent() {
+  const { isAdmin } = useAuth()
   const [selectedAdmin, setSelectedAdmin] = useState<string>("")
   const [selectedActionType, setSelectedActionType] = useState<string>("")
   const [searchQuery, setSearchQuery] = useState("")
@@ -143,9 +142,6 @@ export default function AdminLogsPage() {
   const logs = useQuery(api.audit.logger.getAdminLogs, {
     limit: 500,
   })
-
-  // Fetch stats
-  const stats = useQuery(api.audit.logger.getAdminLogStats, {})
 
   // Filter logs based on selected filters and search
   const filteredLogs = useMemo(() => {
@@ -176,13 +172,6 @@ export default function AdminLogsPage() {
       return true
     })
   }, [logs, selectedAdmin, selectedActionType, searchQuery])
-
-  // Get unique admin names from stats
-  const adminNames = stats
-    ? Object.keys(stats.actionCounts || {}).length > 0
-      ? Object.keys(stats.actionCounts || {})
-      : []
-    : []
 
   const handleExportCSV = () => {
     if (!filteredLogs || filteredLogs.length === 0) {
@@ -230,110 +219,36 @@ export default function AdminLogsPage() {
   }
 
   if (!isAdmin) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">
-              Access denied. Admin privileges required.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    )
+    return null
   }
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Admin Logs</h1>
-        <p className="text-muted-foreground mt-2">
-          Track and review all admin activities in the system
-        </p>
-      </div>
-
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
-                Total Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalActions}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                All recorded activities
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">
-                Action Types
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {Object.keys(stats.actionCounts || {}).length}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Unique action types
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium">
-                Resource Types
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {Object.keys(stats.resourceCounts || {}).length}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Affected resource types
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Filters */}
+    <div className="space-y-4">
+      {/* Filters Card */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Filter className="h-4 w-4" />
-            Filters
-          </CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">Filters</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             {/* Search */}
-            <div className="md:col-span-1">
-              <label className="text-sm font-medium mb-2 block">Search</label>
+            <div>
+              <label className="text-xs font-medium mb-1.5 block">Search</label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
                   placeholder="Search logs..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-8 h-8 text-xs"
                 />
               </div>
             </div>
 
             {/* Admin Filter */}
             <div>
-              <label className="text-sm font-medium mb-2 block">Admin</label>
+              <label className="text-xs font-medium mb-1.5 block">Admin</label>
               <Select value={selectedAdmin || "all"} onValueChange={(val) => setSelectedAdmin(val === "all" ? "" : val)}>
-                <SelectTrigger>
+                <SelectTrigger className="h-8 text-xs">
                   <SelectValue placeholder="All admins" />
                 </SelectTrigger>
                 <SelectContent>
@@ -349,14 +264,14 @@ export default function AdminLogsPage() {
 
             {/* Action Type Filter */}
             <div>
-              <label className="text-sm font-medium mb-2 block">
+              <label className="text-xs font-medium mb-1.5 block">
                 Action Type
               </label>
               <Select
                 value={selectedActionType || "all"}
                 onValueChange={(val) => setSelectedActionType(val === "all" ? "" : val)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-8 text-xs">
                   <SelectValue placeholder="All actions" />
                 </SelectTrigger>
                 <SelectContent>
@@ -372,39 +287,41 @@ export default function AdminLogsPage() {
 
             {/* Export Button */}
             <div>
-              <label className="text-sm font-medium mb-2 block">Export</label>
+              <label className="text-xs font-medium mb-1.5 block">Export</label>
               <Button
                 onClick={handleExportCSV}
                 variant="outline"
-                className="w-full"
+                size="sm"
+                className="w-full h-8 text-xs"
                 disabled={!filteredLogs || filteredLogs.length === 0}
               >
-                <Download className="h-4 w-4 mr-2" />
+                <Download className="h-3.5 w-3.5 mr-1" />
                 CSV
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
-
       {/* Logs Table */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">
-            Activity Log ({filteredLogs?.length || 0} entries)
-          </CardTitle>
-          <CardDescription>
-            Showing {filteredLogs?.length || 0} of {logs?.logs.length || 0} logs
-          </CardDescription>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-sm">Activity Logs</CardTitle>
+              <CardDescription className="text-xs mt-1">
+                {filteredLogs?.length || 0} of {logs?.logs.length || 0} entries
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {!logs ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             </div>
           ) : filteredLogs.length === 0 ? (
-            <div className="flex items-center justify-center py-12">
-              <p className="text-muted-foreground">
+            <div className="flex items-center justify-center py-8">
+              <p className="text-xs text-muted-foreground">
                 {logs.logs.length === 0
                   ? "No logs recorded yet"
                   : "No logs match your filters"}
@@ -415,12 +332,12 @@ export default function AdminLogsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-24">Admin</TableHead>
-                    <TableHead className="w-32">Action</TableHead>
-                    <TableHead>Resource</TableHead>
-                    <TableHead className="w-40">Description</TableHead>
-                    <TableHead className="w-32">Timestamp</TableHead>
-                    <TableHead className="w-20">Details</TableHead>
+                    <TableHead className="h-8 text-xs font-semibold">Admin</TableHead>
+                    <TableHead className="h-8 text-xs font-semibold">Action</TableHead>
+                    <TableHead className="h-8 text-xs font-semibold">Resource</TableHead>
+                    <TableHead className="h-8 text-xs font-semibold">Description</TableHead>
+                    <TableHead className="h-8 text-xs font-semibold">Time</TableHead>
+                    <TableHead className="h-8 text-xs font-semibold w-16">Details</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -428,17 +345,19 @@ export default function AdminLogsPage() {
                     const action =
                       actionIconMap[log.actionType] || actionIconMap.other
                     return (
-                      <TableRow key={log._id}>
+                      <TableRow key={log._id} className="h-9">
                         {/* Admin Name */}
-                        <TableCell>
-                          <Badge variant="secondary">{log.adminName}</Badge>
+                        <TableCell className="py-1.5">
+                          <Badge variant="secondary" className="text-xs font-mono">
+                            {log.adminName}
+                          </Badge>
                         </TableCell>
 
                         {/* Action */}
-                        <TableCell>
-                          <div className={cn("inline-flex items-center gap-2 px-2 py-1 rounded", action.color)}>
+                        <TableCell className="py-1.5">
+                          <div className={cn("inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs", action.color)}>
                             {action.icon}
-                            <span className="text-xs font-medium">
+                            <span className="font-medium">
                               {ACTION_TYPES.find(
                                 (a) => a.value === log.actionType
                               )?.label || log.actionType}
@@ -447,37 +366,37 @@ export default function AdminLogsPage() {
                         </TableCell>
 
                         {/* Resource Type */}
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground capitalize">
+                        <TableCell className="py-1.5">
+                          <span className="text-xs text-muted-foreground capitalize">
                             {log.resourceType}
                           </span>
                         </TableCell>
 
                         {/* Description */}
-                        <TableCell>
-                          <span className="text-sm truncate">
+                        <TableCell className="py-1.5">
+                          <span className="text-xs truncate max-w-xs">
                             {log.resourceDescription}
                           </span>
                         </TableCell>
 
                         {/* Timestamp */}
-                        <TableCell>
+                        <TableCell className="py-1.5">
                           <span className="text-xs text-muted-foreground">
                             {format(
                               new Date(log.timestamp),
-                              "MMM dd, HH:mm:ss"
+                              "MMM dd, HH:mm"
                             )}
                           </span>
                         </TableCell>
 
                         {/* Details Button */}
-                        <TableCell>
+                        <TableCell className="py-1.5">
                           {log.details && (
                             <details className="cursor-pointer group">
                               <summary className="text-xs font-medium text-primary hover:underline">
                                 View
                               </summary>
-                              <div className="absolute right-0 z-10 mt-1 bg-popover border rounded shadow-lg p-3 text-xs space-y-1 w-48">
+                              <div className="absolute right-2 z-10 mt-1 bg-popover border rounded shadow-lg p-2 text-xs space-y-1 w-48">
                                 {log.details.reason && (
                                   <div>
                                     <strong>Reason:</strong> {log.details.reason}
@@ -514,5 +433,13 @@ export default function AdminLogsPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function AdminLogsPage() {
+  return (
+    <AdminLayout pageTitle="Admin Logs">
+      <AdminLogsContent />
+    </AdminLayout>
   )
 }
