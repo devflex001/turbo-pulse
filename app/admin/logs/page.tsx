@@ -240,6 +240,12 @@ function AdminLogsContent() {
 
   return (
     <div className="space-y-4">
+      {/* Header */}
+      <div className="space-y-0.5">
+        <h1 className="text-lg font-bold tracking-tight">Admin Logs</h1>
+        <p className="text-xs text-muted-foreground">View all admin actions and activities.</p>
+      </div>
+
       {/* Filters Bar - Same as custom-events */}
       <div className="flex items-center gap-2">
         {/* Search */}
