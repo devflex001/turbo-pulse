@@ -1,6 +1,7 @@
 "use client";
 
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { AdminSessionProvider } from "@/components/admin-session-provider";
 
 export default function AdminLayout({
   children,
@@ -9,7 +10,9 @@ export default function AdminLayout({
 }) {
   return (
     <ProtectedRoute requireAdmin={true}>
-      {children}
+      <AdminSessionProvider>
+        {children}
+      </AdminSessionProvider>
     </ProtectedRoute>
   );
 }

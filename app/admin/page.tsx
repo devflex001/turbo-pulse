@@ -4,8 +4,10 @@ import * as React from "react"
 import { useQuery, usePaginatedQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useBetStore } from "@/hooks/use-bet-store"
-import { useAuth } from "@/lib/auth/AuthContext"
+import { useAuth } from "@/lib/auth/useAuth"
 import { AdminLayout } from "@/components/admin-layout"
+import { AdminIndicator } from "@/components/admin-indicator"
+import { AdminActivityFeed } from "@/components/admin-activity-feed"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -140,6 +142,14 @@ export default function AdminDashboard() {
               {currentTime || "Loading..."}
             </span>
           </p>
+        </div>
+
+        {/* Admin Session & Activity Feed Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <AdminIndicator />
+          <div className="lg:col-span-2">
+            <AdminActivityFeed limit={10} />
+          </div>
         </div>
 
         {/* Metric Cards */}
