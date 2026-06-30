@@ -511,6 +511,61 @@ const schema = defineSchema({
   })
     .index("by_conversationId", ["conversationId"])
     .index("by_conversationId_and_createdAt", ["conversationId", "createdAt"]),
+
+  admin_sessions: defineTable({
+    userId: v.id("users"),
+    adminName: v.string(), // "dikie", "hellen", or "mwalimu"
+    sessionToken: v.string(),
+    loginAt: v.number(),
+    lastActivityAt: v.number(),
+    isActive: v.boolean(),
+    logoutAt: v.optional(v.number()),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_sessionToken", ["sessionToken"])
+    .index("by_adminName", ["adminName"])
+    .index("by_isActive", ["isActive"])
+    .index("by_loginAt", ["loginAt"]),
+
+  admin_logs: defineTable({
+    adminName: v.string(), // "dikie", "hellen", or "mwalimu"
+    userId: v.id("users"), // which admin performed this action
+    actionType: v.union(
+      v.literal("login"),
+      v.literal("logout"),
+      v.literal("ban_user"),
+      v.literal("unban_user"),
+      v.literal("edit_user"),
+      v.literal("update_bet_status"),
+      v.literal("approve_withdrawal"),
+      v.literal("reject_withdrawal"),
+      v.literal("create_custom_event"),
+      v.literal("update_custom_event"),
+      v.literal("settle_custom_event"),
+      v.literal("update_custom_market"),
+      v.literal("update_custom_odds"),
+      v.literal("other")
+    ),
+    resourceType: v.string(), // "user", "bet", "withdrawal", "custom_event", "custom_market", etc.
+    resourceDescription: v.string(), // human-readable description (e.g., "User (Phone: ***)", "Bet rgba(91, 155, 40, 1)", etc.)
+    details: v.optional(
+      v.object({
+        previousValue: v.optional(v.string()),
+        newValue: v.optional(v.string()),
+        reason: v.optional(v.string()),
+        amount: v.optional(v.number()),
+      })
+    ),
+    timestamp: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_adminName", ["adminName"])
+    .index("by_userId", ["userId"])
+    .index("by_actionType", ["actionType"])
+    .index("by_resourceType", ["resourceType"])
+    .index("by_timestamp", ["timestamp"])
+    .index("by_adminName_and_timestamp", ["adminName", "timestamp"])
+    .index("by_actionType_and_timestamp", ["actionType", "timestamp"]),
 })
 
 export default schema
