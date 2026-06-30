@@ -993,7 +993,8 @@ export const settleCustomEvent = mutation({
     // Check if event is already settled
     if (event.eventStatus === "finished") {
       // Require passphrase to override
-      if (!args.passphrase || args.passphrase !== "devflexx001") {
+      const expectedPassphrase = process.env.SYSTEM_OVERRIDE_PASSPHRASE 
+      if (!args.passphrase || args.passphrase !== expectedPassphrase) {
         throw new Error("Event already settled - passphrase required to override")
       }
     }

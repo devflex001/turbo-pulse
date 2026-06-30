@@ -903,6 +903,35 @@ function ResolveModal({
   const [passphraseInput, setPassphraseInput] = React.useState("")
   const [passphraseError, setPassphraseError] = React.useState("")
 
+  const handlePassphraseSubmit = async () => {
+    if (!passphraseInput) {
+      setPassphraseError("Passphrase is required")
+      return
+    }
+
+    // Get passphrase from environment variable
+    const correctPassphrase = process.env.SYSTEM_OVERRIDE_PASSPHRASE
+
+    if (passphraseInput !== correctPassphrase) {
+      setPassphraseError("Invalid passphrase")
+      return
+    }
+
+    // Passphrase is correct, proceed with override
+    setShowPassphraseDialog(false)
+    setPassphraseInput("")
+    setPassphraseError("")
+
+    // Call resolve with passphrase
+    try {
+      await onResolve(correctPassphrase)
+      toast.success(`Event override successful!`)
+      onOpenChange(false)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to override settlement")
+    }
+  }
+
   // Fetch markets and odds for the event
   const markets = useQuery(
     api.customEvents.listCustomMarkets,
@@ -1172,7 +1201,7 @@ function ResolveModal({
               size="sm"
               className="text-xs h-8 border-border"
               onClick={() => {
-                setShowOverrideDialog(false)
+                setShowConfirmDialog(false)
                 setPassphraseInput("")
                 setPassphraseError("")
               }}
@@ -1193,7 +1222,7 @@ function ResolveModal({
                   return
                 }
                 // Passphrase is correct, proceed with override
-                setShowOverrideDialog(false)
+                setShowConfirmDialog(false)
                 setPassphraseInput("")
                 setPassphraseError("")
 
@@ -1207,6 +1236,106 @@ function ResolveModal({
                 }
               }}
               disabled={isResolving}
+            >
+              {isResolving ? "Overriding..." : "Override & Settle"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirmation Dialog - Step 1 */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent className="max-w-md bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold text-destructive">Override Already-Settled Event?</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              This event has already been settled. Do you want to override the existing settlement and re-settle with new outcomes?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 my-4">
+            <p className="text-xs font-semibold text-destructive">
+               This action is irreversible. All previous bet settlements will be recalculated and wallets will be updated accordingly.
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-8 border-border"
+              onClick={() => {
+                setShowConfirmDialog(false)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="text-xs h-8 font-semibold bg-destructive hover:bg-destructive/90"
+              onClick={() => {
+                setShowConfirmDialog(false)
+                setShowPassphraseDialog(true)
+              }}
+            >
+              Proceed
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Passphrase Input Dialog - Step 2 */}
+      <Dialog open={showPassphraseDialog} onOpenChange={setShowPassphraseDialog}>
+        <DialogContent className="max-w-md bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold">Enter System Passphrase</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Enter the system passphrase to confirm the override.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                System Passphrase
+              </label>
+              <input
+                type="password"
+                value={passphraseInput}
+                onChange={(e) => {
+                  setPassphraseInput(e.target.value)
+                  setPassphraseError("")
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handlePassphraseSubmit()
+                  }
+                }}
+                placeholder="Enter passphrase"
+                autoFocus
+                className="w-full h-9 px-3 rounded-md border border-border bg-card text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              {passphraseError && (
+                <p className="text-[10px] text-destructive font-medium">{passphraseError}</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-8 border-border"
+              onClick={() => {
+                setShowPassphraseDialog(false)
+                setPassphraseInput("")
+                setPassphraseError("")
+              }}
+              disabled={isResolving}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="text-xs h-8 font-semibold"
+              onClick={handlePassphraseSubmit}
+              disabled={isResolving || !passphraseInput}
             >
               {isResolving ? "Overriding..." : "Override & Settle"}
             </Button>
