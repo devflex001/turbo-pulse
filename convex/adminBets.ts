@@ -4,7 +4,7 @@ import type { Id } from "./_generated/dataModel";
 import { requireAdmin } from "./auth/authorization";
 import { notifyAdmins, notifyUser } from "./notifications";
 import { logAdminActionInternal } from "./audit/logs";
-import { getCurrentAdminSession } from "./admin/sessions";
+import { getAdminSessionByTokenInternal } from "./admin/sessions";
 
 function formatKes(amount: number) {
   return `KES ${amount.toLocaleString("en-KE", {
@@ -225,9 +225,7 @@ export const updateBetStatus = mutation({
 
     // Log the action
     if (args.sessionToken) {
-      const adminSession = await getCurrentAdminSession(ctx, {
-        sessionToken: args.sessionToken,
-      });
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
 
       if (adminSession) {
         await logAdminActionInternal(ctx, {

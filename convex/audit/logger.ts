@@ -189,7 +189,7 @@ export const getAdminLogStats = query({
     if (args.adminName) {
       logs = await ctx.db
         .query("admin_logs")
-        .withIndex("by_adminName", (q) => q.eq("adminName", args.adminName))
+        .withIndex("by_adminName", (q) => q.eq("adminName", args.adminName!))
         .collect();
     } else {
       logs = await ctx.db.query("admin_logs").collect();

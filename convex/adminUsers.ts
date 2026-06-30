@@ -3,7 +3,7 @@ import { query, mutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { requireAdmin, requireAuth } from "./auth/authorization";
 import { logAdminActionInternal } from "./audit/logs";
-import { getCurrentAdminSession } from "./admin/sessions";
+import { getAdminSessionByTokenInternal } from "./admin/sessions";
 
 // ────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -176,9 +176,7 @@ export const editUser = mutation({
 
     // Log the action
     if (args.sessionToken) {
-      const adminSession = await getCurrentAdminSession(ctx, {
-        sessionToken: args.sessionToken,
-      });
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
 
       if (adminSession) {
         await logAdminActionInternal(ctx, {
@@ -251,9 +249,7 @@ export const banUser = mutation({
 
     // Log the action
     if (args.sessionToken) {
-      const adminSession = await getCurrentAdminSession(ctx, {
-        sessionToken: args.sessionToken,
-      });
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
 
       if (adminSession) {
         const durationDesc = args.durationHours === null
@@ -315,9 +311,7 @@ export const unbanUser = mutation({
 
     // Log the action
     if (args.sessionToken) {
-      const adminSession = await getCurrentAdminSession(ctx, {
-        sessionToken: args.sessionToken,
-      });
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
 
       if (adminSession) {
         await logAdminActionInternal(ctx, {

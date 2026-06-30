@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import type { Id, Doc } from "../_generated/dataModel";
+import type { QueryCtx, MutationCtx } from "../_generated/server";
 import { requireAdmin } from "../auth/authorization";
 
 /**
@@ -10,6 +11,47 @@ import { requireAdmin } from "../auth/authorization";
 
 // Valid admin names (should match ADMIN_NAMES env var)
 const VALID_ADMIN_NAMES = ["dikie", "hellen", "mwalimu"];
+
+// ────────────────────────────────────────────────────────────────────────────
+// INTERNAL HELPERS
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Internal helper to get admin session by token
+ * Can be called from both queries and mutations
+ */
+export async function getAdminSessionByTokenInternal(
+  ctx: QueryCtx | MutationCtx,
+  sessionToken: string
+): Promise<{
+  _id: Id<"admin_sessions">;
+  adminName: string;
+  loginAt: number;
+  lastActivityAt: number;
+  userId: Id<"users">;
+} | null> {
+  const session = await ctx.db
+    .query("admin_sessions")
+    .withIndex("by_sessionToken", (q) => q.eq("sessionToken", sessionToken))
+    .first();
+
+  if (!session) {
+    return null;
+  }
+
+  // Check if session is still active
+  if (!session.isActive) {
+    return null;
+  }
+
+  return {
+    _id: session._id,
+    adminName: session.adminName,
+    loginAt: session.loginAt,
+    lastActivityAt: session.lastActivityAt,
+    userId: session.userId,
+  };
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // QUERIES
@@ -24,28 +66,7 @@ export const getCurrentAdminSession = query({
     sessionToken: v.string(),
   },
   handler: async (ctx, args) => {
-    // Find admin session by session token
-    const session = await ctx.db
-      .query("admin_sessions")
-      .withIndex("by_sessionToken", (q) => q.eq("sessionToken", args.sessionToken))
-      .first();
-
-    if (!session) {
-      return null;
-    }
-
-    // Check if session is still active
-    if (!session.isActive) {
-      return null;
-    }
-
-    return {
-      _id: session._id,
-      adminName: session.adminName,
-      loginAt: session.loginAt,
-      lastActivityAt: session.lastActivityAt,
-      userId: session.userId,
-    };
+    return await getAdminSessionByTokenInternal(ctx, args.sessionToken);
   },
 });
 

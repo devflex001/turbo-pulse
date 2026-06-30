@@ -5,7 +5,7 @@ import { requireAdmin, requireAuth } from "./auth/authorization";
 import { updateWalletBalance } from "./mpesa";
 import { notifyAdmins, notifyUser } from "./notifications";
 import { logAdminActionInternal } from "./audit/logs";
-import { getCurrentAdminSession } from "./admin/sessions";
+import { getAdminSessionByTokenInternal } from "./admin/sessions";
 
 const CONFIG_KEY = "main";
 
@@ -308,9 +308,7 @@ export const approveWithdrawal = mutation({
 
     // Log the action
     if (args.sessionToken) {
-      const adminSession = await getCurrentAdminSession(ctx, {
-        sessionToken: args.sessionToken,
-      });
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
 
       if (adminSession) {
         await logAdminActionInternal(ctx, {
@@ -390,9 +388,7 @@ export const rejectWithdrawal = mutation({
 
     // Log the action
     if (args.sessionToken) {
-      const adminSession = await getCurrentAdminSession(ctx, {
-        sessionToken: args.sessionToken,
-      });
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
 
       if (adminSession) {
         await logAdminActionInternal(ctx, {
