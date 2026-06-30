@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth/AuthContext"
 import { AdminLayout } from "@/components/admin-layout"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,6 +58,9 @@ export default function AdminDashboard() {
     },
     { initialNumItems: 5 }
   )
+
+  // Check if we're still loading for the first time
+  const isLoadingFirstTime = (adminTransactionsPage.results as any[]).length === 0 && adminTransactionsPage.status !== "CanLoadMore"
 
   const [currentPage, setCurrentPage] = React.useState(1)
   const [currentTime, setCurrentTime] = React.useState("")
@@ -321,7 +325,36 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {paginatedTransactions.map((tx, idx) => {
+                {isLoadingFirstTime && (
+                  <>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={`skeleton-${i}`} className="hover:bg-muted/30 transition-colors">
+                        <td className="py-3 px-3">
+                          <Skeleton className="h-4 w-6" />
+                        </td>
+                        <td className="py-3 px-3">
+                          <Skeleton className="h-4 w-32" />
+                        </td>
+                        <td className="py-3 px-3">
+                          <Skeleton className="h-4 w-16" />
+                        </td>
+                        <td className="py-3 px-3">
+                          <Skeleton className="h-4 w-24" />
+                        </td>
+                        <td className="py-3 px-3">
+                          <Skeleton className="h-4 w-20" />
+                        </td>
+                        <td className="py-3 px-3 hidden sm:table-cell">
+                          <Skeleton className="h-4 w-28" />
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          <Skeleton className="h-4 w-8 ml-auto" />
+                        </td>
+                      </tr>
+                    ))}
+                  </>
+                )}
+                {!isLoadingFirstTime && paginatedTransactions.map((tx, idx) => {
                   const globalIdx =
                     (currentPage - 1) * itemsPerPage + idx + 1
                   return (

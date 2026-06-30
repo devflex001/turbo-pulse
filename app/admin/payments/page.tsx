@@ -280,9 +280,7 @@ export default function PaymentsPage() {
               <ArrowUpRight className="size-5 text-emerald-500" />
               Payments Administration
             </h1>
-            <p className="text-xs text-muted-foreground">
-              Monitor customer deposits (M-Pesa and Paystack) and view detailed gateway metadata.
-            </p>
+
           </div>
         </div>
 
