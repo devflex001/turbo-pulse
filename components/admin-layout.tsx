@@ -4,6 +4,8 @@ import * as React from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
 import { useAuth } from "@/lib/auth/AuthContext"
+import { useAdminInactivity } from "@/hooks/use-admin-inactivity"
+import { AdminInactivityWarning } from "@/components/admin-inactivity-warning"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -175,6 +177,24 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false)
 
+  // Admin inactivity detection
+  const {
+    showWarning,
+    countdown,
+    extendSession,
+    logoutNow,
+  } = useAdminInactivity({
+    warningTime: 9 * 60 * 1000, // 9 minutes
+    logoutTime: 10 * 60 * 1000, // 10 minutes
+    onWarning: () => {
+      console.log('[AdminLayout] Admin inactivity warning triggered')
+    },
+    onLogout: () => {
+      console.log('[AdminLayout] Admin auto-logout triggered')
+      router.push("/")
+    },
+  })
+
   // Check admin access on mount
   React.useEffect(() => {
     let a = true
@@ -199,6 +219,14 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background text-foreground">
+
+      {/* Admin Inactivity Warning Modal */}
+      <AdminInactivityWarning
+        open={showWarning}
+        countdown={countdown}
+        onExtendSession={extendSession}
+        onLogoutNow={logoutNow}
+      />
 
       {/* Show loading or redirect if not admin */}
       {!mounted && (
