@@ -200,7 +200,7 @@ export function Header() {
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => router.push("/deposit")}>
                       <ArrowDownToLine className="mr-2 h-4 w-4 text-[#4b9f71]" />
-                      <span>Deposit (M-Pesa)</span>
+                      <span>Deposit</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setWithdrawOpen(true)}>
                       <ArrowUpFromLine className="mr-2 h-4 w-4 text-rose-500" />

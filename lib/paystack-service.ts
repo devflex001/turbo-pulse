@@ -13,7 +13,7 @@ interface PaystackConfig {
 // Paystack reference for embedded payment modal
 declare global {
   interface Window {
-    PaystackPop?: {
+    readonly PaystackPop?: {
       setup: (options: PaystackSetupOptions) => PaystackPopInstance
     }
   }

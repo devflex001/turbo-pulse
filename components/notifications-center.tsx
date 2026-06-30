@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useMutation, useQuery } from "convex/react"
 import { useRouter } from "next/navigation"
-import { Bell, CheckCheck, Trash2 } from "lucide-react"
+import { Bell, CheckCheck, Trash2, ArrowUpFromLine } from "lucide-react"
 
 import { api } from "@/convex/_generated/api"
 import type { Id } from "@/convex/_generated/dataModel"
@@ -30,6 +30,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
+import { WithdrawModal } from "@/components/modals"
 
 type Notification = {
   _id: Id<"notifications">
@@ -39,6 +40,13 @@ type Notification = {
   href?: string
   readAt: number | null
   createdAt: number
+  metadata?: {
+    betId?: Id<"bets">
+    transactionId?: Id<"transactions">
+    withdrawalId?: Id<"withdrawal_requests">
+    sourceMatchId?: string
+    amount?: number
+  }
 }
 
 interface NotificationsCenterProps {
@@ -116,6 +124,7 @@ function NotificationsList({
   const markRead = useMutation(api.notifications.markRead)
   const markAllRead = useMutation(api.notifications.markAllRead)
   const removeNotification = useMutation(api.notifications.remove)
+  const [withdrawOpen, setWithdrawOpen] = React.useState(false)
 
   const unreadCount = notifications?.filter((item) => item.readAt === null).length ?? 0
 
@@ -131,87 +140,117 @@ function NotificationsList({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex h-11 items-center justify-between border-y border-border px-4">
-        <span className="text-xs text-muted-foreground">
-          {unreadCount === 0 ? "No unread notifications" : `${unreadCount} unread`}
-        </span>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-8 gap-2 text-xs"
-          disabled={unreadCount === 0}
-          onClick={() => markAllRead({ userId })}
-        >
-          <CheckCheck className="size-3.5" />
-          Mark all read
-        </Button>
+    <>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex h-11 items-center justify-between border-y border-border px-4">
+          <span className="text-xs text-muted-foreground">
+            {unreadCount === 0 ? "No unread notifications" : `${unreadCount} unread`}
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-2 text-xs"
+            disabled={unreadCount === 0}
+            onClick={() => markAllRead({ userId })}
+          >
+            <CheckCheck className="size-3.5" />
+            Mark all read
+          </Button>
+        </div>
+
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="divide-y divide-border">
+            {isLoading ? (
+              <div className="space-y-3 p-4">
+                <Skeleton className="h-16 w-full rounded" />
+                <Skeleton className="h-16 w-full rounded" />
+                <Skeleton className="h-16 w-full rounded" />
+              </div>
+            ) : notifications && notifications.length > 0 ? (
+              notifications.map((notification) => {
+                const isWinningBet =
+                  notification.type === "bet" && notification.title === "Bet won"
+
+                return (
+                  <div
+                    key={notification._id}
+                    className={cn(
+                      "group grid grid-cols-[1fr_auto] gap-2 px-4 py-3 transition-colors",
+                      notification.readAt === null ? "bg-primary/5" : "bg-background",
+                      !isWinningBet && notification.href && "cursor-pointer hover:bg-muted/60"
+                    )}
+                    onClick={() => !isWinningBet && openNotification(notification)}
+                  >
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex items-center gap-2">
+                        {notification.readAt === null && (
+                          <span
+                            className="size-2 rounded-full bg-primary"
+                            aria-hidden="true"
+                          />
+                        )}
+                        <p className="truncate text-sm font-semibold">
+                          {notification.title}
+                        </p>
+                      </div>
+                      <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                        {notification.message}
+                      </p>
+                      <div className="flex items-center gap-2 pt-1">
+                        <NotificationTypeBadge type={notification.type} />
+                        <span className="text-[10px] text-muted-foreground">
+                          {formatRelativeTime(notification.createdAt)}
+                        </span>
+                      </div>
+                      {isWinningBet && (
+                        <div className="pt-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="h-7 gap-1.5 text-xs bg-[#4b9f71] hover:bg-[#3e865f] text-white"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setWithdrawOpen(true)
+                            }}
+                          >
+                            <ArrowUpFromLine className="size-3" />
+                            Withdraw
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="size-8 opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                      aria-label="Delete notification"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        removeNotification({ userId, notificationId: notification._id })
+                      }}
+                    >
+                      <Trash2 className="size-3.5 text-muted-foreground" />
+                    </Button>
+                  </div>
+                )
+              })
+            ) : (
+              <div className="px-4 py-12 text-center">
+                <Bell className="mx-auto mb-3 size-6 text-muted-foreground" />
+                <p className="text-sm font-medium">No notifications yet</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Important account activity will appear here.
+                </p>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1">
-        <div className="divide-y divide-border">
-          {isLoading ? (
-            <div className="space-y-3 p-4">
-              <Skeleton className="h-16 w-full rounded" />
-              <Skeleton className="h-16 w-full rounded" />
-              <Skeleton className="h-16 w-full rounded" />
-            </div>
-          ) : notifications && notifications.length > 0 ? (
-            notifications.map((notification) => (
-              <div
-                key={notification._id}
-                className={cn(
-                  "group grid grid-cols-[1fr_auto] gap-2 px-4 py-3 transition-colors",
-                  notification.readAt === null ? "bg-primary/5" : "bg-background",
-                  notification.href && "cursor-pointer hover:bg-muted/60"
-                )}
-                onClick={() => openNotification(notification)}
-              >
-                <div className="min-w-0 space-y-1">
-                  <div className="flex items-center gap-2">
-                    {notification.readAt === null && (
-                      <span className="size-2 rounded-full bg-primary" aria-hidden="true" />
-                    )}
-                    <p className="truncate text-sm font-semibold">{notification.title}</p>
-                  </div>
-                  <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-                    {notification.message}
-                  </p>
-                  <div className="flex items-center gap-2 pt-1">
-                    <NotificationTypeBadge type={notification.type} />
-                    <span className="text-[10px] text-muted-foreground">
-                      {formatRelativeTime(notification.createdAt)}
-                    </span>
-                  </div>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="size-8 opacity-100 md:opacity-0 md:group-hover:opacity-100"
-                  aria-label="Delete notification"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    removeNotification({ userId, notificationId: notification._id })
-                  }}
-                >
-                  <Trash2 className="size-3.5 text-muted-foreground" />
-                </Button>
-              </div>
-            ))
-          ) : (
-            <div className="px-4 py-12 text-center">
-              <Bell className="mx-auto mb-3 size-6 text-muted-foreground" />
-              <p className="text-sm font-medium">No notifications yet</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Important account activity will appear here.
-              </p>
-            </div>
-          )}
-        </div>
-      </ScrollArea>
-    </div>
+      <WithdrawModal open={withdrawOpen} onOpenChange={setWithdrawOpen} />
+    </>
   )
 }
 
