@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/sheet"
 import { useBetStore } from "@/hooks/use-bet-store"
 import { NotificationsCenter } from "@/components/notifications-center"
+import { ActiveAdminsIndicator } from "@/components/active-admins-indicator"
 import {
   Sun,
   Moon,
@@ -55,6 +56,7 @@ const coreNavItems = [
   { id: "referrals", label: "Referrals", icon: Zap, href: "/admin/referrals" },
   { id: "payments", label: "Payments", icon: ArrowUpRight, href: "/admin/payments" },
   { id: "withdrawals", label: "Withdrawals", icon: ArrowDownLeft, href: "/admin/withdrawals" },
+  { id: "logs", label: "Logs", icon: Database, href: "/admin/logs" },
   { id: "support", label: "Support", icon: MessageSquare, href: "/admin/support" },
 ]
 
@@ -250,7 +252,7 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
             {/* Top Navbar */}
             <header className="flex h-14 items-center justify-between px-3 sm:px-5 border-b border-border bg-background/95 backdrop-blur-md shrink-0 gap-3">
 
-              {/* Left: Hamburger (mobile) */}
+              {/* Left: Hamburger (mobile) + Active Admins */}
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <Button
                   variant="ghost"
@@ -264,6 +266,9 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
                 <span className="sm:hidden text-sm font-semibold text-foreground truncate">
                   {getCurrentLabel()}
                 </span>
+                <div className="hidden md:block ml-auto">
+                  <ActiveAdminsIndicator />
+                </div>
               </div>
 
               {/* Right: Controls */}
