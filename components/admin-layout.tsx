@@ -166,13 +166,6 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
     router.push("/")
   }
 
-  // Get current page label for mobile header
-  const getCurrentLabel = () => {
-    const allItems = [...coreNavItems, ...operationsNavItems, ...settingsNavItems]
-    const current = allItems.find(item => item.href === pathname)
-    return current?.label || pageTitle || "Admin"
-  }
-
   return (
     <div className="flex h-screen overflow-hidden bg-background text-foreground">
 
@@ -261,9 +254,18 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
                 >
                   <Menu className="size-4" />
                 </Button>
-                <span className="sm:hidden text-sm font-semibold text-foreground truncate">
-                  {getCurrentLabel()}
-                </span>
+                {/* Mobile page title with icon */}
+                {(() => {
+                  const allItems = [...coreNavItems, ...operationsNavItems, ...settingsNavItems]
+                  const current = allItems.find(item => item.href === pathname)
+                  const Icon = current?.icon
+                  return (
+                    <span className="sm:hidden flex items-center gap-1.5 text-sm font-semibold text-foreground truncate">
+                      {Icon && <Icon className="size-4 shrink-0 text-primary" />}
+                      {current?.label || pageTitle || "Admin"}
+                    </span>
+                  )
+                })()}
                 <div className="hidden md:block ml-auto">
                   <ActiveAdminsIndicator />
                 </div>

@@ -5,7 +5,9 @@ import { useState } from "react"
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
 } from "@/components/ui/dialog"
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -88,6 +90,9 @@ export function AdminNameModal({
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
+        <VisuallyHidden>
+          <DialogTitle>Admin Access</DialogTitle>
+        </VisuallyHidden>
         {/* Header Section */}
         <div className="flex flex-col items-center gap-4 py-6 px-2">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 border border-primary/20">
@@ -149,7 +154,7 @@ export function AdminNameModal({
           </Button>
 
           {/* Security Footer */}
-         
+
         </form>
       </DialogContent>
     </Dialog>
