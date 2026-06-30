@@ -902,6 +902,7 @@ function ResolveModal({
   const [showPassphraseDialog, setShowPassphraseDialog] = React.useState(false)
   const [passphraseInput, setPassphraseInput] = React.useState("")
   const [passphraseError, setPassphraseError] = React.useState("")
+  const [showPassphrase, setShowPassphrase] = React.useState(false)
 
   const handlePassphraseSubmit = async () => {
     if (!passphraseInput) {
@@ -909,8 +910,8 @@ function ResolveModal({
       return
     }
 
-    // Get passphrase from environment variable
-    const correctPassphrase = process.env.SYSTEM_OVERRIDE_PASSPHRASE
+    // Get passphrase from environment variable (must be NEXT_PUBLIC to be accessible in client)
+    const correctPassphrase = process.env.NEXT_PUBLIC_SYSTEM_OVERRIDE_PASSPHRASE
 
     if (passphraseInput !== correctPassphrase) {
       setPassphraseError("Invalid passphrase")
@@ -921,6 +922,7 @@ function ResolveModal({
     setShowPassphraseDialog(false)
     setPassphraseInput("")
     setPassphraseError("")
+    setShowPassphrase(false)
 
     // Call resolve with passphrase
     try {
@@ -1161,88 +1163,6 @@ function ResolveModal({
         </div>
       </div>
 
-      {/* Override Confirmation Dialog */}
-      <Dialog open={showOverrideDialog} onOpenChange={setShowOverrideDialog}>
-        <DialogContent className="max-w-md bg-card">
-          <DialogHeader>
-            <DialogTitle className="text-sm font-bold text-destructive">Override Already-Settled Event?</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">
-              This event has already been settled. To override the existing settlement and re-settle with new outcomes, you must enter the system passphrase.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-4">
-            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
-              <p className="text-xs font-semibold text-destructive">
-                ⚠️ This action is irreversible. All previous bet settlements will be recalculated and wallets will be updated accordingly.
-              </p>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
-                System Passphrase
-              </label>
-              <input
-                type="password"
-                value={passphraseInput}
-                onChange={(e) => {
-                  setPassphraseInput(e.target.value)
-                  setPassphraseError("")
-                }}
-                placeholder="Enter passphrase"
-                className="w-full h-9 px-3 rounded-md border border-border bg-card text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-              {passphraseError && (
-                <p className="text-[10px] text-destructive font-medium">{passphraseError}</p>
-              )}
-            </div>
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs h-8 border-border"
-              onClick={() => {
-                setShowConfirmDialog(false)
-                setPassphraseInput("")
-                setPassphraseError("")
-              }}
-              disabled={isResolving}
-            >
-              Cancel
-            </Button>
-            <Button
-              size="sm"
-              className="text-xs h-8 font-semibold bg-destructive hover:bg-destructive/90"
-              onClick={async () => {
-                if (!passphraseInput) {
-                  setPassphraseError("Passphrase is required")
-                  return
-                }
-                if (passphraseInput !== "devflexx001") {
-                  setPassphraseError("Invalid passphrase")
-                  return
-                }
-                // Passphrase is correct, proceed with override
-                setShowConfirmDialog(false)
-                setPassphraseInput("")
-                setPassphraseError("")
-
-                // Call resolve with passphrase
-                try {
-                  await onResolve("devflexx001")
-                  toast.success(`Event override successful!`)
-                  onOpenChange(false)
-                } catch (error) {
-                  toast.error(error instanceof Error ? error.message : "Failed to override settlement")
-                }
-              }}
-              disabled={isResolving}
-            >
-              {isResolving ? "Overriding..." : "Override & Settle"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Confirmation Dialog - Step 1 */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent className="max-w-md bg-card">
@@ -1254,7 +1174,7 @@ function ResolveModal({
           </DialogHeader>
           <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 my-4">
             <p className="text-xs font-semibold text-destructive">
-               This action is irreversible. All previous bet settlements will be recalculated and wallets will be updated accordingly.
+              This action is irreversible. All previous bet settlements will be recalculated and wallets will be updated accordingly.
             </p>
           </div>
           <DialogFooter className="gap-2 sm:gap-0">
@@ -1296,22 +1216,36 @@ function ResolveModal({
               <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
                 System Passphrase
               </label>
-              <input
-                type="password"
-                value={passphraseInput}
-                onChange={(e) => {
-                  setPassphraseInput(e.target.value)
-                  setPassphraseError("")
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handlePassphraseSubmit()
-                  }
-                }}
-                placeholder="Enter passphrase"
-                autoFocus
-                className="w-full h-9 px-3 rounded-md border border-border bg-card text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-              />
+              <div className="relative">
+                <input
+                  type={showPassphrase ? "text" : "password"}
+                  value={passphraseInput}
+                  onChange={(e) => {
+                    setPassphraseInput(e.target.value)
+                    setPassphraseError("")
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handlePassphraseSubmit()
+                    }
+                  }}
+                  placeholder="Enter passphrase"
+                  autoFocus
+                  className="w-full h-9 px-3 pr-10 rounded-md border border-border bg-card text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassphrase(!showPassphrase)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  title={showPassphrase ? "Hide passphrase" : "Show passphrase"}
+                >
+                  {showPassphrase ? (
+                    <EyeOff className="size-4" />
+                  ) : (
+                    <Eye className="size-4" />
+                  )}
+                </button>
+              </div>
               {passphraseError && (
                 <p className="text-[10px] text-destructive font-medium">{passphraseError}</p>
               )}
@@ -1326,6 +1260,7 @@ function ResolveModal({
                 setShowPassphraseDialog(false)
                 setPassphraseInput("")
                 setPassphraseError("")
+                setShowPassphrase(false)
               }}
               disabled={isResolving}
             >
