@@ -87,6 +87,7 @@ export const updateSettings = mutation({
     dateWindowDays: v.number(),
     selectedSports: v.array(v.string()),
     matchLimit: v.number(),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -96,6 +97,12 @@ export const updateSettings = mutation({
     const selectedSports = args.selectedSports.length > 0 ? args.selectedSports : ["1"];
     const settings = await getOrCreateSettings(ctx, now);
 
+    const changes: string[] = [];
+    if (settings.enabled !== args.enabled) changes.push(`enabled: ${args.enabled}`);
+    if (settings.cadenceMinutes !== cadenceMinutes) changes.push(`cadenceMinutes: ${cadenceMinutes} min`);
+    if (settings.dateWindowDays !== dateWindowDays) changes.push(`dateWindowDays: ${dateWindowDays} days`);
+    if (settings.matchLimit !== matchLimit) changes.push(`matchLimit: ${matchLimit}`);
+
     await ctx.db.patch(settings._id, {
       enabled: args.enabled,
       cadenceMinutes,
@@ -104,6 +111,26 @@ export const updateSettings = mutation({
       matchLimit,
       updatedAt: now,
     });
+
+    // Log the action
+    if (args.sessionToken) {
+      const { logAdminActionInternal } = await import("./audit/logs");
+      const { getAdminSessionByTokenInternal } = await import("./admin/sessions");
+
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: adminSession.userId,
+          actionType: "update_scraper_settings",
+          resourceType: "scraper_settings",
+          resourceDescription: "Scraper configuration updated",
+          details: {
+            newValue: changes.join("; "),
+          },
+        });
+      }
+    }
 
     return { success: true };
   },

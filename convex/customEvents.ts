@@ -485,6 +485,7 @@ export const updateCustomEvent = mutation({
     startTime: v.optional(v.number()),
     sport: v.optional(v.string()),
     competition: v.optional(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const event = await ctx.db.get(args.eventId)
@@ -496,19 +497,58 @@ export const updateCustomEvent = mutation({
       updatedAt: Date.now(),
     }
 
-    if (args.title !== undefined) update.title = args.title
-    if (args.description !== undefined) update.description = args.description
-    if (args.homeTeam !== undefined) update.homeTeam = args.homeTeam
-    if (args.awayTeam !== undefined) update.awayTeam = args.awayTeam
-    if (args.sport !== undefined) update.sport = args.sport
-    if (args.competition !== undefined) update.competition = args.competition
+    const changes: string[] = []
+
+    if (args.title !== undefined) {
+      update.title = args.title
+      changes.push(`title`)
+    }
+    if (args.description !== undefined) {
+      update.description = args.description
+      changes.push(`description`)
+    }
+    if (args.homeTeam !== undefined) {
+      update.homeTeam = args.homeTeam
+      changes.push(`homeTeam`)
+    }
+    if (args.awayTeam !== undefined) {
+      update.awayTeam = args.awayTeam
+      changes.push(`awayTeam`)
+    }
+    if (args.sport !== undefined) {
+      update.sport = args.sport
+      changes.push(`sport`)
+    }
+    if (args.competition !== undefined) {
+      update.competition = args.competition
+      changes.push(`competition`)
+    }
 
     if (args.startTime !== undefined) {
       update.startTime = args.startTime
       update.startTimeIso = new Date(args.startTime).toISOString()
+      changes.push(`startTime`)
     }
 
     await ctx.db.patch(args.eventId, update)
+
+    // Log the action
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: adminSession.userId,
+          actionType: "update_custom_event",
+          resourceType: "custom_event",
+          resourceDescription: `Event updated: ${event.title}`,
+          details: {
+            newValue: changes.join(", "),
+          },
+        });
+      }
+    }
+
     return args.eventId
   },
 })
@@ -518,6 +558,7 @@ export const updateCustomEventScore = mutation({
     eventId: v.id("customEvents"),
     homeScore: v.number(),
     awayScore: v.number(),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const event = await ctx.db.get(args.eventId)
@@ -532,12 +573,33 @@ export const updateCustomEventScore = mutation({
       throw new Error("Scores cannot be negative")
     }
 
+    const oldScore = `${event.homeScore}-${event.awayScore}`
+    const newScore = `${args.homeScore}-${args.awayScore}`
+
     const now = Date.now()
     await ctx.db.patch(args.eventId, {
       homeScore: args.homeScore,
       awayScore: args.awayScore,
       updatedAt: now,
     })
+
+    // Log the action
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: adminSession.userId,
+          actionType: "update_custom_event_score",
+          resourceType: "custom_event",
+          resourceDescription: `Score updated: ${event.title}`,
+          details: {
+            previousValue: oldScore,
+            newValue: newScore,
+          },
+        });
+      }
+    }
 
     return args.eventId
   },
@@ -546,6 +608,7 @@ export const updateCustomEventScore = mutation({
 export const markEventAsFinished = mutation({
   args: {
     eventId: v.id("customEvents"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const event = await ctx.db.get(args.eventId)
@@ -557,6 +620,20 @@ export const markEventAsFinished = mutation({
       eventStatus: "finished",
       updatedAt: now,
     })
+
+    // Log the action
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: adminSession.userId,
+          actionType: "mark_event_finished",
+          resourceType: "custom_event",
+          resourceDescription: `Event marked finished: ${event.title}`,
+        });
+      }
+    }
 
     return args.eventId
   },
@@ -593,6 +670,7 @@ export const updateCustomMarket = mutation({
     description: v.optional(v.string()),
     priority: v.optional(v.number()),
     isActive: v.optional(v.boolean()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const market = await ctx.db.get(args.marketId)
@@ -603,12 +681,44 @@ export const updateCustomMarket = mutation({
       throw new Error("Cannot edit markets in published event")
 
     const update: any = {}
-    if (args.name !== undefined) update.name = args.name
-    if (args.description !== undefined) update.description = args.description
-    if (args.priority !== undefined) update.priority = args.priority
-    if (args.isActive !== undefined) update.isActive = args.isActive
+    const changes: string[] = []
+
+    if (args.name !== undefined) {
+      update.name = args.name
+      changes.push(`name`)
+    }
+    if (args.description !== undefined) {
+      update.description = args.description
+      changes.push(`description`)
+    }
+    if (args.priority !== undefined) {
+      update.priority = args.priority
+      changes.push(`priority`)
+    }
+    if (args.isActive !== undefined) {
+      update.isActive = args.isActive
+      changes.push(`isActive: ${args.isActive}`)
+    }
 
     await ctx.db.patch(args.marketId, update)
+
+    // Log the action
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: adminSession.userId,
+          actionType: "update_custom_market",
+          resourceType: "custom_market",
+          resourceDescription: `Market updated: ${market.name}`,
+          details: {
+            newValue: changes.join(", "),
+          },
+        });
+      }
+    }
+
     return args.marketId
   },
 })
@@ -627,12 +737,16 @@ export const createCustomOdds = mutation({
         priority: v.number(),
       })
     ),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const event = await ctx.db.get(args.eventId)
     if (!event) throw new Error("Event not found")
     if (event.status === "published")
       throw new Error("Cannot edit published event")
+
+    const market = await ctx.db.get(args.marketId)
+    if (!market) throw new Error("Market not found")
 
     const oddIds = []
     for (const outcome of args.outcomes) {
@@ -650,6 +764,23 @@ export const createCustomOdds = mutation({
       oddIds.push(oddId)
     }
 
+    // Log the action
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: adminSession.userId,
+          actionType: "create_custom_odds",
+          resourceType: "custom_odds",
+          resourceDescription: `Odds created for market: ${market.name}`,
+          details: {
+            newValue: `${args.outcomes.length} outcomes created`,
+          },
+        });
+      }
+    }
+
     return oddIds
   },
 })
@@ -660,6 +791,7 @@ export const updateCustomOdds = mutation({
     oddValue: v.optional(v.number()),
     priority: v.optional(v.number()),
     isActive: v.optional(v.boolean()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const odd = await ctx.db.get(args.oddId)
@@ -670,11 +802,40 @@ export const updateCustomOdds = mutation({
       throw new Error("Cannot edit odds in published event")
 
     const update: any = {}
-    if (args.oddValue !== undefined) update.oddValue = args.oddValue
-    if (args.priority !== undefined) update.priority = args.priority
-    if (args.isActive !== undefined) update.isActive = args.isActive
+    const changes: string[] = []
+
+    if (args.oddValue !== undefined) {
+      update.oddValue = args.oddValue
+      changes.push(`oddValue: ${args.oddValue}`)
+    }
+    if (args.priority !== undefined) {
+      update.priority = args.priority
+      changes.push(`priority: ${args.priority}`)
+    }
+    if (args.isActive !== undefined) {
+      update.isActive = args.isActive
+      changes.push(`isActive: ${args.isActive}`)
+    }
 
     await ctx.db.patch(args.oddId, update)
+
+    // Log the action
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: adminSession.userId,
+          actionType: "update_custom_odds",
+          resourceType: "custom_odds",
+          resourceDescription: `Odd updated: ${odd.outcomeName}`,
+          details: {
+            newValue: changes.join(", "),
+          },
+        });
+      }
+    }
+
     return args.oddId
   },
 })
@@ -720,6 +881,7 @@ export const publishCustomEvent = mutation({
 export const unpublishCustomEvent = mutation({
   args: {
     eventId: v.id("customEvents"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const event = await ctx.db.get(args.eventId)
@@ -733,6 +895,23 @@ export const unpublishCustomEvent = mutation({
       updatedAt: now,
     })
 
+    // Log the action
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: adminSession.userId,
+          actionType: "unpublish_custom_event",
+          resourceType: "custom_event",
+          resourceDescription: `Event unpublished: ${event.title}`,
+          details: {
+            newValue: "draft",
+          },
+        });
+      }
+    }
+
     return args.eventId
   },
 })
@@ -740,6 +919,7 @@ export const unpublishCustomEvent = mutation({
 export const deleteCustomEvent = mutation({
   args: {
     eventId: v.id("customEvents"),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const event = await ctx.db.get(args.eventId)
@@ -769,6 +949,20 @@ export const deleteCustomEvent = mutation({
 
     // Delete event
     await ctx.db.delete(args.eventId)
+
+    // Log the action
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: adminSession.userId,
+          actionType: "delete_custom_event",
+          resourceType: "custom_event",
+          resourceDescription: `Event deleted: ${event.title}`,
+        });
+      }
+    }
 
     return true
   },

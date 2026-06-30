@@ -19,9 +19,19 @@ export type AdminActionType =
   | "reject_withdrawal"
   | "create_custom_event"
   | "update_custom_event"
+  | "update_custom_event_score"
+  | "mark_event_finished"
+  | "delete_custom_event"
+  | "publish_custom_event"
+  | "unpublish_custom_event"
   | "settle_custom_event"
   | "update_custom_market"
   | "update_custom_odds"
+  | "create_custom_odds"
+  | "update_platform_config"
+  | "update_scraper_settings"
+  | "update_payment_gateway_config"
+  | "set_payment_mode"
   | "other";
 
 export interface AdminLogInput {
