@@ -40,6 +40,7 @@ import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescri
 import { Betslip } from "./betslip"
 import { Sidebar } from "./sidebar"
 import { NotificationsCenter } from "./notifications-center"
+import { ActiveAdminsIndicator } from "./active-admins-indicator"
 import { openSupportChat } from "@/lib/support-chat"
 
 export function Header() {

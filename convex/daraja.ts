@@ -60,8 +60,13 @@ export const saveConfig = mutation({
     initiatorPassword: v.string(),
     isProduction: v.boolean(),
     configName: v.optional(v.string()),
+    userId: v.optional(v.id("users")),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const { requireAdmin } = await import("./auth/authorization")
+    const admin = await requireAdmin(ctx, args.userId)
+
     // Disable all other configs
     const existingConfigs = await ctx.db.query("daraja_config").collect()
     for (const config of existingConfigs) {
@@ -83,8 +88,28 @@ export const saveConfig = mutation({
       isEnabled: true,
       useEnvVariables: false,
       updatedAt: Date.now(),
-      updatedBy: "admin", // TODO: Get actual user ID
+      updatedBy: admin.phone ?? admin._id.toString(),
     })
+
+    // Log the action
+    if (args.sessionToken) {
+      const { logAdminActionInternal } = await import("./audit/logs")
+      const { getAdminSessionByTokenInternal } = await import("./admin/sessions")
+
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken)
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: admin._id,
+          actionType: "update_payment_gateway_config",
+          resourceType: "daraja_config",
+          resourceDescription: "M-Pesa Daraja configuration saved",
+          details: {
+            newValue: `Environment: ${args.isProduction ? "Production" : "Sandbox"}, Shortcode: ${args.shortcode}`,
+          },
+        })
+      }
+    }
 
     return { success: true, configId: newConfigId }
   },
@@ -94,10 +119,37 @@ export const saveConfig = mutation({
  * Update configuration to use environment variables
  */
 export const switchToEnvVariables = mutation({
-  handler: async (ctx) => {
+  args: {
+    userId: v.optional(v.id("users")),
+    sessionToken: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { requireAdmin } = await import("./auth/authorization")
+    const admin = await requireAdmin(ctx, args.userId)
+
     const existingConfigs = await ctx.db.query("daraja_config").collect()
     for (const config of existingConfigs) {
       await ctx.db.patch(config._id, { isEnabled: false })
+    }
+
+    // Log the action
+    if (args.sessionToken) {
+      const { logAdminActionInternal } = await import("./audit/logs")
+      const { getAdminSessionByTokenInternal } = await import("./admin/sessions")
+
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken)
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: admin._id,
+          actionType: "update_payment_gateway_config",
+          resourceType: "daraja_config",
+          resourceDescription: "M-Pesa Daraja switched to environment variables",
+          details: {
+            newValue: "Using environment variables",
+          },
+        })
+      }
     }
 
     return { success: true, message: "Switched to environment variables" }
@@ -110,8 +162,18 @@ export const switchToEnvVariables = mutation({
 export const activateConfig = mutation({
   args: {
     configId: v.id("daraja_config"),
+    userId: v.optional(v.id("users")),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const { requireAdmin } = await import("./auth/authorization")
+    const admin = await requireAdmin(ctx, args.userId)
+
+    const configToActivate = await ctx.db.get(args.configId)
+    if (!configToActivate) {
+      throw new Error("Configuration not found")
+    }
+
     // Disable all other configs
     const existingConfigs = await ctx.db.query("daraja_config").collect()
     for (const config of existingConfigs) {
@@ -120,6 +182,26 @@ export const activateConfig = mutation({
 
     // Enable the selected config
     await ctx.db.patch(args.configId, { isEnabled: true, useEnvVariables: false })
+
+    // Log the action
+    if (args.sessionToken) {
+      const { logAdminActionInternal } = await import("./audit/logs")
+      const { getAdminSessionByTokenInternal } = await import("./admin/sessions")
+
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken)
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: admin._id,
+          actionType: "update_payment_gateway_config",
+          resourceType: "daraja_config",
+          resourceDescription: "M-Pesa Daraja configuration activated",
+          details: {
+            newValue: `Shortcode: ${configToActivate.shortcode}, Environment: ${configToActivate.isProduction ? "Production" : "Sandbox"}`,
+          },
+        })
+      }
+    }
 
     return { success: true }
   },
@@ -131,9 +213,40 @@ export const activateConfig = mutation({
 export const deleteConfig = mutation({
   args: {
     configId: v.id("daraja_config"),
+    userId: v.optional(v.id("users")),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const { requireAdmin } = await import("./auth/authorization")
+    const admin = await requireAdmin(ctx, args.userId)
+
+    const configToDelete = await ctx.db.get(args.configId)
+    if (!configToDelete) {
+      throw new Error("Configuration not found")
+    }
+
     await ctx.db.delete(args.configId)
+
+    // Log the action
+    if (args.sessionToken) {
+      const { logAdminActionInternal } = await import("./audit/logs")
+      const { getAdminSessionByTokenInternal } = await import("./admin/sessions")
+
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken)
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: admin._id,
+          actionType: "update_payment_gateway_config",
+          resourceType: "daraja_config",
+          resourceDescription: "M-Pesa Daraja configuration deleted",
+          details: {
+            previousValue: `Shortcode: ${configToDelete.shortcode}`,
+          },
+        })
+      }
+    }
+
     return { success: true }
   },
 })

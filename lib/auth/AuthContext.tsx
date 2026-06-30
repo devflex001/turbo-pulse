@@ -26,6 +26,11 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  sessionToken: string | null;
+  adminName: string | null;
+  showAdminNameModal: boolean;
+  isLoadingAdminSession: boolean;
+  handleAdminNameSubmit: (name: string) => Promise<void>;
   login: (phone: string, password: string) => Promise<"user" | "admin" | undefined>;
   register: (phone: string, password: string, referralCode?: string) => Promise<"user" | "admin" | undefined>;
   logout: () => void;
@@ -38,11 +43,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [sessionTokenChecked, setSessionTokenChecked] = useState(false);
+  const [adminName, setAdminName] = useState<string | null>(null);
+  const [showAdminNameModal, setShowAdminNameModal] = useState(false);
+  const [isLoadingAdminSession, setIsLoadingAdminSession] = useState(false);
 
   // Convex mutations
   const loginMutation = useMutation(api.auth.login.loginUser);
   const registerMutation = useMutation(api.auth.register.registerUser);
   const logoutMutation = useMutation(api.auth.sessions.deleteSession);
+  const startAdminSessionMutation = useMutation(
+    api.admin.sessions.startAdminSession
+  );
+  const endAdminSessionMutation = useMutation(
+    api.admin.sessions.endAdminSession
+  );
 
   // Get session token on mount (only once)
   useEffect(() => {
@@ -70,6 +84,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const currentUser = useQuery(
     api.auth.user.getCurrentUser,
     sessionTokenChecked && sessionToken && sessionToken.length > 0 ? { sessionToken } : "skip"
+  );
+
+  // Query current admin session
+  const currentAdminSession = useQuery(
+    api.admin.sessions.getCurrentAdminSession,
+    user?.role === "admin" && sessionToken ? { sessionToken } : "skip"
   );
 
   // Update user state when Convex query resolves or when session token changes
@@ -109,6 +129,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('[AuthContext] getCurrentUser query loading...');
     }
   }, [currentUser, sessionToken, sessionTokenChecked]);
+
+  // Handle admin session logic
+  useEffect(() => {
+    if (!user || user.role !== "admin" || !sessionToken) {
+      setShowAdminNameModal(false);
+      setAdminName(null);
+      return;
+    }
+
+    // If admin session already exists, use it
+    if (currentAdminSession) {
+      console.log('[AuthContext] Admin session found:', currentAdminSession.adminName);
+      setAdminName(currentAdminSession.adminName);
+      setShowAdminNameModal(false);
+      return;
+    }
+
+    // If admin session query resolved but no session exists, show modal
+    if (currentAdminSession === null && !isLoadingAdminSession) {
+      console.log('[AuthContext] No admin session found, showing modal');
+      setShowAdminNameModal(true);
+    }
+  }, [user, sessionToken, currentAdminSession, isLoadingAdminSession]);
 
   const login = async (phone: string, password: string) => {
     try {
@@ -169,6 +212,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
+      // End admin session if admin is logged out
+      if (user?.role === "admin" && sessionToken && adminName) {
+        try {
+          await endAdminSessionMutation({
+            sessionToken,
+          });
+        } catch (err) {
+          console.error("Error ending admin session:", err);
+        }
+      }
+
       // Delete session from database
       if (sessionToken) {
         await logoutMutation({ sessionToken });
@@ -180,6 +234,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       removeSessionToken();
       setSessionToken(null);
       setUser(null);
+      setAdminName(null);
+      setShowAdminNameModal(false);
 
       // Redirect to home page
       if (typeof window !== "undefined") {
@@ -188,11 +244,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const handleAdminNameSubmit = async (name: string) => {
+    if (!user || !sessionToken) {
+      throw new Error("User or session token not found");
+    }
+
+    setIsLoadingAdminSession(true);
+    try {
+      const result = await startAdminSessionMutation({
+        userId: user._id,
+        adminName: name,
+        sessionToken,
+      });
+
+      setAdminName(result.adminName);
+      setShowAdminNameModal(false);
+      console.log("[AuthContext] Admin session created:", result.adminName);
+    } catch (error) {
+      console.error("Error creating admin session:", error);
+      throw error;
+    } finally {
+      setIsLoadingAdminSession(false);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     isLoading,
     isAuthenticated: !!user,
     isAdmin: user?.role === "admin",
+    sessionToken,
+    adminName,
+    showAdminNameModal,
+    isLoadingAdminSession,
+    handleAdminNameSubmit,
     login,
     register,
     logout,

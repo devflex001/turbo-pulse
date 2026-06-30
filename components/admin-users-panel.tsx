@@ -103,6 +103,7 @@ interface BanModalProps {
 }
 
 function BanModal({ user, open, onClose, adminUserId }: BanModalProps) {
+  const { sessionToken } = useAuthClient()
   const banUser = useMutation(api.adminUsers.banUser)
   const [reason, setReason] = React.useState("")
   const [duration, setDuration] = React.useState<string>("permanent")
@@ -140,6 +141,7 @@ function BanModal({ user, open, onClose, adminUserId }: BanModalProps) {
       setLoading(true)
       await banUser({
         userId: adminUserId as Id<"users"> | undefined,
+        sessionToken: sessionToken || undefined,
         targetUserId: user._id as Id<"users">,
         reason: reason.trim(),
         durationHours,
@@ -243,6 +245,7 @@ interface EditModalProps {
 }
 
 function EditModal({ user, open, onClose, adminUserId }: EditModalProps) {
+  const { sessionToken } = useAuthClient()
   const editUser = useMutation(api.adminUsers.editUser)
   const [phone, setPhone] = React.useState("")
   const [loading, setLoading] = React.useState(false)
@@ -269,6 +272,7 @@ function EditModal({ user, open, onClose, adminUserId }: EditModalProps) {
       setLoading(true)
       await editUser({
         userId: adminUserId as Id<"users"> | undefined,
+        sessionToken: sessionToken || undefined,
         targetUserId: user._id as Id<"users">,
         email: phone.trim(),
       })
@@ -510,7 +514,7 @@ function UserDetailsModal({ user, open, onClose, adminUserId }: UserDetailsModal
 const PAGE_SIZE = 10
 
 export function AdminUsersPanel() {
-  const { user } = useAuthClient()
+  const { user, sessionToken } = useAuthClient()
   const userStats = useQuery(api.adminUsers.getUserStats, { userId: user?._id })
   const [search, setSearch] = React.useState("")
   const [debouncedSearch, setDebouncedSearch] = React.useState("")
@@ -534,7 +538,11 @@ export function AdminUsersPanel() {
 
   async function handleUnban(targetUser: UserWithBan) {
     try {
-      await unbanUser({ userId: user?._id as Id<"users"> | undefined, targetUserId: targetUser._id as Id<"users"> })
+      await unbanUser({
+        userId: user?._id as Id<"users"> | undefined,
+        sessionToken: sessionToken || undefined,
+        targetUserId: targetUser._id as Id<"users">
+      })
       toast.success(`${targetUser.phone ?? targetUser._id.slice(-8)} has been unbanned`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to unban user")
@@ -550,7 +558,7 @@ export function AdminUsersPanel() {
             <Users className="size-5 text-primary" />
             User Management
           </h1>
-        
+
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">

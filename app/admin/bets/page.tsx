@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
 import { ResponsiveModal } from "@/components/ui/responsive-modal"
 import {
-  DropdownMenu, 
+  DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -241,12 +241,12 @@ function BetDetailsModal({ bet, open, onClose }: DetailsModalProps) {
 const PAGE_SIZE = 15
 
 export default function BetsPage() {
-  const { user } = useAuthClient()
-  
+  const { user, sessionToken } = useAuthClient()
+
   const [search, setSearch] = React.useState("")
   const [debouncedSearch, setDebouncedSearch] = React.useState("")
   const [statusFilter, setStatusFilter] = React.useState("all")
-  
+
   const [selectedBet, setSelectedBet] = React.useState<Bet | null>(null)
   const [detailsOpen, setDetailsOpen] = React.useState(false)
   const [updatingId, setUpdatingId] = React.useState<string | null>(null)
@@ -280,6 +280,7 @@ export default function BetsPage() {
         betId: betId as Id<"bets">,
         status: nextStatus,
         userId: user?._id,
+        sessionToken: sessionToken || undefined,
       })
       toast.success(res.message || "Bet status updated successfully")
     } catch (err) {

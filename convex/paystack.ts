@@ -55,8 +55,13 @@ export const saveConfig = mutation({
     publicKey: v.string(),
     secretKey: v.string(),
     isProduction: v.boolean(),
+    userId: v.optional(v.id("users")),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const { requireAdmin } = await import("./auth/authorization")
+    const admin = await requireAdmin(ctx, args.userId)
+
     // Disable all other configs
     const existingConfigs = await ctx.db.query("paystack_config").collect()
     for (const config of existingConfigs) {
@@ -71,8 +76,28 @@ export const saveConfig = mutation({
       isEnabled: true,
       useEnvVariables: false,
       updatedAt: Date.now(),
-      updatedBy: "admin", // TODO: Get actual user ID
+      updatedBy: admin.phone ?? admin._id.toString(),
     })
+
+    // Log the action
+    if (args.sessionToken) {
+      const { logAdminActionInternal } = await import("./audit/logs")
+      const { getAdminSessionByTokenInternal } = await import("./admin/sessions")
+
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken)
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: admin._id,
+          actionType: "update_payment_gateway_config",
+          resourceType: "paystack_config",
+          resourceDescription: "Paystack configuration saved",
+          details: {
+            newValue: `Environment: ${args.isProduction ? "Production" : "Test"}`,
+          },
+        })
+      }
+    }
 
     return { success: true, configId: newConfigId }
   },
@@ -82,10 +107,37 @@ export const saveConfig = mutation({
  * Update configuration to use environment variables
  */
 export const switchToEnvVariables = mutation({
-  handler: async (ctx) => {
+  args: {
+    userId: v.optional(v.id("users")),
+    sessionToken: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const { requireAdmin } = await import("./auth/authorization")
+    const admin = await requireAdmin(ctx, args.userId)
+
     const existingConfigs = await ctx.db.query("paystack_config").collect()
     for (const config of existingConfigs) {
       await ctx.db.patch(config._id, { isEnabled: false })
+    }
+
+    // Log the action
+    if (args.sessionToken) {
+      const { logAdminActionInternal } = await import("./audit/logs")
+      const { getAdminSessionByTokenInternal } = await import("./admin/sessions")
+
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken)
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: admin._id,
+          actionType: "update_payment_gateway_config",
+          resourceType: "paystack_config",
+          resourceDescription: "Paystack switched to environment variables",
+          details: {
+            newValue: "Using environment variables",
+          },
+        })
+      }
     }
 
     return { success: true, message: "Switched to environment variables" }
@@ -98,8 +150,18 @@ export const switchToEnvVariables = mutation({
 export const activateConfig = mutation({
   args: {
     configId: v.id("paystack_config"),
+    userId: v.optional(v.id("users")),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const { requireAdmin } = await import("./auth/authorization")
+    const admin = await requireAdmin(ctx, args.userId)
+
+    const configToActivate = await ctx.db.get(args.configId)
+    if (!configToActivate) {
+      throw new Error("Configuration not found")
+    }
+
     // Disable all other configs
     const existingConfigs = await ctx.db.query("paystack_config").collect()
     for (const config of existingConfigs) {
@@ -108,6 +170,26 @@ export const activateConfig = mutation({
 
     // Enable the selected config
     await ctx.db.patch(args.configId, { isEnabled: true, useEnvVariables: false })
+
+    // Log the action
+    if (args.sessionToken) {
+      const { logAdminActionInternal } = await import("./audit/logs")
+      const { getAdminSessionByTokenInternal } = await import("./admin/sessions")
+
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken)
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: admin._id,
+          actionType: "update_payment_gateway_config",
+          resourceType: "paystack_config",
+          resourceDescription: "Paystack configuration activated",
+          details: {
+            newValue: `Environment: ${configToActivate.isProduction ? "Production" : "Test"}`,
+          },
+        })
+      }
+    }
 
     return { success: true }
   },
@@ -119,9 +201,40 @@ export const activateConfig = mutation({
 export const deleteConfig = mutation({
   args: {
     configId: v.id("paystack_config"),
+    userId: v.optional(v.id("users")),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const { requireAdmin } = await import("./auth/authorization")
+    const admin = await requireAdmin(ctx, args.userId)
+
+    const configToDelete = await ctx.db.get(args.configId)
+    if (!configToDelete) {
+      throw new Error("Configuration not found")
+    }
+
     await ctx.db.delete(args.configId)
+
+    // Log the action
+    if (args.sessionToken) {
+      const { logAdminActionInternal } = await import("./audit/logs")
+      const { getAdminSessionByTokenInternal } = await import("./admin/sessions")
+
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken)
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: admin._id,
+          actionType: "update_payment_gateway_config",
+          resourceType: "paystack_config",
+          resourceDescription: "Paystack configuration deleted",
+          details: {
+            previousValue: `Environment: ${configToDelete.isProduction ? "Production" : "Test"}`,
+          },
+        })
+      }
+    }
+
     return { success: true }
   },
 })

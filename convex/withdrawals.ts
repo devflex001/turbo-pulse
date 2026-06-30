@@ -4,6 +4,8 @@ import { Doc } from "./_generated/dataModel";
 import { requireAdmin, requireAuth } from "./auth/authorization";
 import { updateWalletBalance } from "./mpesa";
 import { notifyAdmins, notifyUser } from "./notifications";
+import { logAdminActionInternal } from "./audit/logs";
+import { getAdminSessionByTokenInternal } from "./admin/sessions";
 
 const CONFIG_KEY = "main";
 
@@ -283,6 +285,7 @@ export const payInstantFee = mutation({
 export const approveWithdrawal = mutation({
   args: {
     userId: v.optional(v.id("users")),
+    sessionToken: v.optional(v.string()), // For logging
     requestId: v.id("withdrawal_requests"),
   },
   handler: async (ctx, args) => {
@@ -302,6 +305,24 @@ export const approveWithdrawal = mutation({
       processedAt: Date.now(),
       processedBy: admin.phone ?? admin._id.toString(),
     });
+
+    // Log the action
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: admin._id,
+          actionType: "approve_withdrawal",
+          resourceType: "withdrawal",
+          resourceDescription: `Withdrawal (Amount: KES ${request.amount})`,
+          details: {
+            amount: request.amount,
+          },
+        });
+      }
+    }
 
     await notifyUser(ctx, {
       recipientUserId: request.userId,
@@ -339,6 +360,7 @@ export const approveWithdrawal = mutation({
 export const rejectWithdrawal = mutation({
   args: {
     userId: v.optional(v.id("users")),
+    sessionToken: v.optional(v.string()), // For logging
     requestId: v.id("withdrawal_requests"),
     rejectionReason: v.string(),
   },
@@ -363,6 +385,25 @@ export const rejectWithdrawal = mutation({
       processedBy: admin.phone ?? admin._id.toString(),
       rejectionReason: args.rejectionReason,
     });
+
+    // Log the action
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: admin._id,
+          actionType: "reject_withdrawal",
+          resourceType: "withdrawal",
+          resourceDescription: `Withdrawal (Amount: KES ${request.amount})`,
+          details: {
+            reason: args.rejectionReason,
+            amount: request.amount,
+          },
+        });
+      }
+    }
 
     await notifyUser(ctx, {
       recipientUserId: request.userId,

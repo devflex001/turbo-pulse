@@ -2,6 +2,8 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { requireAdmin, requireAuth } from "./auth/authorization";
+import { logAdminActionInternal } from "./audit/logs";
+import { getAdminSessionByTokenInternal } from "./admin/sessions";
 
 // ────────────────────────────────────────────────────────────────────────────
 // TYPES
@@ -151,23 +153,45 @@ export const getMyBanStatus = query({
 export const editUser = mutation({
   args: {
     userId: v.optional(v.id("users")), // Add userId from client
+    sessionToken: v.optional(v.string()), // For logging
     targetUserId: v.id("users"),
     email: v.string(), // Maps to phone in this system
   },
   handler: async (ctx, args) => {
     // Require admin authentication
-    await requireAdmin(ctx, args.userId);
+    const admin = await requireAdmin(ctx, args.userId);
 
     const user = await ctx.db.get(args.targetUserId);
     if (!user) {
       throw new Error("User not found");
     }
 
+    const oldPhone = user.phone;
+
     // Update user phone number
     await ctx.db.patch(args.targetUserId, {
       phone: args.email,
       updatedAt: Date.now(),
     });
+
+    // Log the action
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: admin._id,
+          actionType: "edit_user",
+          resourceType: "user",
+          resourceDescription: `User (ID: ${args.targetUserId})`,
+          details: {
+            previousValue: oldPhone,
+            newValue: args.email,
+          },
+        });
+      }
+    }
 
     return {
       success: true,
@@ -183,6 +207,7 @@ export const editUser = mutation({
 export const banUser = mutation({
   args: {
     userId: v.optional(v.id("users")), // Add userId from client
+    sessionToken: v.optional(v.string()), // For logging
     targetUserId: v.id("users"),
     reason: v.string(),
     durationHours: v.union(v.number(), v.null()), // null = permanent
@@ -222,6 +247,29 @@ export const banUser = mutation({
       bannedBy: admin.phone || admin._id.toString(),
     });
 
+    // Log the action
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+
+      if (adminSession) {
+        const durationDesc = args.durationHours === null
+          ? "Permanent"
+          : `${args.durationHours} hours`;
+
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: admin._id,
+          actionType: "ban_user",
+          resourceType: "user",
+          resourceDescription: `User (ID: ${args.targetUserId})`,
+          details: {
+            reason: args.reason,
+            newValue: durationDesc,
+          },
+        });
+      }
+    }
+
     return {
       success: true,
       banId,
@@ -237,11 +285,12 @@ export const banUser = mutation({
 export const unbanUser = mutation({
   args: {
     userId: v.optional(v.id("users")), // Add userId from client
+    sessionToken: v.optional(v.string()), // For logging
     targetUserId: v.id("users"),
   },
   handler: async (ctx, args) => {
     // Require admin authentication
-    await requireAdmin(ctx, args.userId);
+    const admin = await requireAdmin(ctx, args.userId);
 
     const user = await ctx.db.get(args.targetUserId);
     if (!user) {
@@ -258,6 +307,21 @@ export const unbanUser = mutation({
 
     for (const ban of activeBans) {
       await ctx.db.patch(ban._id, { isActive: false });
+    }
+
+    // Log the action
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: admin._id,
+          actionType: "unban_user",
+          resourceType: "user",
+          resourceDescription: `User (ID: ${args.targetUserId})`,
+        });
+      }
     }
 
     return {
