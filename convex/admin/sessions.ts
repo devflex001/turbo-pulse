@@ -242,10 +242,12 @@ export const logInactivityLogout = mutation({
 
 /**
  * End admin session (logout)
+ * Only logs if not already logged by logInactivityLogout
  */
 export const endAdminSession = mutation({
   args: {
     sessionToken: v.string(),
+    isInactivityLogout: v.optional(v.boolean()), // true if already logged by logInactivityLogout
   },
   handler: async (ctx, args) => {
     const session = await ctx.db
@@ -257,14 +259,16 @@ export const endAdminSession = mutation({
       return { success: false, message: "Session not found" };
     }
 
-    // Log manual logout (inactivity logout is logged separately via logInactivityLogout mutation)
-    await logAdminActionInternal(ctx, {
-      adminName: session.adminName,
-      userId: session.userId,
-      actionType: "logout",
-      resourceType: "admin_session",
-      resourceDescription: `Admin manual logout (${session.adminName})`,
-    });
+    // Only log manual logout if this wasn't already logged as an inactivity logout
+    if (!args.isInactivityLogout) {
+      await logAdminActionInternal(ctx, {
+        adminName: session.adminName,
+        userId: session.userId,
+        actionType: "logout",
+        resourceType: "admin_session",
+        resourceDescription: `Admin manual logout (${session.adminName})`,
+      });
+    }
 
     await ctx.db.patch(session._id, {
       isActive: false,

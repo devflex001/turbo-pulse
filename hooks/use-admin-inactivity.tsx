@@ -14,7 +14,7 @@ interface UseAdminInactivityProps {
 
 export function useAdminInactivity(props: UseAdminInactivityProps = {}) {
   const {
-    warningTime = 19 * 60 * 1000,
+    warningTime = 60 * 60 * 1000,
     logoutTime = 60 * 1000,
     onWarning,
     onLogout,
@@ -73,6 +73,8 @@ export function useAdminInactivity(props: UseAdminInactivityProps = {}) {
         const sessionToken = localStorage.getItem("session_token")
         if (sessionToken) {
           await logInactivityLogoutMutation({ sessionToken })
+          // Now end the session without double-logging
+          // The logout will happen through the auth context automatically
         }
       } catch (err) {
         console.error("Error logging inactivity logout:", err)

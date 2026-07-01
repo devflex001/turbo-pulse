@@ -10,12 +10,24 @@ import { useEffect } from "react"
  */
 export function SuppressBeforeUnload() {
   useEffect(() => {
-    const suppress = (e: BeforeUnloadEvent) => {
+    // Function to suppress beforeunload
+    const suppressBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault()
-      delete e.returnValue
+      e.returnValue = ""
+      return ""
     }
-    window.addEventListener("beforeunload", suppress)
-    return () => window.removeEventListener("beforeunload", suppress)
+
+    // Add event listener with capture phase
+    window.addEventListener("beforeunload", suppressBeforeUnload, true)
+
+    // Also override window.onbeforeunload
+    const originalOnBeforeUnload = window.onbeforeunload
+    window.onbeforeunload = null
+
+    return () => {
+      window.removeEventListener("beforeunload", suppressBeforeUnload, true)
+      window.onbeforeunload = originalOnBeforeUnload
+    }
   }, [])
 
   return null
