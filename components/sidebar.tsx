@@ -157,7 +157,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "flex flex-col gap-6 shrink-0 border-r border-border bg-card text-card-foreground overflow-y-auto w-64",
+        "flex flex-col gap-0 shrink-0 border-r border-border bg-card text-card-foreground overflow-hidden w-64",
         className
       )}
     >
@@ -193,7 +193,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
         </div>
       </div>
 
-      <div className="px-4">
+      <div className="px-4 shrink-0">
         <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Services
         </h2>
@@ -250,8 +250,8 @@ export function Sidebar({ className, onClose }: SidebarProps) {
         </div>
       </div>
 
-      <div className="px-4">
-        <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="px-4 flex-1 overflow-y-auto">
+        <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground sticky top-0 bg-card">
           Sports
         </h2>
         <div className="space-y-1 w-full">

@@ -239,7 +239,7 @@ export const listMarkets = query({
   },
 });
 
-// New optimized query to get sport counts without fetching full match data
+// New optimized query to get sport counts without fetching full match data - fetches ALL matches for accurate counts
 export const getSportCounts = query({
   args: {},
   handler: async (ctx) => {
@@ -252,7 +252,7 @@ export const getSportCounts = query({
       .withIndex("by_source_and_startTime", (q) =>
         q.eq("source", SOURCE).gte("startTime", lowerBound)
       )
-      .take(100);
+      .take(500); 
 
     const counts = new Map<string, number>();
     let totalCount = 0;
