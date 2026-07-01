@@ -383,8 +383,9 @@ const schema = defineSchema({
       state: v.optional(v.string()),
       city: v.optional(v.string()),
       timezone: v.optional(v.string()),
-      latitude: v.optional(v.number()),
-      longitude: v.optional(v.number()),
+      latitude: v.optional(v.float64()),
+      longitude: v.optional(v.float64()),
+      org: v.optional(v.string()), // ISP / organization name
     }),
     device: v.object({
       userAgent: v.string(),
@@ -541,7 +542,7 @@ const schema = defineSchema({
       v.literal("reject_withdrawal"),
       v.literal("create_custom_event"),
       v.literal("update_custom_event"),
-       v.literal("update_custom_event_score"),
+      v.literal("update_custom_event_score"),
       v.literal("mark_event_finished"),
       v.literal("delete_custom_event"),
       v.literal("publish_custom_event"),
