@@ -157,11 +157,11 @@ export function Sidebar({ className, onClose }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "flex flex-col gap-0 shrink-0 border-r border-border bg-card text-card-foreground overflow-hidden w-64",
+        "flex flex-col shrink-0 border-r border-border bg-card text-card-foreground overflow-hidden w-64",
         className
       )}
     >
-      <div className="pt-4 px-4">
+      <div className="pt-4 px-4 shrink-0">
         <div className="space-y-1 w-full">
           {mainNavItems.map((item) => {
             const Icon = item.icon
@@ -250,8 +250,8 @@ export function Sidebar({ className, onClose }: SidebarProps) {
         </div>
       </div>
 
-      <div className="px-4 flex-1 overflow-y-auto">
-        <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground sticky top-0 bg-card">
+      <div className="px-4 flex-1 min-h-0 overflow-y-auto">
+        <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground sticky top-0 bg-card z-10">
           Sports
         </h2>
         <div className="space-y-1 w-full">
@@ -300,7 +300,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
         </div>
       </div>
 
-      <Collapsible defaultOpen={false} className="pb-6 px-4">
+      <Collapsible defaultOpen={false} className="px-4 shrink-0 border-t border-border pt-4 pb-4">
         <CollapsibleTrigger asChild>
           <button
             type="button"
@@ -311,7 +311,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="space-y-1 w-full pt-1">
+          <div className="space-y-1 w-full pt-1 max-h-48 overflow-y-auto">
             {!competitions ? (
               <>
                 <Skeleton className="h-9 w-full" />

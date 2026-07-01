@@ -227,31 +227,14 @@ export default function Page() {
     return () => clearInterval(timer)
   }, [])
 
-  // Intersection observer for infinite scroll
+  // Intersection observer removed - using manual button instead
   const observerTarget = React.useRef<HTMLDivElement>(null)
   const [isLoadingMore, setIsLoadingMore] = React.useState(false)
 
-  React.useEffect(() => {
-    const observer = new IntersectionObserver(
-      entries => {
-        if (entries[0]?.isIntersecting && hasMore && !isLoadingMore) {
-          setIsLoadingMore(true)
-          setOffset(prev => prev + pageSize)
-        }
-      },
-      { threshold: 0.1 }
-    )
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current)
-    }
-
-    return () => {
-      if (observerTarget.current) {
-        observer.unobserve(observerTarget.current)
-      }
-    }
-  }, [hasMore, isLoadingMore])
+  const handleLoadMore = () => {
+    setIsLoadingMore(true)
+    setOffset(prev => prev + pageSize)
+  }
 
   React.useEffect(() => {
     setIsLoadingMore(false)
@@ -483,16 +466,25 @@ export default function Page() {
                         ))}
                       </div>
 
-                      {/* Infinite scroll sentinel */}
-                      <div ref={observerTarget} className="py-8 flex justify-center">
-                        {hasMore && (
-                          <div className="flex flex-col items-center gap-2">
-                            <div className="animate-spin rounded-full h-6 w-6 border border-muted-foreground border-t-foreground" />
-                            <span className="text-xs text-muted-foreground">Loading more fixtures...</span>
-                          </div>
-                        )}
-                        {!hasMore && displayedMatches.length > 0 && (
-                          <span className="text-xs text-muted-foreground">No more fixtures to load</span>
+                      {/* Load more button */}
+                      <div className="col-span-1 md:col-span-2 py-4 flex justify-center">
+                        {hasMore ? (
+                          <Button
+                            onClick={handleLoadMore}
+                            disabled={isLoadingMore}
+                            className="bg-[#4b9f71] hover:bg-[#3e865f] text-white font-semibold gap-2"
+                          >
+                            {isLoadingMore ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border border-white border-t-transparent" />
+                                Loading...
+                              </>
+                            ) : (
+                              `Load More Fixtures (${allMatches.length} of ${totalCount})`
+                            )}
+                          </Button>
+                        ) : displayedMatches.length > 0 && (
+                          <span className="text-sm text-muted-foreground font-medium">All fixtures loaded ✓</span>
                         )}
                       </div>
                     </>
@@ -649,16 +641,25 @@ export default function Page() {
                         ))}
                       </div>
 
-                      {/* Infinite scroll sentinel */}
-                      <div ref={observerTarget} className="py-8 flex justify-center">
-                        {hasMore && (
-                          <div className="flex flex-col items-center gap-2">
-                            <div className="animate-spin rounded-full h-6 w-6 border border-muted-foreground border-t-foreground" />
-                            <span className="text-xs text-muted-foreground">Loading more fixtures...</span>
-                          </div>
-                        )}
-                        {!hasMore && displayedMatches.length > 0 && (
-                          <span className="text-xs text-muted-foreground">No more fixtures to load</span>
+                      {/* Load more button */}
+                      <div className="col-span-1 md:col-span-2 py-4 flex justify-center">
+                        {hasMore ? (
+                          <Button
+                            onClick={handleLoadMore}
+                            disabled={isLoadingMore}
+                            className="bg-[#4b9f71] hover:bg-[#3e865f] text-white font-semibold gap-2"
+                          >
+                            {isLoadingMore ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border border-white border-t-transparent" />
+                                Loading...
+                              </>
+                            ) : (
+                              `Load More Fixtures (${allMatches.length} of ${totalCount})`
+                            )}
+                          </Button>
+                        ) : displayedMatches.length > 0 && (
+                          <span className="text-sm text-muted-foreground font-medium">All fixtures loaded ✓</span>
                         )}
                       </div>
                     </>
