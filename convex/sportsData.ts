@@ -239,23 +239,36 @@ export const listMarkets = query({
   },
 });
 
-// Optimized query to get market summary without odds details
-export const getMarketsCount = query({
-  args: {
-    sourceMatchId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const markets = await ctx.db
-      .query("sportsMarkets")
-      .withIndex("by_sourceMatchId_and_marketPriority", (q) =>
-        q.eq("sourceMatchId", args.sourceMatchId)
+// New optimized query to get sport counts without fetching full match data
+export const getSportCounts = query({
+  args: {},
+  handler: async (ctx) => {
+    // Look back 24 hours and forward 30 days to catch recently scraped matches
+    const lowerBound = Date.now() - 24 * 60 * 60 * 1000;
+    const upperBound = Date.now() + 30 * 24 * 60 * 60 * 1000;
+
+    const matches = await ctx.db
+      .query("sportsMatches")
+      .withIndex("by_source_and_startTime", (q) =>
+        q.eq("source", SOURCE).gte("startTime", lowerBound)
       )
-      .take(600);
+      .take(100);
+
+    const counts = new Map<string, number>();
+    let totalCount = 0;
+
+    for (const match of matches) {
+      // Filter out matches too far in the future
+      if (match.startTime > upperBound) continue;
+
+      totalCount++;
+      const sportSlug = match.sportSlug || "all";
+      counts.set(sportSlug, (counts.get(sportSlug) ?? 0) + 1);
+    }
 
     return {
-      totalMarkets: markets.length,
-      hasMainMarket: markets.some(m => m.marketKey.includes(":1x2:main")),
-      marketTypes: [...new Set(markets.flatMap(m => m.marketTypes || [m.marketType]).filter(Boolean))],
+      total: totalCount,
+      bySport: Object.fromEntries(counts),
     };
   },
 });

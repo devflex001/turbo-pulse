@@ -58,8 +58,10 @@ function getSportIcon(slug: string) {
     case "football": return Circle;
     case "basketball": return CircleDashed;
     case "tennis": return CircleDot;
+    case "rugby":
     case "mma":
     case "boxing": return Swords;
+    case "cricket": return Trophy;
     case "all": return LayoutGrid;
     default: return Activity;
   }
@@ -76,6 +78,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
     | MatchRecord[]
     | { items: MatchRecord[] }
     | undefined
+  const sportCounts = useQuery(api.sportsData.getSportCounts, {}) as any
   const competitions = useQuery(api.sportsData.listCompetitions, {
     sport: selectedSport,
   }) as string[] | undefined
@@ -98,20 +101,20 @@ export function Sidebar({ className, onClose }: SidebarProps) {
   )
 
   const sportItems = React.useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const match of allMatchItems) {
-      const key = match.sportSlug || "all"
-      counts.set(key, (counts.get(key) ?? 0) + 1)
+    // Use optimized sport counts from query
+    if (!sportCounts || !sportCounts.bySport) {
+      return [{ id: "all", label: "All Sports", count: 0 }];
     }
 
+    const counts = sportCounts.bySport;
     return [
-      { id: "all", label: "All Sports", count: allMatchItems.length },
-      ...Array.from(counts.entries())
+      { id: "all", label: "All Sports", count: sportCounts.total },
+      ...Object.entries(counts)
         .filter(([key]) => key !== "all")
-        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-        .map(([id, count]) => ({ id, label: titleCase(id), count })),
-    ]
-  }, [allMatchItems])
+        .sort((a, b) => (b[1] as number) - (a[1] as number))
+        .map(([id, count]) => ({ id, label: titleCase(id as string), count: count as number })),
+    ];
+  }, [sportCounts])
 
   const mainNavItems = [
     { id: "home", label: "Homepage", icon: Home },

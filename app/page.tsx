@@ -107,8 +107,10 @@ function getSportIcon(slug: string) {
     case "football": return Circle;
     case "basketball": return CircleDashed;
     case "tennis": return CircleDot;
+    case "rugby":
     case "mma":
     case "boxing": return Swords;
+    case "cricket": return Trophy;
     case "all": return LayoutGrid;
     default: return Activity;
   }
@@ -166,14 +168,13 @@ export default function Page() {
     competition: selectedLeague,
     status: matchStatus,
     search: searchQuery,
-    limit: 80,
+    limit: 20,
+    offset: 0,
     includeFirstMarket: true,
   }) as (SportsMatch & { firstMarket?: any })[] | undefined
 
-  const allMatches = useQuery(api.sportsData.listMatches, {
-    limit: 300,
-    includeFirstMarket: false,
-  }) as SportsMatch[] | undefined
+  // Use optimized query for sport counts instead of fetching 300 items
+  const sportCounts = useQuery(api.sportsData.getSportCounts, {}) as any
 
   const customEvents = useQuery(api.customEvents.listCustomEvents, {
     status: "published",
@@ -217,25 +218,21 @@ export default function Page() {
     return []
   }, [allMatches])
 
-  const featuredMatches = displayedMatches.slice(0, 4)
-  const upcomingMatches = activeTab === "featured" ? featuredMatches : displayedMatches
-
   const sportOptions = React.useMemo(() => {
-    const counts = new Map<string, number>()
-
-    for (const match of countedMatches) {
-      const key = match.sportSlug || "all"
-      counts.set(key, (counts.get(key) ?? 0) + 1)
+    // Use optimized sport counts from query
+    if (!sportCounts || !sportCounts.bySport) {
+      return [{ id: "all", label: "All Sports", count: 0 }];
     }
 
+    const counts = sportCounts.bySport;
     return [
-      { id: "all", label: "All Sports", count: countedMatches.length },
-      ...Array.from(counts.entries())
+      { id: "all", label: "All Sports", count: sportCounts.total },
+      ...Object.entries(counts)
         .filter(([key]) => key !== "all")
-        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-        .map(([id, count]) => ({ id, label: titleCase(id), count })),
-    ]
-  }, [countedMatches])
+        .sort((a, b) => (b[1] as number) - (a[1] as number))
+        .map(([id, count]) => ({ id, label: titleCase(id as string), count: count as number })),
+    ];
+  }, [sportCounts])
 
   const liveCount = displayedMatches.filter((match) => match.isLive).length
 

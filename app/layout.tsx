@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { BetStoreProvider } from "@/hooks/use-bet-store"
 import { ConvexProvider } from "@/components/convex-provider"
 import { SupportChatWidget } from "@/components/support-chat-widget"
+import { SuppressBeforeUnload } from "@/components/suppress-beforeunload"
 
 const robotoHeading = Roboto({ subsets: ['latin'], variable: '--font-heading' })
 
@@ -29,26 +30,12 @@ export default function RootLayout({
       suppressHydrationWarning
       className={cn("antialiased", fontMono.variable, "font-sans", figtree.variable, robotoHeading.variable)}
     >
-      <head>
-        {/* Suppress beforeunload prompt as early as possible */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.addEventListener('beforeunload', function(e) {
-                e.preventDefault();
-                e.returnValue = '';
-                return '';
-              }, { capture: true });
-              window.onbeforeunload = null;
-            `,
-          }}
-        />
-      </head>
       <body>
         <ThemeProvider>
           <ConvexProvider>
             <BetStoreProvider>
               <TooltipProvider>
+                <SuppressBeforeUnload />
                 <div className="flex flex-col">
                   {children}
                 </div>
