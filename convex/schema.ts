@@ -553,6 +553,7 @@ const schema = defineSchema({
       v.literal("create_custom_odds"),
       v.literal("update_platform_config"),
       v.literal("update_scraper_settings"),
+      v.literal("run_scraper"),
       v.literal("update_payment_gateway_config"),
       v.literal("set_payment_mode"),
       v.literal("other")

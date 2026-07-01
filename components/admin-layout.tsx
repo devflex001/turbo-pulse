@@ -186,7 +186,7 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
     extendSession,
     logoutNow,
   } = useAdminInactivity({
-    warningTime: 9 * 60 * 1000, // show warning after 9 min of inactivity
+    warningTime: 19 * 60 * 1000, // show warning after 19 min of inactivity
     logoutTime: 60 * 1000,       // 60-second countdown before auto-logout
     onLogout: () => router.push("/"),
   })

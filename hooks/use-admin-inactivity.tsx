@@ -14,7 +14,7 @@ interface UseAdminInactivityProps {
 
 export function useAdminInactivity(props: UseAdminInactivityProps = {}) {
   const {
-    warningTime = 9 * 60 * 1000,
+    warningTime = 19 * 60 * 1000,
     logoutTime = 60 * 1000,
     onWarning,
     onLogout,

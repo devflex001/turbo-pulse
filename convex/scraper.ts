@@ -14,7 +14,7 @@ import { KWIKBET_SOURCE } from "./scrapers/kwikbet";
 
 const DEFAULT_CADENCE_MINUTES = 5;
 const DEFAULT_DATE_WINDOW_DAYS = 2;
-const DEFAULT_PAGE_LIMIT = 50;
+const DEFAULT_PAGE_LIMIT = 5;
 
 async function getOrCreateSettings(ctx: MutationCtx, now: number) {
   const existing = await ctx.db
@@ -93,7 +93,7 @@ export const updateSettings = mutation({
     const now = Date.now();
     const cadenceMinutes = Math.max(1, Math.min(120, Math.floor(args.cadenceMinutes)));
     const dateWindowDays = Math.max(1, Math.min(14, Math.floor(args.dateWindowDays)));
-    const matchLimit = Math.max(10, Math.min(500, Math.floor(args.matchLimit)));
+    const matchLimit = Math.max(5, Math.min(20, Math.floor(args.matchLimit)));
     const selectedSports = args.selectedSports.length > 0 ? args.selectedSports : ["1"];
     const settings = await getOrCreateSettings(ctx, now);
 
@@ -142,12 +142,13 @@ export const startRun = mutation({
     dateFrom: v.string(),
     dateTo: v.string(),
     selectedSports: v.array(v.string()),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
     await getOrCreateSettings(ctx, now);
 
-    return await ctx.db.insert("scrapeRuns", {
+    const runId = await ctx.db.insert("scrapeRuns", {
       source: KWIKBET_SOURCE,
       status: "running",
       triggeredBy: args.triggeredBy,
@@ -163,6 +164,28 @@ export const startRun = mutation({
       oddsUpserted: 0,
       failedMatches: 0,
     });
+
+    // Log the scraper run start
+    if (args.sessionToken) {
+      const { logAdminActionInternal } = await import("./audit/logs");
+      const { getAdminSessionByTokenInternal } = await import("./admin/sessions");
+
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: adminSession.userId,
+          actionType: "run_scraper",
+          resourceType: "scraper_run",
+          resourceDescription: `Scraper run started for ${args.selectedSports.length} sport(s) from ${args.dateFrom} to ${args.dateTo}`,
+          details: {
+            newValue: `Sports: ${args.selectedSports.join(", ")}; Date range: ${args.dateFrom} to ${args.dateTo}`,
+          },
+        });
+      }
+    }
+
+    return runId;
   },
 });
 
@@ -271,6 +294,7 @@ export const finishRun = mutation({
   args: {
     runId: v.id("scrapeRuns"),
     status: v.string(),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -293,6 +317,27 @@ export const finishRun = mutation({
         lastRunAt: now,
         updatedAt: now,
       });
+    }
+
+    // Log the scraper run completion
+    if (args.sessionToken) {
+      const { logAdminActionInternal } = await import("./audit/logs");
+      const { getAdminSessionByTokenInternal } = await import("./admin/sessions");
+
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+      if (adminSession) {
+        const statusLabel = args.status === "success" ? "completed successfully" : "failed";
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: adminSession.userId,
+          actionType: "run_scraper",
+          resourceType: "scraper_run",
+          resourceDescription: `Scraper run ${statusLabel}`,
+          details: {
+            newValue: `Status: ${args.status}; Discovered: ${run.matchesDiscovered}; Saved: ${run.matchesUpserted}; Markets: ${run.marketsUpserted}; Odds: ${run.oddsUpserted}`,
+          },
+        });
+      }
     }
 
     return null;
