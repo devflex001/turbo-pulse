@@ -73,15 +73,17 @@ export function useAdminInactivity(props: UseAdminInactivityProps = {}) {
         const sessionToken = localStorage.getItem("session_token")
         if (sessionToken) {
           await logInactivityLogoutMutation({ sessionToken })
-          // Now end the session without double-logging
-          // The logout will happen through the auth context automatically
+          // Now end the session passing the flag to avoid double-logging
+          logoutRef.current(true) // true = already logged via logInactivityLogout
+          return
         }
       } catch (err) {
         console.error("Error logging inactivity logout:", err)
       }
     }
 
-    logoutRef.current()
+    // For manual logout or if inactivity logging failed, do normal logout
+    logoutRef.current(false) // false = manual logout, should be logged by endAdminSession
     onLogoutRef.current?.()
   }, [clearAllTimers, logInactivityLogoutMutation])
 
