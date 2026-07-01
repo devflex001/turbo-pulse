@@ -58,8 +58,25 @@ export function CustomEventEditor({
     startTime: "",
   })
 
-  // Initialize form with event data when editing
+  // Initialize form with event data when editing, or clear when modal opens
   React.useEffect(() => {
+    if (!open) {
+      // Clear form when modal closes
+      setFormData({
+        title: "",
+        homeTeam: "",
+        awayTeam: "",
+        sport: "football",
+        competition: "Custom League",
+        description: "",
+        startTime: "",
+      })
+      setStep("basic")
+      setLoading(false)
+      return
+    }
+
+    // Modal is open - populate with event data if editing
     if (eventToEdit) {
       setFormData({
         title: eventToEdit.title || "",
@@ -81,7 +98,7 @@ export function CustomEventEditor({
         startTime: "",
       })
     }
-  }, [eventToEdit, open])
+  }, [open, eventToEdit])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -132,17 +149,9 @@ export function CustomEventEditor({
         router.push(`/admin/custom-events/${eventId}`);
       }
 
+      // Close modal and reset state
       onOpenChange(false);
-      setStep("basic");
-      setFormData({
-        title: "",
-        homeTeam: "",
-        awayTeam: "",
-        sport: "football",
-        competition: "Custom League",
-        description: "",
-        startTime: "",
-      });
+      // Form reset will happen automatically via useEffect when open becomes false
 
       if (onSuccess) {
         onSuccess();
