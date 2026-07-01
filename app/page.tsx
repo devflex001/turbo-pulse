@@ -30,7 +30,8 @@ import {
   Circle,
   CircleDot,
   Swords,
-  LayoutGrid
+  LayoutGrid,
+  Trophy
 } from "lucide-react"
 import type { SportsMatch } from "@/components/markets-panel"
 import { CustomEventCard } from "@/components/custom-event-card"
@@ -207,16 +208,8 @@ export default function Page() {
   }, [matches])
 
   const countedMatches = React.useMemo(() => {
-    if (Array.isArray(allMatches)) {
-      return allMatches
-    }
-
-    if (allMatches && typeof allMatches === "object" && Array.isArray((allMatches as { items?: unknown }).items)) {
-      return (allMatches as { items: SportsMatch[] }).items
-    }
-
     return []
-  }, [allMatches])
+  }, [])
 
   const sportOptions = React.useMemo(() => {
     // Use optimized sport counts from query
@@ -295,7 +288,7 @@ export default function Page() {
                 <div className="w-px h-6 bg-border mx-1 shrink-0" />
 
                 <div className="flex items-center gap-2 shrink-0">
-                  {!allMatches ? (
+                  {!sportCounts ? (
                     <>
                       <div className="h-9 w-24 rounded-md bg-muted animate-pulse shrink-0" />
                       <div className="h-9 w-24 rounded-md bg-muted animate-pulse shrink-0" />
