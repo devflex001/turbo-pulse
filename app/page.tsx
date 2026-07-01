@@ -116,7 +116,7 @@ function getSportIcon(slug: string) {
 
 export default function Page() {
   const router = useRouter()
-  const { user, isLoading: authLoading } = useAuth()
+  const { user, isLoading: authLoading, isAdmin } = useAuth()
   const {
     activeTab,
     setActiveTab,
@@ -129,6 +129,13 @@ export default function Page() {
 
   // Track visitor on page load
   useVisitorTracking()
+
+  // Redirect admins to admin panel
+  React.useEffect(() => {
+    if (!authLoading && isAdmin) {
+      router.push("/admin")
+    }
+  }, [authLoading, isAdmin, router])
 
   // State for signup modal triggered by referral link
   const [showSignupFromReferral, setShowSignupFromReferral] = React.useState(false)
