@@ -208,6 +208,39 @@ export const updateAdminSessionActivity = mutation({
 });
 
 /**
+ * Log inactivity timeout logout (called before session ends)
+ */
+export const logInactivityLogout = mutation({
+  args: {
+    sessionToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const session = await ctx.db
+      .query("admin_sessions")
+      .withIndex("by_sessionToken", (q) => q.eq("sessionToken", args.sessionToken))
+      .first();
+
+    if (!session) {
+      return { success: false };
+    }
+
+    // Log the inactivity timeout
+    await logAdminActionInternal(ctx, {
+      adminName: session.adminName,
+      userId: session.userId,
+      actionType: "logout",
+      resourceType: "admin_session",
+      resourceDescription: `Admin auto-logout due to inactivity (${session.adminName})`,
+      details: {
+        reason: "inactivity_timeout",
+      },
+    });
+
+    return { success: true };
+  },
+});
+
+/**
  * End admin session (logout)
  */
 export const endAdminSession = mutation({
@@ -224,13 +257,13 @@ export const endAdminSession = mutation({
       return { success: false, message: "Session not found" };
     }
 
-    // Log the admin logout
+    // Log manual logout (inactivity logout is logged separately via logInactivityLogout mutation)
     await logAdminActionInternal(ctx, {
       adminName: session.adminName,
       userId: session.userId,
       actionType: "logout",
       resourceType: "admin_session",
-      resourceDescription: `Admin logout (${session.adminName})`,
+      resourceDescription: `Admin manual logout (${session.adminName})`,
     });
 
     await ctx.db.patch(session._id, {

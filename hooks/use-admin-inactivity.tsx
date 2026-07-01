@@ -1,7 +1,9 @@
 "use client"
 
-import { useEffect, useRef, useCallback, useState } from "react"
+import { api } from "@/convex/_generated/api"
 import { useAuth } from "@/lib/auth/AuthContext"
+import { useMutation } from "convex/react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 interface UseAdminInactivityProps {
   warningTime?: number // ms of inactivity before showing warning (default: 9 min)
@@ -19,6 +21,7 @@ export function useAdminInactivity(props: UseAdminInactivityProps = {}) {
   } = props
 
   const { isAdmin, logout } = useAuth()
+  const logInactivityLogoutMutation = useMutation(api.admin.sessions.logInactivityLogout)
 
   const [showWarning, setShowWarning] = useState(false)
   const [countdown, setCountdown] = useState(60)
@@ -58,13 +61,27 @@ export function useAdminInactivity(props: UseAdminInactivityProps = {}) {
     }
   }, [])
 
-  const doLogout = useCallback(() => {
+  const doLogout = useCallback(async (reason: "manual" | "inactivity_timeout" = "manual") => {
     clearAllTimers()
     setShowWarning(false)
     showWarningRef.current = false
+
+    // Log inactivity logout if applicable
+    if (reason === "inactivity_timeout" && logInactivityLogoutMutation) {
+      try {
+        // Get the session token from localStorage
+        const sessionToken = localStorage.getItem("session_token")
+        if (sessionToken) {
+          await logInactivityLogoutMutation({ sessionToken })
+        }
+      } catch (err) {
+        console.error("Error logging inactivity logout:", err)
+      }
+    }
+
     logoutRef.current()
     onLogoutRef.current?.()
-  }, [clearAllTimers])
+  }, [clearAllTimers, logInactivityLogoutMutation])
 
   const startWarningCountdown = useCallback(() => {
     setShowWarning(true)
@@ -75,7 +92,7 @@ export function useAdminInactivity(props: UseAdminInactivityProps = {}) {
     countdownIntervalRef.current = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
-          doLogout()
+          doLogout("inactivity_timeout")
           return 0
         }
         return prev - 1
