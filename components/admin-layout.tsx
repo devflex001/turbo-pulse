@@ -177,6 +177,19 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false)
 
+  // Suppress the browser's native "Leave site?" beforeunload dialog.
+  // The admin panel uses programmatic navigation (logout, redirects) and has
+  // no unsaved-form data that warrants this prompt.
+  React.useEffect(() => {
+    const suppress = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      // Returning undefined (not a string) tells the browser not to show the dialog
+      delete e.returnValue
+    }
+    window.addEventListener("beforeunload", suppress)
+    return () => window.removeEventListener("beforeunload", suppress)
+  }, [])
+
   // Admin inactivity detection
   // warningTime: inactivity before warning appears
   // logoutTime: countdown duration shown in the warning dialog
