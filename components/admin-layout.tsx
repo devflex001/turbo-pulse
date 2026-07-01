@@ -197,7 +197,7 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
     const t = setTimeout(() => {
       if (a) {
         if (!isLoading && !isAdmin) {
-          router.push("/login")
+          router.push("/")
         } else if (a) {
           setMounted(true)
         }
