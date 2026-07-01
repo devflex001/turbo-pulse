@@ -212,11 +212,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      // End admin session if admin is logged out
+      // End admin session if admin is logged out (manually, not inactivity timeout)
+      // Inactivity timeout is handled separately via logInactivityLogout mutation
       if (user?.role === "admin" && sessionToken && adminName) {
         try {
           await endAdminSessionMutation({
             sessionToken,
+            isInactivityLogout: false, // This is a manual logout
           });
         } catch (err) {
           console.error("Error ending admin session:", err);
