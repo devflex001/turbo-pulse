@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/AuthContext"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
@@ -33,6 +34,7 @@ function normalizeKenyanPhone(phone: string): string {
 
 export function LoginModal({ open, onOpenChange }: ModalProps) {
   const { login } = useAuth()
+  const router = useRouter()
   const [phone, setPhone] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [showPassword, setShowPassword] = React.useState(false)
@@ -64,10 +66,8 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
       setPassword("")
 
       // Redirect admins to admin panel
-      if (role === "admin" && typeof window !== "undefined") {
-        setTimeout(() => {
-          window.location.href = "/admin"
-        }, 500)
+      if (role === "admin") {
+        router.push("/admin")
       }
     } catch (error) {
       const errMsg =
