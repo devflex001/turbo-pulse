@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
+import { useAuth } from "@/lib/auth/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -90,6 +91,7 @@ async function mapConcurrent<T, R>(
 }
 
 export function AdminScraperPanel() {
+  const { sessionToken } = useAuth()
   const [configOpen, setConfigOpen] = React.useState(false)
   const [logsOpen, setLogsOpen] = React.useState(false)
   const [selectedSport, setSelectedSport] = React.useState<string>("1")
@@ -144,6 +146,7 @@ export function AdminScraperPanel() {
         dateFrom: window.dateFrom,
         dateTo: window.dateTo,
         selectedSports: [config.selectedSport],
+        sessionToken: sessionToken || undefined,
       })
       setCurrentRunId(runId)
 
@@ -221,6 +224,7 @@ export function AdminScraperPanel() {
       await finishRun({
         runId,
         status: "success",
+        sessionToken: sessionToken || undefined,
       })
 
       toast.success("Scraper completed successfully")
@@ -231,6 +235,7 @@ export function AdminScraperPanel() {
         await finishRun({
           runId: currentRunId,
           status: "failed",
+          sessionToken: sessionToken || undefined,
         })
       }
       toast.error(errorMsg)

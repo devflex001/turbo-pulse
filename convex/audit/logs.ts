@@ -30,6 +30,7 @@ export type AdminActionType =
   | "create_custom_odds"
   | "update_platform_config"
   | "update_scraper_settings"
+  | "run_scraper"
   | "update_payment_gateway_config"
   | "set_payment_mode"
   | "other";
