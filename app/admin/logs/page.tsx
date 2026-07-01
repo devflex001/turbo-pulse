@@ -37,6 +37,8 @@ import {
   LogIn,
   Zap,
   Eye,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
@@ -146,17 +148,34 @@ function AdminLogsContent() {
   const [search, setSearch] = useState<string>("")
   const [selectedAdmin, setSelectedAdmin] = useState<string>("")
   const [selectedActionType, setSelectedActionType] = useState<string>("")
+  const [cursor, setCursor] = useState<string | null>(null)
+  const [allLogs, setAllLogs] = useState<AdminLog[]>([])
+  const [hasMore, setHasMore] = useState<boolean>(false)
+  const [nextCursor, setNextCursor] = useState<string | null>(null)
+  const [previousCursors, setPreviousCursors] = useState<(string | null)[]>([null])
 
-  // Fetch all logs
+  const PAGE_SIZE = 20
+
+  // Fetch logs with pagination
   const logs = useQuery(api.audit.logger.getAdminLogs, {
-    limit: 500,
+    limit: PAGE_SIZE,
+    cursor: cursor,
   })
+
+  // Update local state when logs are fetched
+  React.useEffect(() => {
+    if (logs) {
+      setAllLogs(logs.logs)
+      setHasMore(logs.hasMore)
+      setNextCursor(logs.nextCursor)
+    }
+  }, [logs])
 
   // Filter logs based on selected filters and search
   const filteredLogs = useMemo(() => {
-    if (!logs) return []
+    if (!allLogs) return []
 
-    return logs.logs.filter((log: AdminLog) => {
+    return allLogs.filter((log: AdminLog) => {
       // Admin filter
       if (selectedAdmin && log.adminName !== selectedAdmin) {
         return false
@@ -180,7 +199,7 @@ function AdminLogsContent() {
 
       return true
     })
-  }, [logs, selectedAdmin, selectedActionType, search])
+  }, [allLogs, selectedAdmin, selectedActionType, search])
 
   const handleExportCSV = () => {
     if (!filteredLogs || filteredLogs.length === 0) {
@@ -223,6 +242,21 @@ function AdminLogsContent() {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+  }
+
+  const handleNextPage = () => {
+    if (nextCursor) {
+      setPreviousCursors([...previousCursors, cursor])
+      setCursor(nextCursor)
+    }
+  }
+
+  const handlePreviousPage = () => {
+    if (previousCursors.length > 1) {
+      const newPreviousCursors = previousCursors.slice(0, -1)
+      setPreviousCursors(newPreviousCursors)
+      setCursor(newPreviousCursors[newPreviousCursors.length - 1])
+    }
   }
 
   if (!isAdmin) {
@@ -338,7 +372,7 @@ function AdminLogsContent() {
       {filteredLogs.length === 0 ? (
         <div className="rounded-lg border border-border bg-card p-8 flex items-center justify-center">
           <p className="text-xs text-muted-foreground">
-            {logs.logs.length === 0
+            {allLogs.length === 0
               ? "No logs recorded yet"
               : "No logs match your filters"}
           </p>
@@ -405,6 +439,35 @@ function AdminLogsContent() {
                 </div>
               )
             })}
+          </div>
+
+          {/* ── Pagination Controls ── */}
+          <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3">
+            <div className="text-xs text-muted-foreground">
+              Page {previousCursors.length} • Showing {filteredLogs.length} logs per page
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handlePreviousPage}
+                disabled={previousCursors.length === 1}
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 text-xs"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+                Previous
+              </Button>
+              <Button
+                onClick={handleNextPage}
+                disabled={!hasMore}
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 text-xs"
+              >
+                Next
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
         </>
       )}
