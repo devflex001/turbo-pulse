@@ -11,6 +11,8 @@ import {
   normalizedOddValidator,
 } from "./scraperValidators";
 import { KWIKBET_SOURCE } from "./scrapers/kwikbet";
+import { logAdminActionInternal } from "./audit/logs";
+import { getAdminSessionByTokenInternal } from "./admin/sessions";
 
 const DEFAULT_CADENCE_MINUTES = 5;
 const DEFAULT_DATE_WINDOW_DAYS = 2;
@@ -114,9 +116,6 @@ export const updateSettings = mutation({
 
     // Log the action
     if (args.sessionToken) {
-      const { logAdminActionInternal } = await import("./audit/logs");
-      const { getAdminSessionByTokenInternal } = await import("./admin/sessions");
-
       const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
       if (adminSession) {
         await logAdminActionInternal(ctx, {
@@ -167,9 +166,6 @@ export const startRun = mutation({
 
     // Log the scraper run start
     if (args.sessionToken) {
-      const { logAdminActionInternal } = await import("./audit/logs");
-      const { getAdminSessionByTokenInternal } = await import("./admin/sessions");
-
       const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
       if (adminSession) {
         await logAdminActionInternal(ctx, {
@@ -321,9 +317,6 @@ export const finishRun = mutation({
 
     // Log the scraper run completion
     if (args.sessionToken) {
-      const { logAdminActionInternal } = await import("./audit/logs");
-      const { getAdminSessionByTokenInternal } = await import("./admin/sessions");
-
       const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
       if (adminSession) {
         const statusLabel = args.status === "success" ? "completed successfully" : "failed";
