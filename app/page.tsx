@@ -161,18 +161,50 @@ export default function Page() {
     }
   }, [user, authLoading])
 
+  // Pagination state for infinite scroll
+  const [offset, setOffset] = React.useState(0)
+  const pageSize = 20
+
   const matchStatus =
     activeTab === "live" ? "live" : activeTab === "home" || activeTab === "featured" ? "upcoming" : undefined
 
-  const matches = useQuery(api.sportsData.listMatches, {
+  // Reset offset when filters change
+  React.useEffect(() => {
+    setOffset(0)
+  }, [selectedSport, selectedLeague, searchQuery, matchStatus])
+
+  const matchesResponse = useQuery(api.sportsData.listMatches, {
     sport: selectedSport,
     competition: selectedLeague,
     status: matchStatus,
     search: searchQuery,
-    limit: 20,
-    offset: 0,
+    limit: pageSize,
+    offset,
     includeFirstMarket: true,
-  }) as (SportsMatch & { firstMarket?: any })[] | undefined
+  }) as any | undefined
+
+  // Extract items and total count
+  const { items: currentPageMatches = [], totalCount = 0 } = React.useMemo(() => {
+    if (!matchesResponse) return { items: [], totalCount: 0 }
+    if (Array.isArray(matchesResponse)) return { items: matchesResponse, totalCount: matchesResponse.length }
+    if (matchesResponse?.items) return { items: matchesResponse.items, totalCount: matchesResponse.totalCount || 0 }
+    return { items: [], totalCount: 0 }
+  }, [matchesResponse])
+
+  // Accumulate matches as user scrolls
+  const [allMatches, setAllMatches] = React.useState<(SportsMatch & { firstMarket?: any })[]>([])
+
+  React.useEffect(() => {
+    if (offset === 0) {
+      setAllMatches(currentPageMatches)
+    } else {
+      setAllMatches(prev => [...prev, ...currentPageMatches])
+    }
+  }, [currentPageMatches, offset])
+
+  const hasMore = allMatches.length < totalCount
+
+  const matches = allMatches
 
   // Use optimized query for sport counts instead of fetching 300 items
   const sportCounts = useQuery(api.sportsData.getSportCounts, {}) as any
@@ -195,17 +227,37 @@ export default function Page() {
     return () => clearInterval(timer)
   }, [])
 
-  const displayedMatches = React.useMemo(() => {
-    if (Array.isArray(matches)) {
-      return matches
+  // Intersection observer for infinite scroll
+  const observerTarget = React.useRef<HTMLDivElement>(null)
+  const [isLoadingMore, setIsLoadingMore] = React.useState(false)
+
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0]?.isIntersecting && hasMore && !isLoadingMore) {
+          setIsLoadingMore(true)
+          setOffset(prev => prev + pageSize)
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current)
     }
 
-    if (matches && typeof matches === "object" && Array.isArray((matches as { items?: unknown }).items)) {
-      return (matches as { items: (SportsMatch & { firstMarket?: any })[] }).items
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current)
+      }
     }
+  }, [hasMore, isLoadingMore])
 
-    return []
-  }, [matches])
+  React.useEffect(() => {
+    setIsLoadingMore(false)
+  }, [allMatches])
+
+  const displayedMatches = matches
 
   const countedMatches = React.useMemo(() => {
     return []
@@ -414,21 +466,36 @@ export default function Page() {
                       <span>Upcoming Matches & Fixtures</span>
                     </h3>
                     <Badge variant="outline" className="font-semibold text-[10px] text-muted-foreground bg-muted/20 border-border">
-                      Fixtures {upcomingMatches.length}
+                      Fixtures {displayedMatches.length} of {totalCount}
                     </Badge>
                   </div>
 
-                  {!matches ? (
+                  {!matchesResponse ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Skeleton className="h-32 rounded-lg" />
                       <Skeleton className="h-32 rounded-lg" />
                     </div>
-                  ) : upcomingMatches.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {upcomingMatches.map((match) => (
-                        <MatchCard key={match.sourceMatchId} match={match} />
-                      ))}
-                    </div>
+                  ) : displayedMatches.length > 0 ? (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {displayedMatches.map((match) => (
+                          <MatchCard key={match.sourceMatchId} match={match} />
+                        ))}
+                      </div>
+
+                      {/* Infinite scroll sentinel */}
+                      <div ref={observerTarget} className="py-8 flex justify-center">
+                        {hasMore && (
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="animate-spin rounded-full h-6 w-6 border border-muted-foreground border-t-foreground" />
+                            <span className="text-xs text-muted-foreground">Loading more fixtures...</span>
+                          </div>
+                        )}
+                        {!hasMore && displayedMatches.length > 0 && (
+                          <span className="text-xs text-muted-foreground">No more fixtures to load</span>
+                        )}
+                      </div>
+                    </>
                   ) : (
                     <div className="text-center p-8 border border-dashed border-border rounded-lg text-muted-foreground text-xs py-12">
                       No synced fixtures found. Ask an admin to run the scraper.
@@ -449,9 +516,9 @@ export default function Page() {
                     <Skeleton className="h-32 rounded-lg" />
                     <Skeleton className="h-32 rounded-lg" />
                   </div>
-                ) : featuredMatches.length > 0 ? (
+                ) : displayedMatches.slice(0, 4).length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {featuredMatches.map((match) => (
+                    {displayedMatches.slice(0, 4).map((match) => (
                       <MatchCard key={match.sourceMatchId} match={match} />
                     ))}
                   </div>
@@ -565,21 +632,36 @@ export default function Page() {
                       <span>Upcoming Matches & Fixtures</span>
                     </h3>
                     <Badge variant="outline" className="font-semibold text-[10px] text-muted-foreground bg-muted/20 border-border">
-                      Fixtures {upcomingMatches.length}
+                      Fixtures {displayedMatches.length} of {totalCount}
                     </Badge>
                   </div>
 
-                  {!matches ? (
+                  {!matchesResponse ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Skeleton className="h-32 rounded-lg" />
                       <Skeleton className="h-32 rounded-lg" />
                     </div>
-                  ) : upcomingMatches.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {upcomingMatches.map((match) => (
-                        <MatchCard key={match.sourceMatchId} match={match} />
-                      ))}
-                    </div>
+                  ) : displayedMatches.length > 0 ? (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {displayedMatches.map((match) => (
+                          <MatchCard key={match.sourceMatchId} match={match} />
+                        ))}
+                      </div>
+
+                      {/* Infinite scroll sentinel */}
+                      <div ref={observerTarget} className="py-8 flex justify-center">
+                        {hasMore && (
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="animate-spin rounded-full h-6 w-6 border border-muted-foreground border-t-foreground" />
+                            <span className="text-xs text-muted-foreground">Loading more fixtures...</span>
+                          </div>
+                        )}
+                        {!hasMore && displayedMatches.length > 0 && (
+                          <span className="text-xs text-muted-foreground">No more fixtures to load</span>
+                        )}
+                      </div>
+                    </>
                   ) : (
                     <div className="text-center p-8 border border-dashed border-border rounded-lg text-muted-foreground text-xs py-12">
                       No synced fixtures found. Ask an admin to run the scraper.
