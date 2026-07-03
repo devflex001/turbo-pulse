@@ -11,9 +11,12 @@ import { ConvexProvider } from "@/components/convex-provider"
 import { SupportChatWidget } from "@/components/support-chat-widget"
 import { SuppressBeforeUnload } from "@/components/suppress-beforeunload"
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_BASE_URL ?? "https://betflexx.com"
+
 export const metadata: Metadata = {
   title: "Betflexx",
   description: "Your premier sports betting platform",
+  metadataBase: new URL(siteUrl),
   icons: {
     icon: [
       {
@@ -27,6 +30,27 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
+  },
+  openGraph: {
+    title: "Betflexx",
+    description: "Your premier sports betting platform",
+    url: siteUrl,
+    siteName: "Betflexx",
+    images: [
+      {
+        url: "/images/logo.png",
+        width: 512,
+        height: 512,
+        alt: "Betflexx",
+      },
+    ],
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Betflexx",
+    description: "Your premier sports betting platform",
+    images: ["/images/logo.png"],
   },
 }
 
