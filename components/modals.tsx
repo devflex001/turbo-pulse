@@ -255,7 +255,7 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
       title="Join BetFlexx"
       description={referralCode
         ? `Create an account and start earning KES ${referralReward.toLocaleString()} for each successful referral!`
-        : "Create an account to start tracking your bets and managing your insights."}
+        : "Create an account to start winning big."}
     >
       <form onSubmit={handleSubmit} className="space-y-4 py-2">
         {referralCode && (
