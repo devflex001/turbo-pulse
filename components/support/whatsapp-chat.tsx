@@ -235,14 +235,16 @@ function ChatThread({
 
   React.useEffect(() => {
     if (!serverMessages) return
+    // Once the server reflects the message, remove the corresponding optimistic entry.
+    // We match only on body + senderRole because the server-assigned createdAt timestamp
+    // will always differ from the client-side Date.now() used for the pending message,
+    // which caused false negatives (and therefore visible duplicates).
     setPendingMessages((current) =>
       current.filter(
         (pending) =>
           !serverMessages.some(
             (server) =>
-              server.body === pending.body &&
-              server.senderRole === "user" &&
-              Math.abs(server.createdAt - pending.createdAt) < 15000
+              server.body === pending.body && server.senderRole === "user"
           )
       )
     )
