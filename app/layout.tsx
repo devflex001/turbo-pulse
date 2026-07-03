@@ -9,6 +9,7 @@ import { BetStoreProvider } from "@/hooks/use-bet-store"
 import { ConvexProvider } from "@/components/convex-provider"
 import { SupportChatWidget } from "@/components/support-chat-widget"
 import { SuppressBeforeUnload } from "@/components/suppress-beforeunload"
+import { Footer } from "@/components/footer"
 
 const robotoHeading = Roboto({ subsets: ['latin'], variable: '--font-heading' })
 
@@ -36,8 +37,9 @@ export default function RootLayout({
             <BetStoreProvider>
               <TooltipProvider>
                 <SuppressBeforeUnload />
-                <div className="flex flex-col">
+                <div className="flex min-h-screen flex-col">
                   {children}
+                  <Footer />
                 </div>
                 <SupportChatWidget />
                 <Toaster richColors position="top-right" />

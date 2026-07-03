@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch credentials from DB first, fall back to env vars
     const dbConfig = await convex.query(api.paystack.getConfig)
-    const paystack = initializePaystackService(
+    const paystack = await initializePaystackService(
       dbConfig?.secretKey ? { secretKey: dbConfig.secretKey, publicKey: dbConfig.publicKey } : undefined
     )
     const verification = await paystack.verifyTransaction(reference)
