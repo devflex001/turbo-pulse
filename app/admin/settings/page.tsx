@@ -237,7 +237,7 @@ export default function SettingsPage() {
   const handleSwitchPaymentMode = async (mode: PaymentMode) => {
     try {
       setLoading(true)
-      await setPaymentMode({ mode })
+      await setPaymentMode({ mode, userId: user?._id })
       toast.success(`Payment mode switched to ${mode.toUpperCase()}`)
     } catch (error) {
       toast.error(`Error switching payment mode: ${String(error)}`)

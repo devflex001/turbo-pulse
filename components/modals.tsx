@@ -84,7 +84,7 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
       open={open}
       onOpenChange={onOpenChange}
       title="Login to BetFlexx"
-      description="Enter your registered phone number and password to access your account."
+      description="Enter your credentials to continue"
     >
       <form onSubmit={handleSubmit} className="space-y-4 py-2">
         <div className="space-y-2">
@@ -171,7 +171,7 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
           </Button>
         </div>
         <div className="text-center pt-4 border-t border-border/50">
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Powered by <span className="font-semibold">FLexx</span> Vintage
           </p>
         </div>
@@ -412,7 +412,7 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
           </Button>
         </div>
         <div className="text-center pt-4 border-t border-border/50">
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Powered by <span className="font-semibold">FLexx</span> Vintage
           </p>
         </div>
