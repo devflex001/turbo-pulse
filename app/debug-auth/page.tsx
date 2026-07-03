@@ -115,7 +115,7 @@ export default function DebugAuthPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={logout}
+                    onClick={() => logout()}
                     className="text-destructive hover:text-destructive hover:bg-destructive/10"
                   >
                     <LogOut className="size-3 mr-2" />
