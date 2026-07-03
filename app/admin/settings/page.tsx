@@ -159,6 +159,7 @@ export default function SettingsPage() {
         initiatorName: darajaFormData.initiatorName || "",
         initiatorPassword: darajaFormData.initiatorPassword || "",
         isProduction: darajaFormData.isProduction || false,
+        userId: user?._id,
       })
       setMessage({ type: "success", text: "M-Pesa configuration saved" })
       toast.success("M-Pesa configuration saved successfully")
@@ -179,6 +180,7 @@ export default function SettingsPage() {
         publicKey: paystackFormData.publicKey || "",
         secretKey: paystackFormData.secretKey || "",
         isProduction: paystackFormData.isProduction || false,
+        userId: user?._id,
       })
       setMessage({ type: "success", text: "Paystack configuration saved" })
       toast.success("Paystack configuration saved successfully")
