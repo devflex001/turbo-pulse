@@ -34,10 +34,11 @@ export function PaystackDepositSheet() {
     user?._id ? { userId: user._id } : "skip"
   )
   const config = useQuery(api.platformConfig.getUserFacingConfig)
+  const paystackConfig = useQuery(api.paystack.getConfig)
   const createPaystackTransaction = useMutation(api.paystack.createTransaction)
 
   const minDeposit = config?.minDeposit ?? 10
-  const isLoading = config === undefined || wallet === undefined
+  const isLoading = config === undefined || wallet === undefined || paystackConfig === undefined
 
   const [amount, setAmount] = React.useState("")
   const [phone, setPhone] = React.useState("")
@@ -62,7 +63,7 @@ export function PaystackDepositSheet() {
   const [paystackLoaded, setPaystackLoaded] = React.useState(false)
   const timeoutRef = React.useRef<NodeJS.Timeout | null>(null)
 
-  // Load official Paystack Popup v2 script and get config on mount
+  // Load official Paystack Popup v2 script on mount
   React.useEffect(() => {
     // Check if PaystackPop is already available
     if (window.PaystackPop) {
@@ -92,29 +93,25 @@ export function PaystackDepositSheet() {
       document.body.appendChild(script)
     }
 
-    // Fetch public key
-    fetch("/api/paystack/config")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.publicKey) {
-          setPaystackPublicKey(data.publicKey)
-          console.log("[Paystack] Public key loaded successfully")
-        } else {
-          console.error("[Paystack] No public key in config response")
-          toast.error("Payment configuration missing")
-        }
-      })
-      .catch((err) => {
-        console.error("[Paystack] Failed to load config:", err)
-        toast.error("Failed to load payment configuration")
-      })
-
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current)
       }
     }
   }, [])
+
+  // Set public key once Convex config is loaded
+  React.useEffect(() => {
+    if (!paystackConfig) return
+
+    if (paystackConfig.publicKey) {
+      setPaystackPublicKey(paystackConfig.publicKey)
+      console.log("[Paystack] Public key loaded from config")
+    } else {
+      console.error("[Paystack] No public key in config response")
+      toast.error("Payment configuration missing")
+    }
+  }, [paystackConfig])
 
   // Force body pointer-events to auto when Paystack modal is active, overriding Radix UI's modal blocker
   React.useEffect(() => {
