@@ -530,7 +530,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="pt-2 border-t border-border/50 text-[10px] text-muted-foreground">
-                <p>Secured by <span className="font-semibold">Flexx</span> Vintage</p>
+                <p>Secured by <span className="font-semibold">Flexx</span> Systems</p>
               </div>
             </CardContent>
             <CardFooter>

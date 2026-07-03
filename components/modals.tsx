@@ -172,7 +172,7 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
         </div>
         <div className="text-center pt-4 border-t border-border/50">
           <p className="text-xs text-muted-foreground">
-            Powered by <span className="font-semibold">FLexx</span> Vintage
+            Powered by <span className="font-semibold">FLexx</span> Systems
           </p>
         </div>
       </form>
@@ -413,7 +413,7 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
         </div>
         <div className="text-center pt-4 border-t border-border/50">
           <p className="text-xs text-muted-foreground">
-            Powered by <span className="font-semibold">FLexx</span> Vintage
+            Powered by <span className="font-semibold">FLexx</span> Systems
           </p>
         </div>
       </form>
