@@ -24,17 +24,20 @@ export const listMatches = query({
     const pageSize = Math.max(1, Math.min(args.limit ?? 10, 50));
     const offset = Math.max(0, args.offset ?? 0);
 
-    // When filtering by a specific sport, fetch a much larger batch so minority
-    // sports (cricket, rugby, boxing) aren't crowded out by football records.
     const isSportFiltered = !!args.sport && args.sport !== "all";
     const baseFetchLimit = (Math.ceil(offset / pageSize) + 2) * pageSize;
-    const fetchLimit = isSportFiltered ? Math.max(baseFetchLimit, 500) : baseFetchLimit;
+    // When fetching all sports we still need a reasonable cap; 500 is fine there
+    // because the index is not sport-specific. For sport-filtered queries we use
+    // the dedicated index so even a limit of 300 covers the whole sport.
+    const fetchLimit = isSportFiltered ? Math.max(baseFetchLimit, 300) : Math.max(baseFetchLimit, 500);
 
     // Only fetch upcoming/future matches - don't fetch old data
     // Forward 30 days for future fixtures
     const lowerBound = Date.now(); // Start from now, not 24 hours ago
     const upperBound = Date.now() + 30 * 24 * 60 * 60 * 1000;
 
+    // Use the sport-specific index when filtering by sport so that minority sports
+    // (boxing, rugby, cricket) are never crowded out by football records.
     const base =
       args.status === "live"
         ? await ctx.db
@@ -43,12 +46,22 @@ export const listMatches = query({
             q.eq("source", SOURCE).eq("status", 1).gte("startTime", lowerBound)
           )
           .take(fetchLimit)
-        : await ctx.db
-          .query("sportsMatches")
-          .withIndex("by_source_and_startTime", (q) =>
-            q.eq("source", SOURCE).gte("startTime", lowerBound)
-          )
-          .take(fetchLimit);
+        : isSportFiltered
+          ? await ctx.db
+            .query("sportsMatches")
+            .withIndex("by_source_and_sportSlug_and_startTime", (q) =>
+              q
+                .eq("source", SOURCE)
+                .eq("sportSlug", args.sport as string)
+                .gte("startTime", lowerBound)
+            )
+            .take(fetchLimit)
+          : await ctx.db
+            .query("sportsMatches")
+            .withIndex("by_source_and_startTime", (q) =>
+              q.eq("source", SOURCE).gte("startTime", lowerBound)
+            )
+            .take(fetchLimit);
 
     const search = compactSearch(args.search ?? "");
     const sport = args.sport && args.sport !== "all" ? args.sport : null;
@@ -58,7 +71,9 @@ export const listMatches = query({
     const filtered = base
       .filter((match) => {
         if (args.status === "upcoming" && match.status === 1) return false;
-        if (sport && match.sportSlug !== sport) return false;
+        // When using the sport-specific index the sport is already filtered at the
+        // DB level; only apply the in-memory sport check for the all-sports query.
+        if (!isSportFiltered && sport && match.sportSlug !== sport) return false;
         if (competition && match.competitionName !== competition) return false;
         // Filter out matches too far in the future
         if (match.startTime > upperBound) return false;
