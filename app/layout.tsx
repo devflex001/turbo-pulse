@@ -17,20 +17,11 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: "/favicon.ico",
+        url: "/images/logo.png",
         sizes: "any",
       },
-      {
-        url: "/favicon.svg",
-        type: "image/svg+xml",
-      },
-      {
-        url: "/apple-touch-icon.png",
-        sizes: "180x180",
-        type: "image/png",
-      },
     ],
-    apple: "/apple-touch-icon.png",
+    apple: "/images/logo.png",
   },
   themeColor: "#008060",
   appleWebApp: {
