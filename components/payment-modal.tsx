@@ -4,6 +4,7 @@ import * as React from "react"
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
 } from "@/components/ui/dialog"
 import {
   Loader2,
@@ -158,6 +159,7 @@ export function PaymentModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
+        <DialogTitle className="sr-only">{config.title}</DialogTitle>
         <div className="space-y-6 py-4">
           {/* Main Card */}
           <div className="rounded-lg border border-border bg-card p-6">

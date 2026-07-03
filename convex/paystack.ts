@@ -19,15 +19,21 @@ function formatKes(amount: number) {
  * Checks both database and environment variables
  */
 export const getConfig = query(async (ctx) => {
-  // Try to get config from database
-  const dbConfig = await ctx.db
-    .query("paystack_config")
-    .filter((q) => q.eq(q.field("isEnabled"), true))
-    .first()
+  // Try to get enabled config from database
+  const allConfigs = await ctx.db.query("paystack_config").collect()
+  const dbConfig = allConfigs.find((config) => config.isEnabled === true)
 
   if (dbConfig && !dbConfig.useEnvVariables) {
     return {
       ...dbConfig,
+      source: "database",
+    }
+  }
+
+  // If there's any config in DB, use the first one even if not marked enabled
+  if (allConfigs.length > 0 && !allConfigs[0].useEnvVariables) {
+    return {
+      ...allConfigs[0],
       source: "database",
     }
   }
