@@ -1,9 +1,11 @@
 import { v } from "convex/values"
-import { mutation, query } from "./_generated/server"
+import { mutation, query, action } from "./_generated/server"
 import { Id } from "./_generated/dataModel"
 import { notifyAdmins, notifyUser } from "./notifications"
 import { logAdminActionInternal } from "./audit/logs"
 import { getAdminSessionByTokenInternal } from "./admin/sessions"
+import { api } from "./_generated/api"
+import { getCacheKey } from "./cache"
 
 function formatKes(amount: number) {
   return `KES ${amount.toLocaleString("en-KE", {
@@ -978,6 +980,38 @@ export const getCustomEvent = query({
   },
 })
 
+// Cached list query using internal caching logic
+export const getPublishedCustomEventsWithCache = query({
+  args: {
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const pageSize = Math.max(1, Math.min(args.limit ?? 10, 50))
+    const offset = Math.max(0, args.offset ?? 0)
+    const fetchLimit = (Math.ceil(offset / pageSize) + 2) * pageSize
+
+    // Always fetch published events and cache them
+    const results = await ctx.db
+      .query("customEvents")
+      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .take(fetchLimit)
+      .then((events) => {
+        // Sort by created date (newest first)
+        return events.sort((a: any, b: any) => b.createdAt - a.createdAt)
+      })
+
+    const totalCount = results.length
+    const paginatedResults = results.slice(offset, offset + pageSize)
+
+    return {
+      items: paginatedResults,
+      totalCount,
+      _cacheKey: getCacheKey("listCustomEvents", { status: "published" }),
+    }
+  },
+})
+
 export const listCustomEvents = query({
   args: {
     status: v.optional(v.union(v.literal("draft"), v.literal("published"))),
@@ -1432,3 +1466,15 @@ export const settleCustomEvent = mutation({
     return args.eventId
   },
 })
+
+
+
+// Action to invalidate events cache
+export const invalidatePublishedEventsCache = action({
+  args: {},
+  handler: async (ctx): Promise<{ success: boolean; invalidatedCount: number; error?: string }> => {
+    return await ctx.runAction(api.cache.invalidateCachePatternAction, {
+      pattern: "listCustomEvents",
+    });
+  },
+});

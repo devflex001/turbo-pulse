@@ -23,6 +23,8 @@ import type * as auth_sessions from "../auth/sessions.js";
 import type * as auth_user from "../auth/user.js";
 import type * as auth_utils from "../auth/utils.js";
 import type * as bets from "../bets.js";
+import type * as cache from "../cache.js";
+import type * as cacheHelpers from "../cacheHelpers.js";
 import type * as crons from "../crons.js";
 import type * as customEvents from "../customEvents.js";
 import type * as daraja from "../daraja.js";
@@ -65,6 +67,8 @@ declare const fullApi: ApiFromModules<{
   "auth/user": typeof auth_user;
   "auth/utils": typeof auth_utils;
   bets: typeof bets;
+  cache: typeof cache;
+  cacheHelpers: typeof cacheHelpers;
   crons: typeof crons;
   customEvents: typeof customEvents;
   daraja: typeof daraja;

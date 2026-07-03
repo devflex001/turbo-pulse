@@ -23,13 +23,17 @@ export const listMatches = query({
   handler: async (ctx, args) => {
     const pageSize = Math.max(1, Math.min(args.limit ?? 10, 50));
     const offset = Math.max(0, args.offset ?? 0);
-    const fetchLimit = (Math.ceil(offset / pageSize) + 2) * pageSize;
+
+    // When filtering by a specific sport, fetch a much larger batch so minority
+    // sports (cricket, rugby, boxing) aren't crowded out by football records.
+    const isSportFiltered = !!args.sport && args.sport !== "all";
+    const baseFetchLimit = (Math.ceil(offset / pageSize) + 2) * pageSize;
+    const fetchLimit = isSportFiltered ? Math.max(baseFetchLimit, 500) : baseFetchLimit;
 
     // Only fetch upcoming/future matches - don't fetch old data
     // Forward 30 days for future fixtures
     const lowerBound = Date.now(); // Start from now, not 24 hours ago
     const upperBound = Date.now() + 30 * 24 * 60 * 60 * 1000;
-    const now = Date.now();
 
     const base =
       args.status === "live"
