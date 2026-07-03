@@ -4,29 +4,26 @@ import { useEffect } from "react"
 
 /**
  * Suppresses the browser's native "Leave site? Changes you made may not be saved."
- * dialog across the entire app. All navigation in this project is programmatic
- * (SPA routing, logout redirects) — there is no meaningful unsaved-form state
- * that warrants this prompt.
+ * dialog across the entire app. Achieved by clearing any beforeunload handler that
+ * may have been registered (e.g. by third-party scripts or library code) and
+ * ensuring no handler on this component re-triggers it.
  */
 export function SuppressBeforeUnload() {
   useEffect(() => {
-    // Function to suppress beforeunload
-    const suppressBeforeUnload = (e: BeforeUnloadEvent) => {
-      e.preventDefault()
-      e.returnValue = ""
-      return ""
-    }
-
-    // Add event listener with capture phase
-    window.addEventListener("beforeunload", suppressBeforeUnload, true)
-
-    // Also override window.onbeforeunload
-    const originalOnBeforeUnload = window.onbeforeunload
+    // Clear any existing onbeforeunload handler set elsewhere
     window.onbeforeunload = null
 
+    // No-op capture listener that stops propagation so other handlers
+    // registered in bubble phase never fire, but crucially does NOT call
+    // preventDefault() or set returnValue — those are what trigger the dialog.
+    const suppress = (e: BeforeUnloadEvent) => {
+      e.stopImmediatePropagation()
+    }
+
+    window.addEventListener("beforeunload", suppress, { capture: true })
+
     return () => {
-      window.removeEventListener("beforeunload", suppressBeforeUnload, true)
-      window.onbeforeunload = originalOnBeforeUnload
+      window.removeEventListener("beforeunload", suppress, { capture: true })
     }
   }, [])
 
