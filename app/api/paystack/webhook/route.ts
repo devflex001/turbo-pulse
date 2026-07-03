@@ -22,8 +22,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify webhook signature
-    const secretKey = process.env.PAYSTACK_SECRET_KEY
+    // Verify webhook signature — check DB config first, then env var
+    const dbConfig = await convex.query(api.paystack.getConfig)
+    const secretKey = dbConfig?.secretKey || process.env.PAYSTACK_SECRET_KEY
     if (!secretKey) {
       console.error("[Paystack Webhook] Secret key not configured")
       return NextResponse.json(
