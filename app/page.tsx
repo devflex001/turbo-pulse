@@ -480,7 +480,7 @@ export default function Page() {
                                 Loading...
                               </>
                             ) : (
-                              `Load More Fixtures (${allMatches.length} of ${totalCount})`
+                              `Load More Fixtures`
                             )}
                           </Button>
                         ) : displayedMatches.length > 0 && (
@@ -490,7 +490,7 @@ export default function Page() {
                     </>
                   ) : (
                     <div className="text-center p-8 border border-dashed border-border rounded-lg text-muted-foreground text-xs py-12">
-                      No synced fixtures found. Ask an admin to run the scraper.
+                      No synced fixtures found.
                     </div>
                   )}
                 </div>
@@ -655,7 +655,7 @@ export default function Page() {
                                 Loading...
                               </>
                             ) : (
-                              `Load More Fixtures (${allMatches.length} of ${totalCount})`
+                              `Load More Fixtures`
                             )}
                           </Button>
                         ) : displayedMatches.length > 0 && (
@@ -665,7 +665,7 @@ export default function Page() {
                     </>
                   ) : (
                     <div className="text-center p-8 border border-dashed border-border rounded-lg text-muted-foreground text-xs py-12">
-                      No synced fixtures found. Ask an admin to run the scraper.
+                      No synced fixtures found. .
                     </div>
                   )}
                 </div>

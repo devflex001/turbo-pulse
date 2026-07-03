@@ -1,7 +1,7 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
-import { logAdminActionInternal } from "./audit/logs";
+import { mutation, query } from "./_generated/server";
 import { getAdminSessionByTokenInternal } from "./admin/sessions";
+import { logAdminActionInternal } from "./audit/logs";
 
 const SOURCE = "kwikbet";
 
@@ -25,8 +25,9 @@ export const listMatches = query({
     const offset = Math.max(0, args.offset ?? 0);
     const fetchLimit = (Math.ceil(offset / pageSize) + 2) * pageSize;
 
-    // Look back 24 hours and forward 30 days to catch recently scraped matches
-    const lowerBound = Date.now() - 24 * 60 * 60 * 1000;
+    // Only fetch upcoming/future matches - don't fetch old data
+    // Forward 30 days for future fixtures
+    const lowerBound = Date.now(); // Start from now, not 24 hours ago
     const upperBound = Date.now() + 30 * 24 * 60 * 60 * 1000;
     const now = Date.now();
 
@@ -149,8 +150,8 @@ export const listCompetitions = query({
     sport: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Look back 24 hours and forward 30 days to catch recently scraped matches
-    const lowerBound = Date.now() - 24 * 60 * 60 * 1000;
+    // Only fetch upcoming fixtures - don't waste resources on ended matches
+    const lowerBound = Date.now(); // Start from now
     const upperBound = Date.now() + 30 * 24 * 60 * 60 * 1000;
 
     const matches = await ctx.db
@@ -164,7 +165,8 @@ export const listCompetitions = query({
     const names = matches
       .filter((match) => {
         if (!sport || match.sportSlug === sport) {
-          // Filter out matches too far in the future
+          // Filter out matches too far in the future and ended matches
+          if (match.status === 2) return false; // Skip ended
           return match.startTime <= upperBound;
         }
         return false;
@@ -242,12 +244,12 @@ export const listMarkets = query({
   },
 });
 
-// New optimized query to get sport counts without fetching full match data - fetches ALL matches for accurate counts
+// New optimized query to get sport counts without fetching full match data - only upcoming matches
 export const getSportCounts = query({
   args: {},
   handler: async (ctx) => {
-    // Look back 24 hours and forward 30 days to catch recently scraped matches
-    const lowerBound = Date.now() - 24 * 60 * 60 * 1000;
+    // Only fetch upcoming fixtures - don't waste resources on ended matches
+    const lowerBound = Date.now(); // Start from now
     const upperBound = Date.now() + 30 * 24 * 60 * 60 * 1000;
 
     const matches = await ctx.db
@@ -261,6 +263,8 @@ export const getSportCounts = query({
     let totalCount = 0;
 
     for (const match of matches) {
+      // Skip ended matches
+      if (match.status === 2) continue;
       // Filter out matches too far in the future
       if (match.startTime > upperBound) continue;
 

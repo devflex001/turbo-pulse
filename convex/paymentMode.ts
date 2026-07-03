@@ -1,5 +1,8 @@
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
+import { requireAdmin } from "./auth/authorization"
+import { logAdminActionInternal } from "./audit/logs"
+import { getAdminSessionByTokenInternal } from "./admin/sessions"
 
 /**
  * Get current active payment mode
@@ -32,7 +35,6 @@ export const setMode = mutation({
     sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { requireAdmin } = await import("./auth/authorization")
     const admin = await requireAdmin(ctx, args.userId)
 
     const existing = await ctx.db.query("payment_mode").first()
@@ -53,9 +55,6 @@ export const setMode = mutation({
 
     // Log the action
     if (args.sessionToken) {
-      const { logAdminActionInternal } = await import("./audit/logs")
-      const { getAdminSessionByTokenInternal } = await import("./admin/sessions")
-
       const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken)
       if (adminSession) {
         await logAdminActionInternal(ctx, {

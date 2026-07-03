@@ -18,6 +18,8 @@ import {
 } from "@/lib/rate-limit"
 import { setIdempotencyKey, getIdempotencyKey } from "@/lib/cache"
 import { CacheKeys, TTL } from "@/lib/cache-keys"
+import { ConvexHttpClient } from "convex/browser"
+import { api } from "@/convex/_generated/api"
 
 interface IdempotencyRecord {
   checkoutRequestID: string
@@ -73,8 +75,23 @@ export async function POST(request: NextRequest) {
       return response
     }
 
+    // ── Fetch M-Pesa config from Convex ────────────────────────────────────
+    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
+    const darajaConfig = await convex.query(api.daraja.getConfig)
+
     // ── Initiate STK Push ────────────────────────────────────────────────────
-    const mpesa = initializeMPesaService(false)
+    const mpesa = initializeMPesaService(false, {
+      consumerKey: darajaConfig.consumerKey,
+      consumerSecret: darajaConfig.consumerSecret,
+      businessCode: darajaConfig.businessCode,
+      passkey: darajaConfig.passkey,
+      callbackUrl: darajaConfig.callbackUrl,
+      timeoutUrl: darajaConfig.timeoutUrl,
+      shortcode: darajaConfig.shortcode,
+      initiatorName: darajaConfig.initiatorName,
+      initiatorPassword: darajaConfig.initiatorPassword,
+    })
+
     const stkResponse = await mpesa.initiateSTKPush(
       phone,
       amount,

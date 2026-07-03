@@ -3,6 +3,9 @@ import { mutation, query, action } from "./_generated/server"
 import type { MutationCtx } from "./_generated/server"
 import { Id } from "./_generated/dataModel"
 import { notifyAdmins, notifyUser } from "./notifications"
+import { requireAdmin } from "./auth/authorization"
+import { logAdminActionInternal } from "./audit/logs"
+import { getAdminSessionByTokenInternal } from "./admin/sessions"
 
 function formatKes(amount: number) {
   return `KES ${amount.toLocaleString("en-KE", {
@@ -16,15 +19,21 @@ function formatKes(amount: number) {
  * Checks both database and environment variables
  */
 export const getConfig = query(async (ctx) => {
-  // Try to get config from database
-  const dbConfig = await ctx.db
-    .query("paystack_config")
-    .filter((q) => q.eq(q.field("isEnabled"), true))
-    .first()
+  // Try to get enabled config from database
+  const allConfigs = await ctx.db.query("paystack_config").collect()
+  const dbConfig = allConfigs.find((config) => config.isEnabled === true)
 
   if (dbConfig && !dbConfig.useEnvVariables) {
     return {
       ...dbConfig,
+      source: "database",
+    }
+  }
+
+  // If there's any config in DB, use the first one even if not marked enabled
+  if (allConfigs.length > 0 && !allConfigs[0].useEnvVariables) {
+    return {
+      ...allConfigs[0],
       source: "database",
     }
   }
@@ -59,7 +68,6 @@ export const saveConfig = mutation({
     sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { requireAdmin } = await import("./auth/authorization")
     const admin = await requireAdmin(ctx, args.userId)
 
     // Disable all other configs
@@ -81,9 +89,6 @@ export const saveConfig = mutation({
 
     // Log the action
     if (args.sessionToken) {
-      const { logAdminActionInternal } = await import("./audit/logs")
-      const { getAdminSessionByTokenInternal } = await import("./admin/sessions")
-
       const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken)
       if (adminSession) {
         await logAdminActionInternal(ctx, {
@@ -112,7 +117,6 @@ export const switchToEnvVariables = mutation({
     sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { requireAdmin } = await import("./auth/authorization")
     const admin = await requireAdmin(ctx, args.userId)
 
     const existingConfigs = await ctx.db.query("paystack_config").collect()
@@ -122,9 +126,6 @@ export const switchToEnvVariables = mutation({
 
     // Log the action
     if (args.sessionToken) {
-      const { logAdminActionInternal } = await import("./audit/logs")
-      const { getAdminSessionByTokenInternal } = await import("./admin/sessions")
-
       const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken)
       if (adminSession) {
         await logAdminActionInternal(ctx, {
@@ -154,7 +155,6 @@ export const activateConfig = mutation({
     sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { requireAdmin } = await import("./auth/authorization")
     const admin = await requireAdmin(ctx, args.userId)
 
     const configToActivate = await ctx.db.get(args.configId)
@@ -173,9 +173,6 @@ export const activateConfig = mutation({
 
     // Log the action
     if (args.sessionToken) {
-      const { logAdminActionInternal } = await import("./audit/logs")
-      const { getAdminSessionByTokenInternal } = await import("./admin/sessions")
-
       const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken)
       if (adminSession) {
         await logAdminActionInternal(ctx, {
@@ -205,7 +202,6 @@ export const deleteConfig = mutation({
     sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { requireAdmin } = await import("./auth/authorization")
     const admin = await requireAdmin(ctx, args.userId)
 
     const configToDelete = await ctx.db.get(args.configId)
@@ -217,9 +213,6 @@ export const deleteConfig = mutation({
 
     // Log the action
     if (args.sessionToken) {
-      const { logAdminActionInternal } = await import("./audit/logs")
-      const { getAdminSessionByTokenInternal } = await import("./admin/sessions")
-
       const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken)
       if (adminSession) {
         await logAdminActionInternal(ctx, {

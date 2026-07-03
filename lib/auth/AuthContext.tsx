@@ -33,7 +33,7 @@ interface AuthContextType {
   handleAdminNameSubmit: (name: string) => Promise<void>;
   login: (phone: string, password: string) => Promise<"user" | "admin" | undefined>;
   register: (phone: string, password: string, referralCode?: string) => Promise<"user" | "admin" | undefined>;
-  logout: () => void;
+  logout: (isInactivityLogout?: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -210,15 +210,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const logout = async () => {
+  const logout = async (isInactivityLogout: boolean = false) => {
     try {
-      // End admin session if admin is logged out (manually, not inactivity timeout)
-      // Inactivity timeout is handled separately via logInactivityLogout mutation
+      // End admin session if admin is logged out
+      // If isInactivityLogout is true, logging was already done by logInactivityLogout mutation
       if (user?.role === "admin" && sessionToken && adminName) {
         try {
           await endAdminSessionMutation({
             sessionToken,
-            isInactivityLogout: false, // This is a manual logout
+            isInactivityLogout, // Pass through the flag to avoid double-logging
           });
         } catch (err) {
           console.error("Error ending admin session:", err);
