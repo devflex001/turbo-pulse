@@ -219,74 +219,74 @@ export default function TermsOfService() {
             </div>
           </section>
 
-          {{/* Section 7 */ }
-            < section id="liability" className="scroll-mt-20 space-y-4">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-1 h-8 bg-gradient-to-b from-primary to-primary/50 rounded-full"></div>
-            <h2 className="text-3xl font-bold text-foreground">7. Disclaimers & Liability Limitations</h2>
-          </div>
-          <div className="border-l-4 border-primary pl-4 py-2 bg-primary/5 p-4 rounded">
-            <p className="text-sm text-muted-foreground leading-6">
-              The materials on Betflexx are provided on an "AS IS" basis. We disclaim all warranties and are not liable for damages arising from your use of the service.
-            </p>
-          </div>
-        </section>
-
-        {/* Section 8 */}
-        <section id="termination" className="scroll-mt-20 space-y-4">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-1 h-8 bg-gradient-to-b from-primary to-primary/50 rounded-full"></div>
-            <h2 className="text-3xl font-bold text-foreground">8. Termination of Access</h2>
-          </div>
-          <p className="text-base leading-7 text-muted-foreground">
-            Betflexx may terminate or suspend your account immediately for violation of these terms or any applicable law.
-          </p>
-        </section>
-
-        {/* Section 9 */}
-        <section id="governing" className="scroll-mt-20 space-y-4">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-1 h-8 bg-gradient-to-b from-primary to-primary/50 rounded-full"></div>
-            <h2 className="text-3xl font-bold text-foreground">9. Governing Law</h2>
-          </div>
-          <div className="rounded-lg border border-border bg-background/50 p-6">
-            <p className="text-sm text-muted-foreground mb-4">
-              These Terms are governed by the laws of Kenya. You irrevocably submit to the exclusive jurisdiction of courts in Nairobi.
-            </p>
-          </div>
-        </section>
-
-        {/* Section 10 */}
-        <section id="contact" className="scroll-mt-20 space-y-4">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-1 h-8 bg-gradient-to-b from-primary to-primary/50 rounded-full"></div>
-            <h2 className="text-3xl font-bold text-foreground">10. Contact Information</h2>
-          </div>
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-6">
-            <div className="grid sm:grid-cols-2 gap-6">
-              {[
-                { label: "Email", value: "legal@betflexx.com" },
-                { label: "Support", value: "support@betflexx.com" },
-                { label: "Phone", value: "+254 700 000 000" },
-                { label: "Address", value: "Nairobi, Kenya" }
-              ].map((item, idx) => (
-                <div key={idx}>
-                  <span className="text-xs font-semibold text-primary uppercase tracking-wider">{item.label}</span>
-                  <p className="text-sm text-foreground font-medium mt-1">{item.value}</p>
-                </div>
-              ))}
+          {/* Section 7 */}
+          <section id="liability" className="scroll-mt-20 space-y-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-1 h-8 bg-gradient-to-b from-primary to-primary/50 rounded-full"></div>
+              <h2 className="text-3xl font-bold text-foreground">7. Disclaimers & Liability Limitations</h2>
             </div>
-          </div>
-        </section>
+            <div className="border-l-4 border-primary pl-4 py-2 bg-primary/5 p-4 rounded">
+              <p className="text-sm text-muted-foreground leading-6">
+                The materials on Betflexx are provided on an "AS IS" basis. We disclaim all warranties and are not liable for damages arising from your use of the service.
+              </p>
+            </div>
+          </section>
 
-        {/* Footer */}
-        <div className="border-t border-border pt-8 mt-12">
-          <p className="text-xs text-muted-foreground leading-6">
-            © {currentYear} Betflexx. All rights reserved. This Terms of Service is a binding legal document between you and Betflexx. By using Betflexx, you acknowledge that you have read, understood, and agree to be bound by all terms and conditions contained herein.
-          </p>
+          {/* Section 8 */}
+          <section id="termination" className="scroll-mt-20 space-y-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-1 h-8 bg-gradient-to-b from-primary to-primary/50 rounded-full"></div>
+              <h2 className="text-3xl font-bold text-foreground">8. Termination of Access</h2>
+            </div>
+            <p className="text-base leading-7 text-muted-foreground">
+              Betflexx may terminate or suspend your account immediately for violation of these terms or any applicable law.
+            </p>
+          </section>
+
+          {/* Section 9 */}
+          <section id="governing" className="scroll-mt-20 space-y-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-1 h-8 bg-gradient-to-b from-primary to-primary/50 rounded-full"></div>
+              <h2 className="text-3xl font-bold text-foreground">9. Governing Law</h2>
+            </div>
+            <div className="rounded-lg border border-border bg-background/50 p-6">
+              <p className="text-sm text-muted-foreground mb-4">
+                These Terms are governed by the laws of Kenya. You irrevocably submit to the exclusive jurisdiction of courts in Nairobi.
+              </p>
+            </div>
+          </section>
+
+          {/* Section 10 */}
+          <section id="contact" className="scroll-mt-20 space-y-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-1 h-8 bg-gradient-to-b from-primary to-primary/50 rounded-full"></div>
+              <h2 className="text-3xl font-bold text-foreground">10. Contact Information</h2>
+            </div>
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-6">
+              <div className="grid sm:grid-cols-2 gap-6">
+                {[
+                  { label: "Email", value: "legal@betflexx.com" },
+                  { label: "Support", value: "support@betflexx.com" },
+                  { label: "Phone", value: "+254 700 000 000" },
+                  { label: "Address", value: "Nairobi, Kenya" }
+                ].map((item, idx) => (
+                  <div key={idx}>
+                    <span className="text-xs font-semibold text-primary uppercase tracking-wider">{item.label}</span>
+                    <p className="text-sm text-foreground font-medium mt-1">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Footer */}
+          <div className="border-t border-border pt-8 mt-12">
+            <p className="text-xs text-muted-foreground leading-6">
+              © {currentYear} Betflexx. All rights reserved. This Terms of Service is a binding legal document between you and Betflexx. By using Betflexx, you acknowledge that you have read, understood, and agree to be bound by all terms and conditions contained herein.
+            </p>
+          </div>
         </div>
       </div>
     </div>
-    </div >
   );
 }
