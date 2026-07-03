@@ -367,31 +367,23 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
             className="cursor-pointer text-[11px] leading-normal text-muted-foreground select-none"
           >
             I agree to the{" "}
-            <Button
-              type="button"
-              variant="link"
-              className="inline h-auto p-0 text-[11px] font-semibold text-foreground hover:underline"
-              onClick={() =>
-                toast.info(
-                  "Terms of Service: Play responsibly. Mock platform is for testing purposes only."
-                )
-              }
+            <a
+              href="/terms-of-service"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-foreground hover:underline"
             >
               Terms of Service
-            </Button>{" "}
+            </a>{" "}
             and{" "}
-            <Button
-              type="button"
-              variant="link"
-              className="inline h-auto p-0 text-[11px] font-semibold text-foreground hover:underline"
-              onClick={() =>
-                toast.info(
-                  "Privacy Policy: Your data is secure and will never be shared."
-                )
-              }
+            <a
+              href="/privacy-policy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-foreground hover:underline"
             >
               Privacy Policy
-            </Button>
+            </a>
             .
           </label>
         </div>
