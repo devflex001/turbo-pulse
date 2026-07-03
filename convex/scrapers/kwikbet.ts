@@ -218,6 +218,9 @@ export const kwikbetAdapter: ScraperAdapter = {
     const matches: unknown[] = [];
 
     for (let page = 1; page <= maxPages; page++) {
+      // Stop if we've already reached the limit
+      if (matches.length >= limit) break;
+
       const params = new URLSearchParams({
         sport_id: sportIds ? sportIds.join(",") : "1",
         sort_by: "start_time",
@@ -230,6 +233,10 @@ export const kwikbetAdapter: ScraperAdapter = {
       const pageMatches = asArray(payload);
       if (pageMatches.length === 0) break;
       matches.push(...pageMatches);
+      // Only keep up to the limit
+      if (matches.length >= limit) {
+        return matches.slice(0, limit);
+      }
       if (pageMatches.length < limit) break;
     }
 

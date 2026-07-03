@@ -1,4 +1,5 @@
 import { Geist_Mono, Figtree, Roboto } from "next/font/google"
+import type { Metadata } from "next"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -9,6 +10,34 @@ import { BetStoreProvider } from "@/hooks/use-bet-store"
 import { ConvexProvider } from "@/components/convex-provider"
 import { SupportChatWidget } from "@/components/support-chat-widget"
 import { SuppressBeforeUnload } from "@/components/suppress-beforeunload"
+
+export const metadata: Metadata = {
+  title: "Betflexx",
+  description: "Your premier sports betting platform",
+  icons: {
+    icon: [
+      {
+        url: "/favicon.ico",
+        sizes: "any",
+      },
+      {
+        url: "/favicon.svg",
+        type: "image/svg+xml",
+      },
+      {
+        url: "/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
+  themeColor: "#008060",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+  },
+}
 
 const robotoHeading = Roboto({ subsets: ['latin'], variable: '--font-heading' })
 
