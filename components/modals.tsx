@@ -170,6 +170,11 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
             )}
           </Button>
         </div>
+        <div className="text-center pt-4 border-t border-border/50">
+          <p className="text-[10px] text-muted-foreground">
+            Powered by <span className="font-semibold">FLexx</span> Vintage
+          </p>
+        </div>
       </form>
     </ResponsiveModal>
   )
@@ -405,6 +410,11 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
               "Create Account"
             )}
           </Button>
+        </div>
+        <div className="text-center pt-4 border-t border-border/50">
+          <p className="text-[10px] text-muted-foreground">
+            Powered by <span className="font-semibold">FLexx</span> Vintage
+          </p>
         </div>
       </form>
     </ResponsiveModal>
