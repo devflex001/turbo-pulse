@@ -4,6 +4,8 @@ import * as React from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
 import { useAuth } from "@/lib/auth/AuthContext"
+import { useAdminInactivity } from "@/hooks/use-admin-inactivity"
+import { AdminInactivityWarning } from "@/components/admin-inactivity-warning"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -19,13 +21,12 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
-import { useBetStore } from "@/hooks/use-bet-store"
 import { NotificationsCenter } from "@/components/notifications-center"
+import { ActiveAdminsIndicator } from "@/components/active-admins-indicator"
 import {
   Sun,
   Moon,
   Menu,
-  User,
   LogOut,
   X,
   ChevronRight,
@@ -43,29 +44,58 @@ import {
   Globe,
   ServerCog,
   MessageSquare,
+  Logs,
 } from "lucide-react"
 
 // ─── Nav config ───────────────────────────────────────────────────────────────
 
-const coreNavItems = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
-  { id: "users", label: "Users", icon: Users, href: "/admin/users" },
-  { id: "visitors", label: "Visitors", icon: Globe, href: "/admin/visitors" },
-  { id: "bets", label: "Bets", icon: Trophy, href: "/admin/bets" },
-  { id: "referrals", label: "Referrals", icon: Zap, href: "/admin/referrals" },
-  { id: "payments", label: "Payments", icon: ArrowUpRight, href: "/admin/payments" },
-  { id: "withdrawals", label: "Withdrawals", icon: ArrowDownLeft, href: "/admin/withdrawals" },
-  { id: "support", label: "Support", icon: MessageSquare, href: "/admin/support" },
+const navigationItems = [
+  {
+    section: "Main",
+    items: [
+      { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
+    ],
+  },
+  {
+    section: "Users & Data",
+    items: [
+      { id: "users", label: "Users", icon: Users, href: "/admin/users" },
+      { id: "visitors", label: "Visitors", icon: Globe, href: "/admin/visitors" },
+    ],
+  },
+  {
+    section: "Betting",
+    items: [
+      { id: "bets", label: "Bets", icon: Trophy, href: "/admin/bets" },
+      { id: "payments", label: "Payments", icon: ArrowUpRight, href: "/admin/payments" },
+      { id: "withdrawals", label: "Withdrawals", icon: ArrowDownLeft, href: "/admin/withdrawals" },
+    ],
+  },
+  {
+    section: "Growth",
+    items: [
+      { id: "referrals", label: "Referrals", icon: Zap, href: "/admin/referrals" },
+    ],
+  },
+  {
+    section: "Events",
+    items: [
+      { id: "events", label: "Events", icon: PlayCircle, href: "/admin/events" },
+      { id: "custom-events", label: "Custom Events", icon: PlusCircle, href: "/admin/custom-events" },
+    ],
+  },
+  {
+    section: "Operations",
+    items: [
+      { id: "scraper", label: "Scraper", icon: Database, href: "/admin/scraper" },
+      { id: "redis", label: "Redis", icon: ServerCog, href: "/admin/redis" },
+      { id: "logs", label: "Logs", icon: Logs, href: "/admin/logs" },
+      { id: "support", label: "Support", icon: MessageSquare, href: "/admin/support" },
+    ],
+  },
 ]
 
-const operationsNavItems = [
-  { id: "scraper", label: "Scraper", icon: Database, href: "/admin/scraper" },
-  { id: "events", label: "Events", icon: PlayCircle, href: "/admin/events" },
-  { id: "custom-events", label: "Custom Events", icon: PlusCircle, href: "/admin/custom-events" },
-  { id: "redis", label: "Redis", icon: ServerCog, href: "/admin/redis" },
-]
-
-const settingsNavItems = [
+const settingsItems = [
   { id: "settings", label: "Settings", icon: Settings, href: "/admin/settings" },
 ]
 
@@ -80,47 +110,51 @@ interface SidebarContentProps {
 function SidebarContent({ currentPath, collapsed = false, onNavigate }: SidebarContentProps) {
   const router = useRouter()
 
-  function renderNavGroup(label: string, items: typeof coreNavItems) {
+  function renderNavItem(item: { id: string; label: string; icon: React.ComponentType<{ className: string }>; href: string }, isActive: boolean) {
+    const Icon = item.icon
     return (
-      <div className="space-y-1">
-        {!collapsed && (
-          <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 px-2.5">
-            {label}
-          </h3>
-        )}
-        {items.map((item) => {
-          const Icon = item.icon
-          const isActive = currentPath === item.href
-          return (
-            <Button
-              key={item.id}
-              variant="ghost"
-              className={`w-full justify-start h-9 px-2.5 gap-2.5 font-normal text-xs ${isActive
-                ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary font-semibold"
-                : "hover:bg-accent/50 text-muted-foreground hover:text-foreground"
-                }`}
-              onClick={() => {
-                router.push(item.href)
-                onNavigate?.()
-              }}
-            >
-              <Icon
-                className={`size-4 shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`}
-              />
-              {!collapsed && <span>{item.label}</span>}
-            </Button>
-          )
-        })}
-      </div>
+      <Button
+        key={item.id}
+        variant="ghost"
+        className={`w-full justify-start h-8 px-2.5 gap-2.5 font-normal text-xs ${isActive
+          ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary font-semibold"
+          : "hover:bg-accent/50 text-muted-foreground hover:text-foreground"
+          }`}
+        onClick={() => {
+          router.push(item.href)
+          onNavigate?.()
+        }}
+      >
+        <Icon className={`size-4 shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+        {!collapsed && <span>{item.label}</span>}
+      </Button>
     )
   }
 
   return (
-    <div className="flex-1 flex flex-col gap-5 overflow-y-auto px-3 py-2">
-      {renderNavGroup("Core", coreNavItems)}
-      {renderNavGroup("Operations", operationsNavItems)}
-      <div className="mt-auto space-y-5">
-        {renderNavGroup("System", settingsNavItems)}
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Scrollable nav sections */}
+      <div className="flex-1 overflow-y-auto px-2.5 py-2 space-y-4">
+        {navigationItems.map((section) => (
+          <div key={section.section} className="space-y-1">
+            {!collapsed && (
+              <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1.5">
+                {section.section}
+              </h3>
+            )}
+            {section.items.map((item) => renderNavItem(item, currentPath === item.href))}
+          </div>
+        ))}
+      </div>
+
+      {/* Fixed settings at bottom */}
+      <div className="border-t border-border px-2.5 py-2 shrink-0 bg-card">
+        {/* {!collapsed && (
+          <h3 className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5 px-1.5">
+            System
+          </h3>
+        )} */}
+        {settingsItems.map((item) => renderNavItem(item, currentPath === item.href))}
       </div>
     </div>
   )
@@ -136,13 +170,26 @@ interface AdminLayoutProps {
 export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const { theme, setTheme } = useTheme()
-  const { user } = useBetStore()
-  const { isAdmin, isLoading } = useAuth()
+  const { isAdmin, isLoading, adminName } = useAuth()
 
+  const { resolvedTheme, setTheme } = useTheme()
   const [mounted, setMounted] = React.useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = React.useState(false)
+
+  // Admin inactivity detection
+  // warningTime: inactivity before warning appears
+  // logoutTime: countdown duration shown in the warning dialog
+  const {
+    showWarning,
+    countdown,
+    extendSession,
+    logoutNow,
+  } = useAdminInactivity({
+    warningTime: 60 * 60 * 1000, // show warning after 60 min of inactivity
+    logoutTime: 60 * 1000,       // 60-second countdown before auto-logout
+    onLogout: () => router.push("/"),
+  })
 
   // Check admin access on mount
   React.useEffect(() => {
@@ -150,7 +197,7 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
     const t = setTimeout(() => {
       if (a) {
         if (!isLoading && !isAdmin) {
-          router.push("/login")
+          router.push("/")
         } else if (a) {
           setMounted(true)
         }
@@ -166,15 +213,16 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
     router.push("/")
   }
 
-  // Get current page label for mobile header
-  const getCurrentLabel = () => {
-    const allItems = [...coreNavItems, ...operationsNavItems, ...settingsNavItems]
-    const current = allItems.find(item => item.href === pathname)
-    return current?.label || pageTitle || "Admin"
-  }
-
   return (
     <div className="flex h-screen overflow-hidden bg-background text-foreground">
+
+      {/* Admin Inactivity Warning Modal */}
+      <AdminInactivityWarning
+        open={showWarning}
+        countdown={countdown}
+        onExtendSession={extendSession}
+        onLogoutNow={logoutNow}
+      />
 
       {/* Show loading or redirect if not admin */}
       {!mounted && (
@@ -250,7 +298,7 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
             {/* Top Navbar */}
             <header className="flex h-14 items-center justify-between px-3 sm:px-5 border-b border-border bg-background/95 backdrop-blur-md shrink-0 gap-3">
 
-              {/* Left: Hamburger (mobile) */}
+              {/* Left: Hamburger (mobile) + Active Admins (desktop) */}
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <Button
                   variant="ghost"
@@ -261,9 +309,9 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
                 >
                   <Menu className="size-4" />
                 </Button>
-                <span className="sm:hidden text-sm font-semibold text-foreground truncate">
-                  {getCurrentLabel()}
-                </span>
+                <div className="hidden md:block ml-auto">
+                  <ActiveAdminsIndicator />
+                </div>
               </div>
 
               {/* Right: Controls */}
@@ -273,11 +321,11 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="size-8 border border-border hover:bg-accent"
-                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    className="size-8 hover:bg-accent"
+                    onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
                     aria-label="Toggle theme"
                   >
-                    {theme === "dark" ? (
+                    {resolvedTheme === "dark" ? (
                       <Sun className="size-3.5 text-primary" />
                     ) : (
                       <Moon className="size-3.5" />
@@ -292,15 +340,15 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="ghost"
-                      className="h-9 gap-2 rounded-full border border-border px-2 hover:bg-muted/50"
+                      className="h-9 gap-2 rounded-full sm:border sm:border-border px-2 hover:bg-muted/50"
                       aria-label="Admin account menu"
                     >
                       <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                        {(user?.username?.[0] ?? "A").toUpperCase()}
+                        {(adminName?.[0] ?? "A").toUpperCase()}
                       </span>
                       <span className="hidden min-w-0 flex-col text-left sm:flex">
-                        <span className="max-w-28 truncate text-xs font-semibold leading-tight">
-                          {user?.username ?? "Admin"}
+                        <span className="max-w-28 truncate text-xs font-semibold leading-tight capitalize">
+                          {adminName ?? "Admin"}
                         </span>
                         <span className="text-[9px] font-medium uppercase leading-none tracking-wider text-muted-foreground">
                           Admin
@@ -311,19 +359,14 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
                   <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex flex-col space-y-1">
-                        <p className="truncate text-sm font-semibold leading-none">
-                          {user?.username ?? "Admin"}
+                        <p className="truncate text-sm font-semibold leading-none capitalize">
+                          {adminName ?? "Admin"}
                         </p>
                         <p className="text-xs leading-none text-muted-foreground">
                           Administrator
                         </p>
                       </div>
                     </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => router.push("/")} className="text-xs">
-                      <User className="mr-2 size-4" />
-                      User site
-                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={handleLogout}
@@ -336,6 +379,11 @@ export function AdminLayout({ children, pageTitle }: AdminLayoutProps) {
                 </DropdownMenu>
               </div>
             </header>
+
+            {/* Mobile-only: active admins strip — hidden on md+ where it shows in the navbar */}
+            <div className="md:hidden">
+              <ActiveAdminsIndicator mobileStrip />
+            </div>
 
             {/* Scrollable content */}
             <main className="flex-1 p-3 sm:p-5 lg:p-6 overflow-y-auto h-full scrollbar-thin">

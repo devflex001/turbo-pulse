@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useQuery } from "convex/react"
+import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -12,11 +12,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { MarketsPanel, type SportsMatchWithOdds, type SportsMatch } from "@/components/markets-panel"
 import { Pagination } from "@/components/pagination"
 import { usePagination } from "@/hooks/use-pagination"
-import { ListPlus, Search, ChevronDown } from "lucide-react"
+import { ListPlus, Search, ChevronDown, Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
 function formatStartTime(startTime: number) {
   if (!startTime) return "TBA"
@@ -57,6 +67,13 @@ export function AdminEventsPanel() {
   const [status, setStatus] = React.useState<"all" | "live" | "upcoming">("all")
   const [selectedMatch, setSelectedMatch] = React.useState<SportsMatch | null>(null)
   const [screenWidth, setScreenWidth] = React.useState(1024)
+  const [showClearDialog, setShowClearDialog] = React.useState(false)
+  const [isClearing, setIsClearing] = React.useState(false)
+  const [clearProgress, setClearProgress] = React.useState({ deleted: 0, total: 0 })
+
+  const sessionToken =
+    typeof window !== "undefined" ? localStorage.getItem("adminSessionToken") : null
+  const clearJunkEventsM = useMutation(api.sportsData.clearJunkEvents)
 
   const pagination = usePagination({ pageSize: 10 })
 
@@ -115,6 +132,42 @@ export function AdminEventsPanel() {
       ...sportsList,
     ]
   }, [allMatches])
+
+  const handleClearEvents = async () => {
+    try {
+      setIsClearing(true)
+      setClearProgress({ deleted: 0, total: 0 })
+
+      let totalDeleted = 0
+      let hasMore = true
+
+      // Keep calling until no more events to delete
+      while (hasMore) {
+        const result = await clearJunkEventsM({
+          sessionToken: sessionToken || undefined,
+        })
+
+        totalDeleted += result.matchesDeleted
+        setClearProgress({ deleted: totalDeleted, total: totalDeleted + (result.hasMore ? 10 : 0) })
+        hasMore = result.hasMore
+
+        // Small delay between batches
+        if (hasMore) {
+          await new Promise(resolve => setTimeout(resolve, 300))
+        }
+      }
+
+      setShowClearDialog(false)
+      toast.success(`Cleared ${totalDeleted} old events from database!`)
+      setTimeout(() => window.location.reload(), 1000)
+    } catch (error) {
+      console.error("Failed to clear events:", error)
+      toast.error("Failed to clear events")
+    } finally {
+      setIsClearing(false)
+      setClearProgress({ deleted: 0, total: 0 })
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -216,6 +269,17 @@ export function AdminEventsPanel() {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Clear All Events Button */}
+          <Button
+            size="sm"
+            variant="destructive"
+            className="h-8 text-xs gap-1.5"
+            onClick={() => setShowClearDialog(true)}
+          >
+            <Trash2 className="size-3.5" />
+            Clear All
+          </Button>
         </div>
       </div>
 
@@ -374,6 +438,68 @@ export function AdminEventsPanel() {
           readOnly
         />
       )}
+
+      {/* Clear Old Events Confirmation Dialog */}
+      <AlertDialog open={showClearDialog} onOpenChange={(open) => {
+        // Prevent closing while clearing
+        if (!isClearing) {
+          setShowClearDialog(open)
+        }
+      }}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear Old Events?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will delete finished events that are no longer displayed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-3 py-4">
+            {/* Progress Bar */}
+            {isClearing && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold">Clearing events...</span>
+                  <span className="font-mono">{clearProgress.deleted} deleted</span>
+                </div>
+                <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-green-600 transition-all duration-300 animate-pulse"
+                    style={{
+                      width: clearProgress.total > 0
+                        ? `${(clearProgress.deleted / clearProgress.total) * 100}%`
+                        : "50%",
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Protection Notice */}
+            <div className="rounded-lg bg-blue-500/10 p-3 border border-blue-500/20 space-y-1">
+              <div className="text-xs font-semibold text-blue-700 dark:text-blue-400 flex items-center gap-1.5">
+                <span>ℹ️</span> Protected
+              </div>
+              <div className="text-xs text-blue-700 dark:text-blue-400 space-y-1">
+                <div>• Live events will NOT be deleted</div>
+                <div>• Recent events (24h) will NOT be deleted</div>
+                <div>• Only old finished events are cleared</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <AlertDialogCancel disabled={isClearing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleClearEvents}
+              disabled={isClearing}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              {isClearing ? "Clearing..." : "Clear Old Events"}
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

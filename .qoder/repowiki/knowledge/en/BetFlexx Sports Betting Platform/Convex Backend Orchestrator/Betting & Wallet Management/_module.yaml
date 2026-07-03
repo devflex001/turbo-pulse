@@ -1,0 +1,13 @@
+schema_version: 1
+module_path: backend/betting
+title: Betting & Wallet Management
+scope:
+    - convex/bets.ts
+    - convex/adminBets.ts
+    - convex/customEvents.ts
+source_files: []
+depends_on: []
+related_to:
+    - path: backend/user_admin
+    - path: backend/user_support
+    - path: frontend

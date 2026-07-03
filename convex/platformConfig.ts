@@ -81,6 +81,7 @@ export const getUserFacingConfig = query({
 export const saveConfig = mutation({
   args: {
     userId: v.optional(v.id("users")),
+    sessionToken: v.optional(v.string()), // For logging
     minDeposit: v.optional(v.number()),
     minWithdrawal: v.optional(v.number()),
     withdrawalFeePercent: v.optional(v.number()),
@@ -97,6 +98,13 @@ export const saveConfig = mutation({
 
     const now = Date.now();
     const updatedBy = admin.phone ?? admin._id.toString();
+
+    const changes: string[] = [];
+    if (args.minDeposit !== undefined) changes.push(`minDeposit: ${args.minDeposit}`);
+    if (args.minWithdrawal !== undefined) changes.push(`minWithdrawal: ${args.minWithdrawal}`);
+    if (args.withdrawalFeePercent !== undefined) changes.push(`withdrawalFeePercent: ${args.withdrawalFeePercent}%`);
+    if (args.instantProcessingFee !== undefined) changes.push(`instantProcessingFee: ${args.instantProcessingFee}`);
+    if (args.referralReward !== undefined) changes.push(`referralReward: ${args.referralReward}`);
 
     if (!existing) {
       await ctx.db.insert("platform_config", {
@@ -129,6 +137,26 @@ export const saveConfig = mutation({
         updatedAt: now,
         updatedBy,
       });
+    }
+
+    // Log the action
+    if (args.sessionToken) {
+      const { logAdminActionInternal } = await import("./audit/logs");
+      const { getAdminSessionByTokenInternal } = await import("./admin/sessions");
+
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: admin._id,
+          actionType: "update_platform_config",
+          resourceType: "platform_config",
+          resourceDescription: "Platform configuration updated",
+          details: {
+            newValue: changes.join("; "),
+          },
+        });
+      }
     }
 
     return { success: true };

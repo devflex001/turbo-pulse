@@ -155,18 +155,25 @@ export function MatchCard({ match }: MatchCardProps) {
                     key={odd.sourceOddId}
                     variant="outline"
                     disabled={isMatchFinished}
-                    className={`flex flex-col gap-0.5 h-11 py-1 px-2 border-border font-medium transition-colors ${isMatchFinished
-                      ? "opacity-50 cursor-not-allowed"
-                      : "hover:border-primary/50 hover:bg-accent/40 " + (selected
-                        ? "bg-primary text-primary-foreground border-primary hover:bg-primary/95 hover:border-primary"
-                        : "text-foreground")
-                      }`}
+                    className={cn(
+                      `flex flex-col gap-0.5 h-11 py-1 px-2 font-medium transition-all`,
+                      isMatchFinished
+                        ? "opacity-50 cursor-not-allowed"
+                        : selected
+                          ? "bg-[#4b9f71] text-white border-[#4b9f71] font-bold hover:bg-[#3e865f] hover:border-[#3e865f] shadow-lg"
+                          : "border-border text-foreground hover:border-[#4b9f71]/50 hover:bg-[#4b9f71]/5"
+                    )}
                     onClick={() => !isMatchFinished && handleSelection(odd)}
                   >
-                    <span className={`text-[9px] ${selected ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                    <span className={cn(
+                      "text-[9px] font-semibold",
+                      selected ? "text-white" : "text-muted-foreground"
+                    )}>
                       {outcome.code}
                     </span>
-                    <span className="text-xs font-bold font-mono">{odd.oddValue.toFixed(2)}</span>
+                    <span className={cn("text-xs font-bold font-mono", selected ? "text-white" : "text-foreground")}>
+                      {odd.oddValue.toFixed(2)}
+                    </span>
                   </Button>
                 )
               })

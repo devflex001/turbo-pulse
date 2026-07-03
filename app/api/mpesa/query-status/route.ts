@@ -19,6 +19,8 @@ import {
 } from "@/lib/rate-limit"
 import { cacheGet, cacheSet } from "@/lib/cache"
 import { CacheKeys, TTL } from "@/lib/cache-keys"
+import { ConvexHttpClient } from "convex/browser"
+import { api } from "@/convex/_generated/api"
 
 export async function GET(request: NextRequest) {
   try {
@@ -53,8 +55,23 @@ export async function GET(request: NextRequest) {
       return response
     }
 
+    // ── Fetch M-Pesa config from Convex ────────────────────────────────────
+    const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
+    const darajaConfig = await convex.query(api.daraja.getConfig)
+
     // ── Query Safaricom ──────────────────────────────────────────────────────
-    const mpesa = initializeMPesaService(false)
+    const mpesa = initializeMPesaService(false, {
+      consumerKey: darajaConfig.consumerKey,
+      consumerSecret: darajaConfig.consumerSecret,
+      businessCode: darajaConfig.businessCode,
+      passkey: darajaConfig.passkey,
+      callbackUrl: darajaConfig.callbackUrl,
+      timeoutUrl: darajaConfig.timeoutUrl,
+      shortcode: darajaConfig.shortcode,
+      initiatorName: darajaConfig.initiatorName,
+      initiatorPassword: darajaConfig.initiatorPassword,
+    })
+
     const statusResponse = await mpesa.queryTransactionStatus(
       merchantRequestID,
       checkoutRequestID

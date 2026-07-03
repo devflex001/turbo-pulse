@@ -110,10 +110,7 @@ export default function LivePage() {
           {/* Live Sports Matches Section */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
-                Live Sports Matches
-              </h2>
+            
               {displayedMatches.length > 0 && (
                 <Badge variant="outline" className="font-semibold text-[10px] text-muted-foreground bg-muted/20 border-border">
                   Matches {displayedMatches.length}
@@ -134,7 +131,7 @@ export default function LivePage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 border border-dashed border-border rounded-lg text-muted-foreground text-sm">
+              <div className="text-center bg-card py-12 border border-dashed border-border rounded-lg text-muted-foreground text-sm">
                 {liveCustomEvents.length === 0 ? (
                   <div className="space-y-2">
                     <p>No live events at the moment.</p>

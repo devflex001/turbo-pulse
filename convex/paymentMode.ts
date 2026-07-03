@@ -1,5 +1,8 @@
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
+import { requireAdmin } from "./auth/authorization"
+import { logAdminActionInternal } from "./audit/logs"
+import { getAdminSessionByTokenInternal } from "./admin/sessions"
 
 /**
  * Get current active payment mode
@@ -28,10 +31,16 @@ export const getActiveMode = query(async (ctx) => {
 export const setMode = mutation({
   args: {
     mode: v.union(v.literal("mpesa"), v.literal("paystack")),
+    userId: v.optional(v.id("users")),
+    sessionToken: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Delete existing config
+    const admin = await requireAdmin(ctx, args.userId)
+
     const existing = await ctx.db.query("payment_mode").first()
+    const oldMode = existing?.mode || "mpesa"
+
+    // Delete existing config
     if (existing) {
       await ctx.db.delete(existing._id)
     }
@@ -41,8 +50,26 @@ export const setMode = mutation({
       mode: args.mode,
       isEnabled: true,
       updatedAt: Date.now(),
-      updatedBy: "admin",
+      updatedBy: admin.phone ?? admin._id.toString(),
     })
+
+    // Log the action
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken)
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: admin._id,
+          actionType: "set_payment_mode",
+          resourceType: "payment_mode",
+          resourceDescription: "Payment mode updated",
+          details: {
+            previousValue: oldMode,
+            newValue: args.mode,
+          },
+        })
+      }
+    }
 
     console.log(`[Payment Mode] Switched to: ${args.mode}`)
 

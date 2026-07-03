@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Verify webhook signature
     const hash = crypto.createHmac("sha512", secretKey).update(body).digest("hex")
 
     if (hash !== signature) {

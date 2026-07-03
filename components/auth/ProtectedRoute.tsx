@@ -26,11 +26,11 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
 
     if (!isLoading) {
       if (!isAuthenticated) {
-        // Not authenticated, redirect to login
-        router.push("/login");
+        // Not authenticated, redirect to home (modals are on homepage)
+        router.push("/");
       } else if (requireAdmin && !isAdmin) {
         // Authenticated but not admin when admin required
-        router.push("/dashboard");
+        router.push("/");
       }
     }
   }, [isLoading, isAuthenticated, isAdmin, requireAdmin, router]);

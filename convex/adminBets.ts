@@ -3,6 +3,8 @@ import { query, mutation } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { requireAdmin } from "./auth/authorization";
 import { notifyAdmins, notifyUser } from "./notifications";
+import { logAdminActionInternal } from "./audit/logs";
+import { getAdminSessionByTokenInternal } from "./admin/sessions";
 
 function formatKes(amount: number) {
   return `KES ${amount.toLocaleString("en-KE", {
@@ -162,10 +164,11 @@ export const updateBetStatus = mutation({
       v.literal("cancelled")
     ),
     userId: v.optional(v.id("users")), // Admin ID checking
+    sessionToken: v.optional(v.string()), // For logging
   },
   handler: async (ctx, args) => {
     // Require admin authentication
-    await requireAdmin(ctx, args.userId);
+    const admin = await requireAdmin(ctx, args.userId);
 
     const bet = await ctx.db.get(args.betId);
     if (!bet) {
@@ -216,6 +219,26 @@ export const updateBetStatus = mutation({
         await ctx.db.insert("wallets", {
           userId: userId,
           balance: Math.max(0, adjustment),
+        });
+      }
+    }
+
+    // Log the action
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: admin._id,
+          actionType: "update_bet_status",
+          resourceType: "bet",
+          resourceDescription: `Bet (Stake: KES ${bet.stake})`,
+          details: {
+            previousValue: oldStatus,
+            newValue: newStatus,
+            amount: adjustment,
+          },
         });
       }
     }

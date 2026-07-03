@@ -1,0 +1,19 @@
+schema_version: 1
+module_path: configuration_system
+title: Configuration System
+scope: []
+source_files:
+    - lib/env.ts
+    - convex/env.d.ts
+    - convex/platformConfig.ts
+    - middleware.ts
+    - next.config.ts
+    - tsconfig.json
+    - convex/tsconfig.json
+    - vitest.config.ts
+    - eslint.config.mjs
+    - package.json
+    - scripts/fix-env.ts
+    - lib/redis.ts
+depends_on: []
+related_to: []

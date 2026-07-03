@@ -1,5 +1,7 @@
 import { v } from "convex/values";
-import { query } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
+import { getAdminSessionByTokenInternal } from "./admin/sessions";
+import { logAdminActionInternal } from "./audit/logs";
 
 const SOURCE = "kwikbet";
 
@@ -23,9 +25,11 @@ export const listMatches = query({
     const offset = Math.max(0, args.offset ?? 0);
     const fetchLimit = (Math.ceil(offset / pageSize) + 2) * pageSize;
 
-    // Look back 24 hours and forward 30 days to catch recently scraped matches
-    const lowerBound = Date.now() - 24 * 60 * 60 * 1000;
+    // Only fetch upcoming/future matches - don't fetch old data
+    // Forward 30 days for future fixtures
+    const lowerBound = Date.now(); // Start from now, not 24 hours ago
     const upperBound = Date.now() + 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
 
     const base =
       args.status === "live"
@@ -54,6 +58,8 @@ export const listMatches = query({
         if (competition && match.competitionName !== competition) return false;
         // Filter out matches too far in the future
         if (match.startTime > upperBound) return false;
+        // Filter out ended matches (status = 2 means finished)
+        if (match.status === 2) return false;
         if (!search) return true;
 
         const text = `${match.homeTeam} ${match.awayTeam} ${match.competitionName} ${match.sourceMatchId}`.toLowerCase();
@@ -144,8 +150,8 @@ export const listCompetitions = query({
     sport: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Look back 24 hours and forward 30 days to catch recently scraped matches
-    const lowerBound = Date.now() - 24 * 60 * 60 * 1000;
+    // Only fetch upcoming fixtures - don't waste resources on ended matches
+    const lowerBound = Date.now(); // Start from now
     const upperBound = Date.now() + 30 * 24 * 60 * 60 * 1000;
 
     const matches = await ctx.db
@@ -159,7 +165,8 @@ export const listCompetitions = query({
     const names = matches
       .filter((match) => {
         if (!sport || match.sportSlug === sport) {
-          // Filter out matches too far in the future
+          // Filter out matches too far in the future and ended matches
+          if (match.status === 2) return false; // Skip ended
           return match.startTime <= upperBound;
         }
         return false;
@@ -237,23 +244,38 @@ export const listMarkets = query({
   },
 });
 
-// Optimized query to get market summary without odds details
-export const getMarketsCount = query({
-  args: {
-    sourceMatchId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const markets = await ctx.db
-      .query("sportsMarkets")
-      .withIndex("by_sourceMatchId_and_marketPriority", (q) =>
-        q.eq("sourceMatchId", args.sourceMatchId)
+// New optimized query to get sport counts without fetching full match data - only upcoming matches
+export const getSportCounts = query({
+  args: {},
+  handler: async (ctx) => {
+    // Only fetch upcoming fixtures - don't waste resources on ended matches
+    const lowerBound = Date.now(); // Start from now
+    const upperBound = Date.now() + 30 * 24 * 60 * 60 * 1000;
+
+    const matches = await ctx.db
+      .query("sportsMatches")
+      .withIndex("by_source_and_startTime", (q) =>
+        q.eq("source", SOURCE).gte("startTime", lowerBound)
       )
-      .take(600);
+      .take(500);
+
+    const counts = new Map<string, number>();
+    let totalCount = 0;
+
+    for (const match of matches) {
+      // Skip ended matches
+      if (match.status === 2) continue;
+      // Filter out matches too far in the future
+      if (match.startTime > upperBound) continue;
+
+      totalCount++;
+      const sportSlug = match.sportSlug || "all";
+      counts.set(sportSlug, (counts.get(sportSlug) ?? 0) + 1);
+    }
 
     return {
-      totalMarkets: markets.length,
-      hasMainMarket: markets.some(m => m.marketKey.includes(":1x2:main")),
-      marketTypes: [...new Set(markets.flatMap(m => m.marketTypes || [m.marketType]).filter(Boolean))],
+      total: totalCount,
+      bySport: Object.fromEntries(counts),
     };
   },
 });
@@ -287,4 +309,81 @@ export const listOddsByMatch = query({
   },
 });
 
+// Clear old events - ULTRA LEAN with indexed queries
+export const clearJunkEvents = mutation({
+  args: {
+    sessionToken: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const cutoffTime = Date.now() - 24 * 60 * 60 * 1000; // 24 hours ago
 
+    // Get old matches using index (ONLY 10 at a time to stay under read limits)
+    const oldMatches = await ctx.db
+      .query("sportsMatches")
+      .withIndex("by_source_and_startTime", (q) =>
+        q.eq("source", SOURCE).lt("startTime", cutoffTime)
+      )
+      .take(10);
+
+    let matchesDeleted = 0;
+    let marketsDeleted = 0;
+    let oddsDeleted = 0;
+
+    for (const match of oldMatches) {
+      // Skip live matches
+      if (match.status === 1) continue;
+
+      // Delete markets using index (small batch)
+      const markets = await ctx.db
+        .query("sportsMarkets")
+        .withIndex("by_sourceMatchId_and_marketPriority", (q) =>
+          q.eq("sourceMatchId", match.sourceMatchId)
+        )
+        .take(50);
+
+      for (const market of markets) {
+        await ctx.db.delete(market._id);
+        marketsDeleted++;
+      }
+
+      // Delete odds using index (small batch)
+      const odds = await ctx.db
+        .query("sportsOdds")
+        .withIndex("by_sourceMatchId", (q) => q.eq("sourceMatchId", match.sourceMatchId))
+        .take(50);
+
+      for (const odd of odds) {
+        await ctx.db.delete(odd._id);
+        oddsDeleted++;
+      }
+
+      // Delete the match
+      await ctx.db.delete(match._id);
+      matchesDeleted++;
+    }
+
+    // Log only on first batch
+    if (matchesDeleted > 0 && args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: adminSession.userId,
+          actionType: "other",
+          resourceType: "scraper_data",
+          resourceDescription: "Cleared old events",
+          details: {
+            newValue: `Batch: ${matchesDeleted} events deleted`,
+          },
+        });
+      }
+    }
+
+    return {
+      matchesDeleted,
+      marketsDeleted,
+      oddsDeleted,
+      hasMore: oldMatches.length === 10,
+    };
+  },
+});

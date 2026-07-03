@@ -370,7 +370,10 @@ export const getReferralLink = query({
 
     // Build the referral link - when clicked, adds ?ref=CODE to homepage
     // The RegisterModal will detect this and auto-fill the referral code
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    if (!baseUrl) {
+      throw new Error("NEXT_PUBLIC_BASE_URL environment variable is not configured");
+    }
     const referralLink = `${baseUrl}?ref=${user.referralCode}`;
 
     return {

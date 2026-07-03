@@ -82,7 +82,7 @@ function GuestPrompt({ onBack }: { onBack: () => void }) {
           asChild
           className="mt-6"
         >
-          <Link href="/login?redirect=/">Log in to continue</Link>
+          <Link href="/">Log in to continue</Link>
         </Button>
       </div>
     </div>
@@ -226,7 +226,7 @@ function ChatThread({
 
   React.useEffect(() => {
     if (!authArgs) return
-    markAsRead({ ...authArgs, conversationId }).catch(() => {})
+    markAsRead({ ...authArgs, conversationId }).catch(() => { })
   }, [authArgs, conversationId, markAsRead, serverMessages?.length])
 
   React.useEffect(() => {

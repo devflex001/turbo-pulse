@@ -1,12 +1,15 @@
 "use client"
 
 import * as React from "react"
-import { useQuery } from "convex/react"
+import { useQuery, usePaginatedQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useBetStore } from "@/hooks/use-bet-store"
+import { useAuth } from "@/lib/auth/AuthContext"
 import { AdminLayout } from "@/components/admin-layout"
+import { AdminActivityFeed } from "@/components/admin-activity-feed"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,11 +41,27 @@ import { toast } from "sonner"
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
-  const { transactions, adminStats, updateAdminTransactionStatus } = useBetStore()
+  const { user: authUser } = useAuth()
+  const { adminStats, updateAdminTransactionStatus } = useBetStore()
 
   // Real analytics from Convex queries
   const depositTrend = useQuery(api.bets.getDepositTrend, { daysBack: 7 })
   const userRegistrationTrend = useQuery(api.bets.getUserRegistrationTrend, { daysBack: 7 })
+
+  // Fetch admin transactions from admin query
+  const adminTransactionsPage = usePaginatedQuery(
+    api.adminTransactions.listTransactions,
+    {
+      typeFilter: "deposit",
+      statusFilter: undefined,
+      search: undefined,
+      userId: authUser?._id,
+    },
+    { initialNumItems: 5 }
+  )
+
+  // Check if we're still loading for the first time
+  const isLoadingFirstTime = (adminTransactionsPage.results as any[]).length === 0 && adminTransactionsPage.status !== "CanLoadMore"
 
   const [currentPage, setCurrentPage] = React.useState(1)
   const [currentTime, setCurrentTime] = React.useState("")
@@ -61,10 +80,28 @@ export default function AdminDashboard() {
     return () => { a = false; clearTimeout(t) }
   }, [])
 
-  const filteredTransactions = transactions
+  // Convert admin transactions to the format expected by the Recent Activity table
+  const filteredTransactions = (adminTransactionsPage.results as any[]).map((tx) => ({
+    id: tx._id,
+    type: tx.type,
+    amount: tx.amount,
+    phone: tx.phone,
+    status: tx.status,
+    errorDetail: tx.errorDetail,
+    time:
+      new Date(tx.time).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+      }) +
+      ", " +
+      new Date(tx.time).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+  }))
 
   const itemsPerPage = 5
-  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage)
+  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / itemsPerPage))
   const paginatedTransactions = React.useMemo(() => {
     const startIdx = (currentPage - 1) * itemsPerPage
     return filteredTransactions.slice(startIdx, startIdx + itemsPerPage)
@@ -289,7 +326,36 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {paginatedTransactions.map((tx, idx) => {
+                {isLoadingFirstTime && (
+                  <>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={`skeleton-${i}`} className="hover:bg-muted/30 transition-colors">
+                        <td className="py-3 px-3">
+                          <Skeleton className="h-4 w-6" />
+                        </td>
+                        <td className="py-3 px-3">
+                          <Skeleton className="h-4 w-32" />
+                        </td>
+                        <td className="py-3 px-3">
+                          <Skeleton className="h-4 w-16" />
+                        </td>
+                        <td className="py-3 px-3">
+                          <Skeleton className="h-4 w-24" />
+                        </td>
+                        <td className="py-3 px-3">
+                          <Skeleton className="h-4 w-20" />
+                        </td>
+                        <td className="py-3 px-3 hidden sm:table-cell">
+                          <Skeleton className="h-4 w-28" />
+                        </td>
+                        <td className="py-3 px-3 text-right">
+                          <Skeleton className="h-4 w-8 ml-auto" />
+                        </td>
+                      </tr>
+                    ))}
+                  </>
+                )}
+                {!isLoadingFirstTime && paginatedTransactions.map((tx, idx) => {
                   const globalIdx =
                     (currentPage - 1) * itemsPerPage + idx + 1
                   return (

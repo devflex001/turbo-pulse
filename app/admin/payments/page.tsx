@@ -173,7 +173,7 @@ function TransactionDetailsModal({ tx, open, onClose }: DetailsModalProps) {
 
         <div className="space-y-2">
           <h3 className="font-bold text-foreground text-[10px] uppercase tracking-wider">Gateway Reference Data</h3>
-          
+
           <div className="grid grid-cols-3 gap-y-2 gap-x-2 rounded-lg border border-border bg-muted/20 p-2.5 font-mono text-[10px]">
             {tx.mpesaReceiptNumber && (
               <>
@@ -280,9 +280,7 @@ export default function PaymentsPage() {
               <ArrowUpRight className="size-5 text-emerald-500" />
               Payments Administration
             </h1>
-            <p className="text-xs text-muted-foreground">
-              Monitor customer deposits (M-Pesa and Paystack) and view detailed gateway metadata.
-            </p>
+
           </div>
         </div>
 
@@ -345,7 +343,7 @@ export default function PaymentsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
             <Input
               id="payments-search"
-              placeholder="Search by ID, Phone, Receipt, Reference..."
+              placeholder="One Term..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-8 h-9 text-xs focus-visible:ring-primary"
@@ -429,19 +427,18 @@ export default function PaymentsPage() {
             <table className="w-full text-left text-xs border-collapse min-w-[700px]">
               <thead>
                 <tr className="border-b border-border bg-muted/40 text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
-                  <th className="py-3 px-4">Transaction ID</th>
+                  <th className="py-3 px-4 w-12">#</th>
                   <th className="py-3 px-4">Gateway</th>
                   <th className="py-3 px-4">Initiated At</th>
                   <th className="py-3 px-4">Phone / Account</th>
                   <th className="py-3 px-4 text-right">Amount</th>
                   <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">M-Pesa Receipt</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {isLoading && (
                   <tr>
-                    <td colSpan={7} className="py-8">
+                    <td colSpan={6} className="py-8">
                       <div className="space-y-2 px-4">
                         <Skeleton className="h-10 w-full" />
                         <Skeleton className="h-10 w-full" />
@@ -453,13 +450,13 @@ export default function PaymentsPage() {
 
                 {!isLoading && transactions.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-16 text-center text-muted-foreground text-xs">
+                    <td colSpan={6} className="py-16 text-center text-muted-foreground text-xs">
                       No payments found matching filters.
                     </td>
                   </tr>
                 )}
 
-                {transactions.map((tx) => {
+                {transactions.map((tx, idx) => {
                   const t = tx as unknown as Transaction
                   const isPaystack = t.txId.includes("PAYSTACK")
                   const gateway = isPaystack ? "Paystack" : "M-Pesa"
@@ -470,8 +467,8 @@ export default function PaymentsPage() {
                       className="hover:bg-muted/30 transition-colors cursor-pointer"
                       onClick={() => handleViewDetails(t)}
                     >
-                      <td className="py-3.5 px-4 font-mono font-medium text-foreground max-w-[150px] truncate block" title={t.txId}>
-                        {t.txId}
+                      <td className="py-3.5 px-4 font-mono font-bold text-muted-foreground w-12">
+                        {idx + 1}
                       </td>
                       <td className="py-3.5 px-4 text-muted-foreground font-semibold">
                         {gateway}
@@ -487,9 +484,6 @@ export default function PaymentsPage() {
                       </td>
                       <td className="py-3.5 px-4">
                         <StatusBadge status={t.status} />
-                      </td>
-                      <td className="py-3.5 px-4 font-mono text-foreground font-bold">
-                        {t.mpesaReceiptNumber ?? "-"}
                       </td>
                     </tr>
                   )

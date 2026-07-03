@@ -58,8 +58,10 @@ function getSportIcon(slug: string) {
     case "football": return Circle;
     case "basketball": return CircleDashed;
     case "tennis": return CircleDot;
+    case "rugby":
     case "mma":
     case "boxing": return Swords;
+    case "cricket": return Trophy;
     case "all": return LayoutGrid;
     default: return Activity;
   }
@@ -76,6 +78,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
     | MatchRecord[]
     | { items: MatchRecord[] }
     | undefined
+  const sportCounts = useQuery(api.sportsData.getSportCounts, {}) as any
   const competitions = useQuery(api.sportsData.listCompetitions, {
     sport: selectedSport,
   }) as string[] | undefined
@@ -98,20 +101,20 @@ export function Sidebar({ className, onClose }: SidebarProps) {
   )
 
   const sportItems = React.useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const match of allMatchItems) {
-      const key = match.sportSlug || "all"
-      counts.set(key, (counts.get(key) ?? 0) + 1)
+    // Use optimized sport counts from query
+    if (!sportCounts || !sportCounts.bySport) {
+      return [{ id: "all", label: "All Sports", count: 0 }];
     }
 
+    const counts = sportCounts.bySport;
     return [
-      { id: "all", label: "All Sports", count: allMatchItems.length },
-      ...Array.from(counts.entries())
+      { id: "all", label: "All Sports", count: sportCounts.total },
+      ...Object.entries(counts)
         .filter(([key]) => key !== "all")
-        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-        .map(([id, count]) => ({ id, label: titleCase(id), count })),
-    ]
-  }, [allMatchItems])
+        .sort((a, b) => (b[1] as number) - (a[1] as number))
+        .map(([id, count]) => ({ id, label: titleCase(id as string), count: count as number })),
+    ];
+  }, [sportCounts])
 
   const mainNavItems = [
     { id: "home", label: "Homepage", icon: Home },
@@ -154,11 +157,11 @@ export function Sidebar({ className, onClose }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "flex flex-col gap-6 shrink-0 border-r border-border bg-card text-card-foreground overflow-y-auto w-64",
+        "flex flex-col shrink-0 border-r border-border bg-card text-card-foreground overflow-hidden w-64",
         className
       )}
     >
-      <div className="pt-4 px-4">
+      <div className="pt-4 px-4 shrink-0">
         <div className="space-y-1 w-full">
           {mainNavItems.map((item) => {
             const Icon = item.icon
@@ -190,7 +193,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
         </div>
       </div>
 
-      <div className="px-4">
+      <div className="px-4 shrink-0">
         <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Services
         </h2>
@@ -247,8 +250,8 @@ export function Sidebar({ className, onClose }: SidebarProps) {
         </div>
       </div>
 
-      <div className="px-4">
-        <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="px-4 flex-1 min-h-0 overflow-y-auto">
+        <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground sticky top-0 bg-card z-10">
           Sports
         </h2>
         <div className="space-y-1 w-full">
@@ -297,7 +300,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
         </div>
       </div>
 
-      <Collapsible defaultOpen={false} className="pb-6 px-4">
+      <Collapsible defaultOpen={false} className="px-4 shrink-0 border-t border-border pt-4 pb-4">
         <CollapsibleTrigger asChild>
           <button
             type="button"
@@ -308,7 +311,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="space-y-1 w-full pt-1">
+          <div className="space-y-1 w-full pt-1 max-h-48 overflow-y-auto">
             {!competitions ? (
               <>
                 <Skeleton className="h-9 w-full" />

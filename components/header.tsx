@@ -40,6 +40,7 @@ import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescri
 import { Betslip } from "./betslip"
 import { Sidebar } from "./sidebar"
 import { NotificationsCenter } from "./notifications-center"
+import { ActiveAdminsIndicator } from "./active-admins-indicator"
 import { openSupportChat } from "@/lib/support-chat"
 
 export function Header() {
@@ -69,6 +70,7 @@ export function Header() {
 
   const handleLogout = () => {
     logout()
+    router.push("/")
   }
 
   return (
@@ -200,7 +202,7 @@ export function Header() {
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => router.push("/deposit")}>
                       <ArrowDownToLine className="mr-2 h-4 w-4 text-[#4b9f71]" />
-                      <span>Deposit (M-Pesa)</span>
+                      <span>Deposit</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setWithdrawOpen(true)}>
                       <ArrowUpFromLine className="mr-2 h-4 w-4 text-rose-500" />
@@ -210,15 +212,6 @@ export function Header() {
                       <History className="mr-2 h-4 w-4 text-blue-500" />
                       <span>My Placed Bets</span>
                     </DropdownMenuItem>
-                    {user.role === "admin" && (
-                      <>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => router.push("/admin")}>
-                          <Settings className="mr-2 h-4 w-4 text-amber-500" />
-                          <span>Admin Panel</span>
-                        </DropdownMenuItem>
-                      </>
-                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
                       <LogOut className="mr-2 h-4 w-4" />

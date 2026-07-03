@@ -1,18 +1,7 @@
 "use client"
 
-import * as React from "react"
-import { useMutation, useQuery, usePaginatedQuery } from "convex/react"
-import { api } from "@/convex/_generated/api"
-import { Id } from "@/convex/_generated/dataModel"
-import { useAuthClient } from "@/lib/auth-client"
-import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Textarea } from "@/components/ui/textarea"
-import { Separator } from "@/components/ui/separator"
-import { ResponsiveModal } from "@/components/ui/responsive-modal"
+import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +9,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import { ResponsiveModal } from "@/components/ui/responsive-modal"
 import {
   Select,
   SelectContent,
@@ -27,20 +18,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Textarea } from "@/components/ui/textarea"
+import { api } from "@/convex/_generated/api"
+import { Id } from "@/convex/_generated/dataModel"
+import { useAuthClient } from "@/lib/auth-client"
+import { useMutation, usePaginatedQuery, useQuery } from "convex/react"
 import {
-  Search,
-  MoreHorizontal,
-  Ban,
-  ShieldCheck,
-  Pencil,
-  ChevronRight,
-  Loader2,
   AlertTriangle,
-  Users,
+  Ban,
+  ChevronRight,
   Eye,
   Globe,
+  Loader2,
+  MoreHorizontal,
+  Pencil,
+  Search,
+  ShieldCheck,
+  Users,
 } from "lucide-react"
 import Link from "next/link"
+import * as React from "react"
+import { toast } from "sonner"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -103,6 +103,7 @@ interface BanModalProps {
 }
 
 function BanModal({ user, open, onClose, adminUserId }: BanModalProps) {
+  const { sessionToken } = useAuthClient()
   const banUser = useMutation(api.adminUsers.banUser)
   const [reason, setReason] = React.useState("")
   const [duration, setDuration] = React.useState<string>("permanent")
@@ -140,6 +141,7 @@ function BanModal({ user, open, onClose, adminUserId }: BanModalProps) {
       setLoading(true)
       await banUser({
         userId: adminUserId as Id<"users"> | undefined,
+        sessionToken: sessionToken || undefined,
         targetUserId: user._id as Id<"users">,
         reason: reason.trim(),
         durationHours,
@@ -243,6 +245,7 @@ interface EditModalProps {
 }
 
 function EditModal({ user, open, onClose, adminUserId }: EditModalProps) {
+  const { sessionToken } = useAuthClient()
   const editUser = useMutation(api.adminUsers.editUser)
   const [phone, setPhone] = React.useState("")
   const [loading, setLoading] = React.useState(false)
@@ -269,6 +272,7 @@ function EditModal({ user, open, onClose, adminUserId }: EditModalProps) {
       setLoading(true)
       await editUser({
         userId: adminUserId as Id<"users"> | undefined,
+        sessionToken: sessionToken || undefined,
         targetUserId: user._id as Id<"users">,
         email: phone.trim(),
       })
@@ -510,7 +514,7 @@ function UserDetailsModal({ user, open, onClose, adminUserId }: UserDetailsModal
 const PAGE_SIZE = 10
 
 export function AdminUsersPanel() {
-  const { user } = useAuthClient()
+  const { user, sessionToken } = useAuthClient()
   const userStats = useQuery(api.adminUsers.getUserStats, { userId: user?._id })
   const [search, setSearch] = React.useState("")
   const [debouncedSearch, setDebouncedSearch] = React.useState("")
@@ -534,7 +538,11 @@ export function AdminUsersPanel() {
 
   async function handleUnban(targetUser: UserWithBan) {
     try {
-      await unbanUser({ userId: user?._id as Id<"users"> | undefined, targetUserId: targetUser._id as Id<"users"> })
+      await unbanUser({
+        userId: user?._id as Id<"users"> | undefined,
+        sessionToken: sessionToken || undefined,
+        targetUserId: targetUser._id as Id<"users">
+      })
       toast.success(`${targetUser.phone ?? targetUser._id.slice(-8)} has been unbanned`)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to unban user")
@@ -550,15 +558,13 @@ export function AdminUsersPanel() {
             <Users className="size-5 text-primary" />
             User Management
           </h1>
-          <p className="text-xs text-muted-foreground">
-            Manage registered users — ban, unban, and edit profiles.
-          </p>
+
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           {/* Visitors Button */}
           <Link href="/admin/visitors" className="w-full sm:w-auto">
-            <Button variant="outline" className="w-full gap-2 text-xs font-semibold h-9">
+            <Button variant="link" className="w-full gap-2 text-xs font-semibold h-9">
               <Globe className="size-4" />
               Visitors
             </Button>
@@ -569,7 +575,7 @@ export function AdminUsersPanel() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
             <Input
               id="users-search"
-              placeholder="Search by phone, email, or ID..."
+              placeholder="One Term..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-8 h-9 text-xs focus-visible:ring-primary"
@@ -578,7 +584,6 @@ export function AdminUsersPanel() {
         </div>
       </div>
 
-      <Separator />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

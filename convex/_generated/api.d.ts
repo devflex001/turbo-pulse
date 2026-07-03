@@ -11,6 +11,9 @@
 import type * as adminBets from "../adminBets.js";
 import type * as adminTransactions from "../adminTransactions.js";
 import type * as adminUsers from "../adminUsers.js";
+import type * as admin_sessions from "../admin/sessions.js";
+import type * as audit_logger from "../audit/logger.js";
+import type * as audit_logs from "../audit/logs.js";
 import type * as auth_authorization from "../auth/authorization.js";
 import type * as auth_examples from "../auth/examples.js";
 import type * as auth_login from "../auth/login.js";
@@ -50,6 +53,9 @@ declare const fullApi: ApiFromModules<{
   adminBets: typeof adminBets;
   adminTransactions: typeof adminTransactions;
   adminUsers: typeof adminUsers;
+  "admin/sessions": typeof admin_sessions;
+  "audit/logger": typeof audit_logger;
+  "audit/logs": typeof audit_logs;
   "auth/authorization": typeof auth_authorization;
   "auth/examples": typeof auth_examples;
   "auth/login": typeof auth_login;

@@ -33,9 +33,7 @@ export function AdminCustomEventsPanel() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="text-lg font-bold tracking-tight">Custom Events</h1>
-          <p className="text-xs text-muted-foreground">
-            Create and manage custom betting events
-          </p>
+     
         </div>
         <Button
           size="sm"

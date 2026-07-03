@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { useMutation, useQuery } from "convex/react"
+import { useMutation, useQuery, useAction } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useAuthClient } from "@/lib/auth-client"
 import { AdminLayout } from "@/components/admin-layout"
@@ -73,8 +73,8 @@ export default function SettingsPage() {
   // Mutations
   const saveDarajaConfig = useMutation(api.daraja.saveConfig)
   const savePaystackConfig = useMutation(api.paystack.saveConfig)
-  const testDarajaConfig = useMutation(api.daraja.testConfig)
-  const testPaystackConfig = useMutation(api.paystack.testConfig)
+  const testDarajaConfig = useAction(api.daraja.testConfig)
+  const testPaystackConfig = useAction(api.paystack.testConfig)
   const setPaymentMode = useMutation(api.paymentMode.setMode)
 
   const { user } = useAuthClient()
@@ -159,6 +159,7 @@ export default function SettingsPage() {
         initiatorName: darajaFormData.initiatorName || "",
         initiatorPassword: darajaFormData.initiatorPassword || "",
         isProduction: darajaFormData.isProduction || false,
+        userId: user?._id,
       })
       setMessage({ type: "success", text: "M-Pesa configuration saved" })
       toast.success("M-Pesa configuration saved successfully")
@@ -179,6 +180,7 @@ export default function SettingsPage() {
         publicKey: paystackFormData.publicKey || "",
         secretKey: paystackFormData.secretKey || "",
         isProduction: paystackFormData.isProduction || false,
+        userId: user?._id,
       })
       setMessage({ type: "success", text: "Paystack configuration saved" })
       toast.success("Paystack configuration saved successfully")
@@ -237,7 +239,7 @@ export default function SettingsPage() {
   const handleSwitchPaymentMode = async (mode: PaymentMode) => {
     try {
       setLoading(true)
-      await setPaymentMode({ mode })
+      await setPaymentMode({ mode, userId: user?._id })
       toast.success(`Payment mode switched to ${mode.toUpperCase()}`)
     } catch (error) {
       toast.error(`Error switching payment mode: ${String(error)}`)
@@ -526,6 +528,9 @@ export default function SettingsPage() {
                   onChange={(e) => setFeesForm((prev) => ({ ...prev, instantProcessingFee: e.target.value }))}
                   className="h-8 text-xs"
                 />
+              </div>
+              <div className="pt-2 border-t border-border/50 text-[10px] text-muted-foreground">
+                <p>Secured by <span className="font-semibold">Flexx</span> Vintage</p>
               </div>
             </CardContent>
             <CardFooter>

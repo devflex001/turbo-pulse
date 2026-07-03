@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/AuthContext"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
@@ -33,6 +34,7 @@ function normalizeKenyanPhone(phone: string): string {
 
 export function LoginModal({ open, onOpenChange }: ModalProps) {
   const { login } = useAuth()
+  const router = useRouter()
   const [phone, setPhone] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [showPassword, setShowPassword] = React.useState(false)
@@ -64,10 +66,8 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
       setPassword("")
 
       // Redirect admins to admin panel
-      if (role === "admin" && typeof window !== "undefined") {
-        setTimeout(() => {
-          window.location.href = "/admin"
-        }, 500)
+      if (role === "admin") {
+        router.push("/admin")
       }
     } catch (error) {
       const errMsg =
@@ -84,7 +84,7 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
       open={open}
       onOpenChange={onOpenChange}
       title="Login to BetFlexx"
-      description="Enter your registered phone number and password to access your account."
+      description="Enter your credentials to continue"
     >
       <form onSubmit={handleSubmit} className="space-y-4 py-2">
         <div className="space-y-2">
@@ -170,6 +170,11 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
             )}
           </Button>
         </div>
+        <div className="text-center pt-4 border-t border-border/50">
+          <p className="text-xs text-muted-foreground">
+            Powered by <span className="font-semibold">FLexx</span> Vintage
+          </p>
+        </div>
       </form>
     </ResponsiveModal>
   )
@@ -250,7 +255,7 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
       title="Join BetFlexx"
       description={referralCode
         ? `Create an account and start earning KES ${referralReward.toLocaleString()} for each successful referral!`
-        : "Create an account to start tracking your bets and managing your insights."}
+        : "Create an account to start winning big."}
     >
       <form onSubmit={handleSubmit} className="space-y-4 py-2">
         {referralCode && (
@@ -405,6 +410,11 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
               "Create Account"
             )}
           </Button>
+        </div>
+        <div className="text-center pt-4 border-t border-border/50">
+          <p className="text-xs text-muted-foreground">
+            Powered by <span className="font-semibold">FLexx</span> Vintage
+          </p>
         </div>
       </form>
     </ResponsiveModal>

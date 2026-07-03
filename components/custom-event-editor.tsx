@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
+import { useAuth } from "@/lib/auth/AuthContext"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -38,6 +39,7 @@ export function CustomEventEditor({
   onSuccess,
 }: CustomEventEditorProps) {
   const router = useRouter()
+  const { sessionToken } = useAuth()
   const isMobile = useMediaQuery("(max-width: 640px)")
   const createEvent = useMutation(api.customEvents.createCustomEvent)
   const updateEvent = useMutation(api.customEvents.updateCustomEvent)
@@ -56,8 +58,25 @@ export function CustomEventEditor({
     startTime: "",
   })
 
-  // Initialize form with event data when editing
+  // Initialize form with event data when editing, or clear when modal opens
   React.useEffect(() => {
+    if (!open) {
+      // Clear form when modal closes
+      setFormData({
+        title: "",
+        homeTeam: "",
+        awayTeam: "",
+        sport: "football",
+        competition: "Custom League",
+        description: "",
+        startTime: "",
+      })
+      setStep("basic")
+      setLoading(false)
+      return
+    }
+
+    // Modal is open - populate with event data if editing
     if (eventToEdit) {
       setFormData({
         title: eventToEdit.title || "",
@@ -79,7 +98,7 @@ export function CustomEventEditor({
         startTime: "",
       })
     }
-  }, [eventToEdit, open])
+  }, [open, eventToEdit])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -110,6 +129,7 @@ export function CustomEventEditor({
           startTime: startTimeMs,
           sport: formData.sport,
           competition: formData.competition,
+          sessionToken: sessionToken || undefined,
         });
         toast.success("Event updated successfully");
       } else {
@@ -122,23 +142,16 @@ export function CustomEventEditor({
           startTime: startTimeMs,
           sport: formData.sport,
           competition: formData.competition,
+          sessionToken: sessionToken || undefined,
         });
         toast.success("Event created successfully");
         // Navigate to the custom event detail page to configure markets and odds
         router.push(`/admin/custom-events/${eventId}`);
       }
 
+      // Close modal and reset state
       onOpenChange(false);
-      setStep("basic");
-      setFormData({
-        title: "",
-        homeTeam: "",
-        awayTeam: "",
-        sport: "football",
-        competition: "Custom League",
-        description: "",
-        startTime: "",
-      });
+      // Form reset will happen automatically via useEffect when open becomes false
 
       if (onSuccess) {
         onSuccess();

@@ -30,7 +30,8 @@ import {
   Circle,
   CircleDot,
   Swords,
-  LayoutGrid
+  LayoutGrid,
+  Trophy
 } from "lucide-react"
 import type { SportsMatch } from "@/components/markets-panel"
 import { CustomEventCard } from "@/components/custom-event-card"
@@ -107,8 +108,10 @@ function getSportIcon(slug: string) {
     case "football": return Circle;
     case "basketball": return CircleDashed;
     case "tennis": return CircleDot;
+    case "rugby":
     case "mma":
     case "boxing": return Swords;
+    case "cricket": return Trophy;
     case "all": return LayoutGrid;
     default: return Activity;
   }
@@ -116,7 +119,7 @@ function getSportIcon(slug: string) {
 
 export default function Page() {
   const router = useRouter()
-  const { user, isLoading: authLoading } = useAuth()
+  const { user, isLoading: authLoading, isAdmin } = useAuth()
   const {
     activeTab,
     setActiveTab,
@@ -129,6 +132,13 @@ export default function Page() {
 
   // Track visitor on page load
   useVisitorTracking()
+
+  // Redirect admins to admin panel
+  React.useEffect(() => {
+    if (!authLoading && isAdmin) {
+      router.push("/admin")
+    }
+  }, [authLoading, isAdmin, router])
 
   // State for signup modal triggered by referral link
   const [showSignupFromReferral, setShowSignupFromReferral] = React.useState(false)
@@ -151,22 +161,53 @@ export default function Page() {
     }
   }, [user, authLoading])
 
+  // Pagination state for infinite scroll
+  const [offset, setOffset] = React.useState(0)
+  const pageSize = 20
+
   const matchStatus =
     activeTab === "live" ? "live" : activeTab === "home" || activeTab === "featured" ? "upcoming" : undefined
 
-  const matches = useQuery(api.sportsData.listMatches, {
+  // Reset offset when filters change
+  React.useEffect(() => {
+    setOffset(0)
+  }, [selectedSport, selectedLeague, searchQuery, matchStatus])
+
+  const matchesResponse = useQuery(api.sportsData.listMatches, {
     sport: selectedSport,
     competition: selectedLeague,
     status: matchStatus,
     search: searchQuery,
-    limit: 80,
+    limit: pageSize,
+    offset,
     includeFirstMarket: true,
-  }) as (SportsMatch & { firstMarket?: any })[] | undefined
+  }) as any | undefined
 
-  const allMatches = useQuery(api.sportsData.listMatches, {
-    limit: 300,
-    includeFirstMarket: false,
-  }) as SportsMatch[] | undefined
+  // Extract items and total count
+  const { items: currentPageMatches = [], totalCount = 0 } = React.useMemo(() => {
+    if (!matchesResponse) return { items: [], totalCount: 0 }
+    if (Array.isArray(matchesResponse)) return { items: matchesResponse, totalCount: matchesResponse.length }
+    if (matchesResponse?.items) return { items: matchesResponse.items, totalCount: matchesResponse.totalCount || 0 }
+    return { items: [], totalCount: 0 }
+  }, [matchesResponse])
+
+  // Accumulate matches as user scrolls
+  const [allMatches, setAllMatches] = React.useState<(SportsMatch & { firstMarket?: any })[]>([])
+
+  React.useEffect(() => {
+    if (offset === 0) {
+      setAllMatches(currentPageMatches)
+    } else {
+      setAllMatches(prev => [...prev, ...currentPageMatches])
+    }
+  }, [currentPageMatches, offset])
+
+  const hasMore = allMatches.length < totalCount
+
+  const matches = allMatches
+
+  // Use optimized query for sport counts instead of fetching 300 items
+  const sportCounts = useQuery(api.sportsData.getSportCounts, {}) as any
 
   const customEvents = useQuery(api.customEvents.listCustomEvents, {
     status: "published",
@@ -186,49 +227,40 @@ export default function Page() {
     return () => clearInterval(timer)
   }, [])
 
-  const displayedMatches = React.useMemo(() => {
-    if (Array.isArray(matches)) {
-      return matches
-    }
+  // Intersection observer removed - using manual button instead
+  const observerTarget = React.useRef<HTMLDivElement>(null)
+  const [isLoadingMore, setIsLoadingMore] = React.useState(false)
 
-    if (matches && typeof matches === "object" && Array.isArray((matches as { items?: unknown }).items)) {
-      return (matches as { items: (SportsMatch & { firstMarket?: any })[] }).items
-    }
+  const handleLoadMore = () => {
+    setIsLoadingMore(true)
+    setOffset(prev => prev + pageSize)
+  }
 
-    return []
-  }, [matches])
-
-  const countedMatches = React.useMemo(() => {
-    if (Array.isArray(allMatches)) {
-      return allMatches
-    }
-
-    if (allMatches && typeof allMatches === "object" && Array.isArray((allMatches as { items?: unknown }).items)) {
-      return (allMatches as { items: SportsMatch[] }).items
-    }
-
-    return []
+  React.useEffect(() => {
+    setIsLoadingMore(false)
   }, [allMatches])
 
-  const featuredMatches = displayedMatches.slice(0, 4)
-  const upcomingMatches = activeTab === "featured" ? featuredMatches : displayedMatches
+  const displayedMatches = matches
+
+  const countedMatches = React.useMemo(() => {
+    return []
+  }, [])
 
   const sportOptions = React.useMemo(() => {
-    const counts = new Map<string, number>()
-
-    for (const match of countedMatches) {
-      const key = match.sportSlug || "all"
-      counts.set(key, (counts.get(key) ?? 0) + 1)
+    // Use optimized sport counts from query
+    if (!sportCounts || !sportCounts.bySport) {
+      return [{ id: "all", label: "All Sports", count: 0 }];
     }
 
+    const counts = sportCounts.bySport;
     return [
-      { id: "all", label: "All Sports", count: countedMatches.length },
-      ...Array.from(counts.entries())
+      { id: "all", label: "All Sports", count: sportCounts.total },
+      ...Object.entries(counts)
         .filter(([key]) => key !== "all")
-        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-        .map(([id, count]) => ({ id, label: titleCase(id), count })),
-    ]
-  }, [countedMatches])
+        .sort((a, b) => (b[1] as number) - (a[1] as number))
+        .map(([id, count]) => ({ id, label: titleCase(id as string), count: count as number })),
+    ];
+  }, [sportCounts])
 
   const liveCount = displayedMatches.filter((match) => match.isLive).length
 
@@ -240,16 +272,16 @@ export default function Page() {
         <div className="flex flex-1 overflow-hidden">
           <Sidebar className="hidden lg:flex w-60 shrink-0 overflow-y-auto border-r border-border" />
 
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-6 scrollbar-thin">
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-2 scrollbar-thin">
             {((activeTab === "home" || activeTab === "live" || activeTab === "featured" || activeTab === "how-it-works" || activeTab === "faqs" || activeTab === "contact" || activeTab === "custom" || activeTab === "mybets") || !activeTab) && (
 
-              <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-2 border-b border-border scrollbar-none shrink-0">
+              <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-0 border-b border-border scrollbar-none shrink-0">
 
                 <div className="flex items-center gap-2 shrink-0">
                   <Button
                     variant="ghost"
                     className={cn(
-                      "h-9 px-4 rounded-md text-sm font-semibold shrink-0 gap-2 border transition-all",
+                      "h-9 px-3 rounded-md text-sm font-semibold shrink-0 gap-1.5 border transition-all",
                       activeTab === "home"
                         ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
                         : "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
@@ -263,7 +295,7 @@ export default function Page() {
                   <Button
                     variant="ghost"
                     className={cn(
-                      "h-9 px-4 rounded-md text-sm font-semibold shrink-0 gap-2 border transition-all",
+                      "h-9 px-3 rounded-md text-sm font-semibold shrink-0 gap-1.5 border transition-all",
                       "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
                     )}
                     onClick={() => { router.push("/live") }}
@@ -276,7 +308,7 @@ export default function Page() {
                   <Button
                     variant="ghost"
                     className={cn(
-                      "h-9 px-4 rounded-md text-sm font-semibold shrink-0 gap-2 border transition-all",
+                      "h-9 px-3 rounded-md text-sm font-semibold shrink-0 gap-1.5 border transition-all",
                       activeTab === "featured"
                         ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
                         : "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
@@ -288,10 +320,10 @@ export default function Page() {
                   </Button>
                 </div>
 
-                <div className="w-px h-6 bg-border mx-1 shrink-0" />
+                <div className="w-px h-6 bg-border mx-0.5 shrink-0" />
 
                 <div className="flex items-center gap-2 shrink-0">
-                  {!allMatches ? (
+                  {!sportCounts ? (
                     <>
                       <div className="h-9 w-24 rounded-md bg-muted animate-pulse shrink-0" />
                       <div className="h-9 w-24 rounded-md bg-muted animate-pulse shrink-0" />
@@ -305,7 +337,7 @@ export default function Page() {
                           key={sport.id}
                           variant="ghost"
                           className={cn(
-                            "h-9 px-4 rounded-md text-sm font-semibold shrink-0 gap-2 border transition-all",
+                            "h-9 px-3 rounded-md text-sm font-semibold shrink-0 gap-1.5 border transition-all",
                             isActive
                               ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
                               : "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
@@ -319,7 +351,7 @@ export default function Page() {
                           <SportIcon className="size-4" />
                           <span>{sport.label}</span>
                           <span className={cn(
-                            "rounded-full px-1.5 py-0.5 text-[10px] font-bold ml-1 transition-colors",
+                            "rounded-full px-1.5 py-0.5 text-[10px] font-bold ml-0.5 transition-colors",
                             isActive ? "bg-[#4b9f71]/20 text-[#4b9f71]" : "bg-muted text-muted-foreground"
                           )}>
                             {sport.count}
@@ -330,7 +362,7 @@ export default function Page() {
                   )}
                 </div>
 
-                <div className="w-px h-6 bg-border mx-1 shrink-0" />
+                <div className="w-px h-6 bg-border mx-0.5 shrink-0" />
 
                 <div className="flex items-center gap-2 shrink-0">
                   {!leagues ? (
@@ -346,7 +378,7 @@ export default function Page() {
                           key={league}
                           variant="ghost"
                           className={cn(
-                            "h-9 px-4 rounded-md text-sm font-medium shrink-0 transition-all border",
+                            "h-9 px-3 rounded-md text-sm font-medium shrink-0 transition-all border",
                             isActive
                               ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
                               : "bg-transparent text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
@@ -417,24 +449,48 @@ export default function Page() {
                       <span>Upcoming Matches & Fixtures</span>
                     </h3>
                     <Badge variant="outline" className="font-semibold text-[10px] text-muted-foreground bg-muted/20 border-border">
-                      Fixtures {upcomingMatches.length}
+                      Fixtures {displayedMatches.length} of {totalCount}
                     </Badge>
                   </div>
 
-                  {!matches ? (
+                  {!matchesResponse ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Skeleton className="h-32 rounded-lg" />
                       <Skeleton className="h-32 rounded-lg" />
                     </div>
-                  ) : upcomingMatches.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {upcomingMatches.map((match) => (
-                        <MatchCard key={match.sourceMatchId} match={match} />
-                      ))}
-                    </div>
+                  ) : displayedMatches.length > 0 ? (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {displayedMatches.map((match) => (
+                          <MatchCard key={match.sourceMatchId} match={match} />
+                        ))}
+                      </div>
+
+                      {/* Load more button */}
+                      <div className="col-span-1 md:col-span-2 py-4 flex justify-center">
+                        {hasMore ? (
+                          <Button
+                            onClick={handleLoadMore}
+                            disabled={isLoadingMore}
+                            className="bg-[#4b9f71] hover:bg-[#3e865f] text-white font-semibold gap-2"
+                          >
+                            {isLoadingMore ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border border-white border-t-transparent" />
+                                Loading...
+                              </>
+                            ) : (
+                              `Load More Fixtures`
+                            )}
+                          </Button>
+                        ) : displayedMatches.length > 0 && (
+                          <span className="text-sm text-muted-foreground font-medium">All fixtures loaded ✓</span>
+                        )}
+                      </div>
+                    </>
                   ) : (
                     <div className="text-center p-8 border border-dashed border-border rounded-lg text-muted-foreground text-xs py-12">
-                      No synced fixtures found. Ask an admin to run the scraper.
+                      No synced fixtures found.
                     </div>
                   )}
                 </div>
@@ -452,9 +508,9 @@ export default function Page() {
                     <Skeleton className="h-32 rounded-lg" />
                     <Skeleton className="h-32 rounded-lg" />
                   </div>
-                ) : featuredMatches.length > 0 ? (
+                ) : displayedMatches.slice(0, 4).length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {featuredMatches.map((match) => (
+                    {displayedMatches.slice(0, 4).map((match) => (
                       <MatchCard key={match.sourceMatchId} match={match} />
                     ))}
                   </div>
@@ -568,24 +624,48 @@ export default function Page() {
                       <span>Upcoming Matches & Fixtures</span>
                     </h3>
                     <Badge variant="outline" className="font-semibold text-[10px] text-muted-foreground bg-muted/20 border-border">
-                      Fixtures {upcomingMatches.length}
+                      Fixtures {displayedMatches.length} of {totalCount}
                     </Badge>
                   </div>
 
-                  {!matches ? (
+                  {!matchesResponse ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Skeleton className="h-32 rounded-lg" />
                       <Skeleton className="h-32 rounded-lg" />
                     </div>
-                  ) : upcomingMatches.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {upcomingMatches.map((match) => (
-                        <MatchCard key={match.sourceMatchId} match={match} />
-                      ))}
-                    </div>
+                  ) : displayedMatches.length > 0 ? (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {displayedMatches.map((match) => (
+                          <MatchCard key={match.sourceMatchId} match={match} />
+                        ))}
+                      </div>
+
+                      {/* Load more button */}
+                      <div className="col-span-1 md:col-span-2 py-4 flex justify-center">
+                        {hasMore ? (
+                          <Button
+                            onClick={handleLoadMore}
+                            disabled={isLoadingMore}
+                            className="bg-[#4b9f71] hover:bg-[#3e865f] text-white font-semibold gap-2"
+                          >
+                            {isLoadingMore ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border border-white border-t-transparent" />
+                                Loading...
+                              </>
+                            ) : (
+                              `Load More Fixtures`
+                            )}
+                          </Button>
+                        ) : displayedMatches.length > 0 && (
+                          <span className="text-sm text-muted-foreground font-medium">All fixtures loaded ✓</span>
+                        )}
+                      </div>
+                    </>
                   ) : (
                     <div className="text-center p-8 border border-dashed border-border rounded-lg text-muted-foreground text-xs py-12">
-                      No synced fixtures found. Ask an admin to run the scraper.
+                      No synced fixtures found. .
                     </div>
                   )}
                 </div>

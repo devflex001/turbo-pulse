@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
 
     // ── Initialize Paystack transaction ──────────────────────────────────────
     const reference = `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    const paystack = initializePaystackService()
+    const paystack = await initializePaystackService()
     const placeholderEmail = `phone-${phone}@bet-flow.local`
 
     const paystackResponse = await paystack.initializeTransaction(

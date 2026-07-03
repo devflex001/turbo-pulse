@@ -1,0 +1,13 @@
+schema_version: 1
+module_path: dependency_management
+title: pnpm-based Dependency Management with Convex Integration
+scope: []
+source_files:
+    - package.json
+    - pnpm-lock.yaml
+    - pnpm-workspace.yaml
+    - skills-lock.json
+    - convex/tsconfig.json
+    - tsconfig.json
+depends_on: []
+related_to: []

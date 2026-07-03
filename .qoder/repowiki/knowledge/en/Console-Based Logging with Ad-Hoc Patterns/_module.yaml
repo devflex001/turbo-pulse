@@ -1,0 +1,14 @@
+schema_version: 1
+module_path: logging_system
+title: Console-Based Logging with Ad-Hoc Patterns
+scope: []
+source_files:
+    - app/api/mpesa/callback/route.ts
+    - lib/mpesa-service.ts
+    - app/api/admin/redis-flush/route.ts
+    - app/api/cache/invalidate/route.ts
+    - components/scraper-logs-drawer.tsx
+    - components/scraper-live-logs.tsx
+    - package.json
+depends_on: []
+related_to: []

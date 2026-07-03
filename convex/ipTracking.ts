@@ -226,6 +226,7 @@ export const updateUserIPTracking = mutation({
       timezone: v.optional(v.string()),
       latitude: v.optional(v.number()),
       longitude: v.optional(v.number()),
+      org: v.optional(v.string()),
     }),
     device: v.object({
       userAgent: v.string(),

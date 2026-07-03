@@ -4,6 +4,8 @@ import { Doc } from "./_generated/dataModel";
 import { requireAdmin, requireAuth } from "./auth/authorization";
 import { updateWalletBalance } from "./mpesa";
 import { notifyAdmins, notifyUser } from "./notifications";
+import { logAdminActionInternal } from "./audit/logs";
+import { getAdminSessionByTokenInternal } from "./admin/sessions";
 
 const CONFIG_KEY = "main";
 
@@ -283,6 +285,7 @@ export const payInstantFee = mutation({
 export const approveWithdrawal = mutation({
   args: {
     userId: v.optional(v.id("users")),
+    sessionToken: v.optional(v.string()), // For logging
     requestId: v.id("withdrawal_requests"),
   },
   handler: async (ctx, args) => {
@@ -303,6 +306,26 @@ export const approveWithdrawal = mutation({
       processedBy: admin.phone ?? admin._id.toString(),
     });
 
+    // Look up admin session for name and audit log
+    let adminName: string | undefined;
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+
+      if (adminSession) {
+        adminName = adminSession.adminName;
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: admin._id,
+          actionType: "approve_withdrawal",
+          resourceType: "withdrawal",
+          resourceDescription: `Withdrawal (Amount: KES ${request.amount})`,
+          details: {
+            amount: request.amount,
+          },
+        });
+      }
+    }
+
     await notifyUser(ctx, {
       recipientUserId: request.userId,
       type: "withdrawal",
@@ -319,7 +342,7 @@ export const approveWithdrawal = mutation({
     await notifyAdmins(ctx, {
       type: "withdrawal",
       title: "Withdrawal approved",
-      message: `${formatKes(request.amount)} withdrawal was approved by ${admin.phone ?? "an admin"}.`,
+      message: `${formatKes(request.amount)} withdrawal was approved by ${adminName ?? admin.phone ?? "an admin"}.`,
       href: "/admin/withdrawals",
       dedupeKey: `withdrawal-approved:${args.requestId}`,
       metadata: {
@@ -339,6 +362,7 @@ export const approveWithdrawal = mutation({
 export const rejectWithdrawal = mutation({
   args: {
     userId: v.optional(v.id("users")),
+    sessionToken: v.optional(v.string()), // For logging
     requestId: v.id("withdrawal_requests"),
     rejectionReason: v.string(),
   },
@@ -364,6 +388,27 @@ export const rejectWithdrawal = mutation({
       rejectionReason: args.rejectionReason,
     });
 
+    // Look up admin session for name and audit log
+    let adminName: string | undefined;
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+
+      if (adminSession) {
+        adminName = adminSession.adminName;
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: admin._id,
+          actionType: "reject_withdrawal",
+          resourceType: "withdrawal",
+          resourceDescription: `Withdrawal (Amount: KES ${request.amount})`,
+          details: {
+            reason: args.rejectionReason,
+            amount: request.amount,
+          },
+        });
+      }
+    }
+
     await notifyUser(ctx, {
       recipientUserId: request.userId,
       type: "withdrawal",
@@ -380,7 +425,7 @@ export const rejectWithdrawal = mutation({
     await notifyAdmins(ctx, {
       type: "withdrawal",
       title: "Withdrawal rejected",
-      message: `${formatKes(request.amount)} withdrawal was rejected by ${admin.phone ?? "an admin"}.`,
+      message: `${formatKes(request.amount)} withdrawal was rejected by ${adminName ?? admin.phone ?? "an admin"}.`,
       href: "/admin/withdrawals",
       dedupeKey: `withdrawal-rejected:${args.requestId}`,
       metadata: {

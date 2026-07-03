@@ -4,6 +4,7 @@ import * as React from "react"
 import { useRouter } from "next/navigation"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
+import { useAuth } from "@/lib/auth/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -95,6 +96,7 @@ export function CustomEventsList({
   status,
 }: CustomEventsListProps) {
   const router = useRouter()
+  const { sessionToken } = useAuth()
   const [search, setSearch] = React.useState("")
   const [sort, setSort] = React.useState<SortOption>("newest")
   const [filterStatus, setFilterStatus] = React.useState<
@@ -151,10 +153,10 @@ export function CustomEventsList({
   const updateScore = useMutation(api.customEvents.updateCustomEventScore)
   const settleEvent = useMutation(api.customEvents.settleCustomEvent)
 
-  const handleResolveEvent = async () => {
+  const handleResolveEvent = async (passphrase?: string) => {
     if (selectedOutcomesByMarket.size === 0 || !eventToResolve) {
       toast.error("Please select at least one outcome in a market")
-      return
+      throw new Error("Please select at least one outcome in a market")
     }
 
     setIsResolving(true)
@@ -168,6 +170,8 @@ export function CustomEventsList({
       await settleEvent({
         eventId: eventToResolve._id,
         marketOutcomes,
+        passphrase, // Include passphrase if provided
+        sessionToken: sessionToken || undefined,
       })
 
       const totalOutcomes = Array.from(selectedOutcomesByMarket.values()).reduce((sum, set) => sum + set.size, 0)
@@ -177,9 +181,19 @@ export function CustomEventsList({
       setSelectedOutcomesByMarket(new Map())
       setMarketSearch("")
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to resolve event")
-    } finally {
+      const errorMsg = error instanceof Error ? error.message : "Failed to resolve event"
+
+      // If error indicates event is already settled and no passphrase was provided, 
+      // rethrow so the modal can handle it
+      if (errorMsg.includes("Event already settled") && !passphrase) {
+        setIsResolving(false)
+        throw error
+      }
+
+      // For other errors, show toast and don't rethrow
+      toast.error(errorMsg)
       setIsResolving(false)
+      throw error
     }
   }
 
@@ -188,7 +202,7 @@ export function CustomEventsList({
     if (!confirm("Are you sure? This cannot be undone.")) return
 
     try {
-      await deleteEvent({ eventId: eventId as any })
+      await deleteEvent({ eventId: eventId as any, sessionToken: sessionToken || undefined })
       toast.success("Event deleted")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete")
@@ -198,7 +212,7 @@ export function CustomEventsList({
   const handlePublish = async (eventId: string, e: React.MouseEvent) => {
     e.stopPropagation()
     try {
-      await publishEvent({ eventId: eventId as any })
+      await publishEvent({ eventId: eventId as any, sessionToken: sessionToken || undefined })
       toast.success("Event published")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to publish")
@@ -208,7 +222,7 @@ export function CustomEventsList({
   const handleUnpublish = async (eventId: string, e: React.MouseEvent) => {
     e.stopPropagation()
     try {
-      await unpublishEvent({ eventId: eventId as any })
+      await unpublishEvent({ eventId: eventId as any, sessionToken: sessionToken || undefined })
       toast.success("Event unpublished")
     } catch (error) {
       toast.error(
@@ -227,7 +241,7 @@ export function CustomEventsList({
     }
     setSavingScore(true)
     try {
-      await updateScore({ eventId: selectedEvent._id, homeScore: h, awayScore: a })
+      await updateScore({ eventId: selectedEvent._id, homeScore: h, awayScore: a, sessionToken: sessionToken || undefined })
       toast.success("Score updated successfully")
       setScoreDialogOpen(false)
     } catch (error) {
@@ -420,6 +434,14 @@ export function CustomEventsList({
                       </TableCell>
                       <TableCell className="py-2">
                         {(() => {
+                          // Check if event has been resolved/settled
+                          if (event.settledAt) {
+                            return (
+                              <Badge className="bg-blue-500/15 text-blue-600 border border-blue-500/20 text-[9px] font-bold">
+                                resolved
+                              </Badge>
+                            )
+                          }
                           if (event.status === "draft") {
                             return (
                               <Badge className="bg-yellow-500/15 text-yellow-600 border border-yellow-500/20 text-[9px] font-bold">
@@ -561,6 +583,14 @@ export function CustomEventsList({
               const isFinished = event.status === "published" && timer.isFinished
 
               const renderStatusBadge = () => {
+                // Check if event has been resolved/settled
+                if (event.settledAt) {
+                  return (
+                    <Badge className="bg-blue-500/15 text-blue-600 border border-blue-500/20 text-[9px] font-bold">
+                      resolved
+                    </Badge>
+                  )
+                }
                 if (event.status === "draft") {
                   return (
                     <Badge className="bg-yellow-500/15 text-yellow-600 border border-yellow-500/20 text-[9px] font-bold">
@@ -872,7 +902,7 @@ interface ResolveModalProps {
   marketSearch: string
   onMarketSearchChange: (search: string) => void
   onOutcomeToggle: (marketId: string, outcomeId: string) => void
-  onResolve: () => Promise<void>
+  onResolve: (passphrase?: string) => Promise<void>
 }
 
 function ResolveModal({
@@ -887,6 +917,41 @@ function ResolveModal({
   onResolve,
 }: ResolveModalProps) {
   const isMobile = useMediaQuery("(max-width: 768px)")
+  const [showConfirmDialog, setShowConfirmDialog] = React.useState(false)
+  const [showPassphraseDialog, setShowPassphraseDialog] = React.useState(false)
+  const [passphraseInput, setPassphraseInput] = React.useState("")
+  const [passphraseError, setPassphraseError] = React.useState("")
+  const [showPassphrase, setShowPassphrase] = React.useState(false)
+
+  const handlePassphraseSubmit = async () => {
+    if (!passphraseInput) {
+      setPassphraseError("Passphrase is required")
+      return
+    }
+
+    // Get passphrase from environment variable (must be NEXT_PUBLIC to be accessible in client)
+    const correctPassphrase = process.env.NEXT_PUBLIC_SYSTEM_OVERRIDE_PASSPHRASE
+
+    if (passphraseInput !== correctPassphrase) {
+      setPassphraseError("Invalid passphrase")
+      return
+    }
+
+    // Passphrase is correct, proceed with override
+    setShowPassphraseDialog(false)
+    setPassphraseInput("")
+    setPassphraseError("")
+    setShowPassphrase(false)
+
+    // Call resolve with passphrase
+    try {
+      await onResolve(correctPassphrase)
+      toast.success(`Event override successful!`)
+      onOpenChange(false)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to override settlement")
+    }
+  }
 
   // Fetch markets and odds for the event
   const markets = useQuery(
@@ -897,6 +962,20 @@ function ResolveModal({
   const allOdds = useQuery(
     api.customEvents.listCustomOddsByEvent,
     event ? { eventId: event._id } : "skip"
+  )
+
+  // Fetch settlement summary when outcomes are selected
+  const settlementSummary = useQuery(
+    api.customEvents.calculateSettlementSummary,
+    event && selectedOutcomesByMarket.size > 0
+      ? {
+        eventId: event._id,
+        marketOutcomes: Array.from(selectedOutcomesByMarket.entries()).map(([marketId, outcomeIds]) => ({
+          marketId: marketId as any,
+          winningOutcomeIds: Array.from(outcomeIds),
+        })),
+      }
+      : "skip"
   )
 
   // Group odds by market
@@ -1040,25 +1119,183 @@ function ResolveModal({
       </ScrollArea>
 
       {/* Action Buttons */}
-      <div className="shrink-0 border-t border-border bg-muted/30 p-4 flex gap-2 justify-end">
-        <Button
-          variant="outline"
-          size="sm"
-          className="text-xs h-8 border-border"
-          onClick={() => onOpenChange(false)}
-          disabled={isResolving}
-        >
-          Cancel
-        </Button>
-        <Button
-          size="sm"
-          className="text-xs h-8 font-semibold"
-          onClick={onResolve}
-          disabled={isResolving || totalSelected === 0}
-        >
-          {isResolving ? "Resolving..." : `Resolve ${totalSelected > 0 ? `(${totalSelected})` : ""}`}
-        </Button>
+      <div className="shrink-0 border-t border-border bg-muted/30 p-4 space-y-3">
+        {/* Settlement Summary */}
+        {settlementSummary && selectedOutcomesByMarket.size > 0 && (
+          <div className="grid grid-cols-4 gap-2 bg-card border border-border rounded-lg p-3">
+            <div className="space-y-1">
+              <p className="text-[9px] font-semibold text-muted-foreground uppercase">Bets to Settle</p>
+              <p className="text-sm font-bold text-foreground">{settlementSummary.totalBets}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[9px] font-semibold text-muted-foreground uppercase">Winners</p>
+              <p className="text-sm font-bold text-emerald-600">{settlementSummary.winningBets}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[9px] font-semibold text-muted-foreground uppercase">Payouts</p>
+              <p className="text-sm font-bold text-foreground font-mono">
+                {(settlementSummary.totalPayouts / 1000).toFixed(1)}k
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[9px] font-semibold text-muted-foreground uppercase">Gain</p>
+              <p className={cn(
+                "text-sm font-bold font-mono",
+                settlementSummary.systemGain > 0 ? "text-emerald-600" : "text-rose-600"
+              )}>
+                {(settlementSummary.systemGain / 1000).toFixed(1)}k
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-2 justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-xs h-8 border-border"
+            onClick={() => onOpenChange(false)}
+            disabled={isResolving}
+          >
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            className="text-xs h-8 font-semibold"
+            onClick={async () => {
+              try {
+                // Try to resolve without passphrase first
+                await onResolve()
+              } catch (error) {
+                // If event is already settled, show confirmation dialog
+                const errorMsg = error instanceof Error ? error.message : ""
+                if (errorMsg.includes("Event already settled")) {
+                  setShowConfirmDialog(true)
+                }
+                // Don't show toast here - handleResolveEvent already showed it
+              }
+            }}
+            disabled={isResolving || totalSelected === 0}
+          >
+            {isResolving ? "Resolving..." : `Resolve ${totalSelected > 0 ? `(${totalSelected})` : ""}`}
+          </Button>
+        </div>
       </div>
+
+      {/* Confirmation Dialog - Step 1 */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent className="max-w-md bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold text-destructive">Override Already-Settled Event?</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              This event has already been settled. Do you want to override the existing settlement and re-settle with new outcomes?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 my-4">
+            <p className="text-xs font-semibold text-destructive">
+              This action is irreversible. All previous bet settlements will be recalculated and wallets will be updated accordingly.
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-8 border-border"
+              onClick={() => {
+                setShowConfirmDialog(false)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="text-xs h-8 font-semibold bg-destructive hover:bg-destructive/90"
+              onClick={() => {
+                setShowConfirmDialog(false)
+                setShowPassphraseDialog(true)
+              }}
+            >
+              Proceed
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Passphrase Input Dialog - Step 2 */}
+      <Dialog open={showPassphraseDialog} onOpenChange={setShowPassphraseDialog}>
+        <DialogContent className="max-w-md bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold">Enter System Passphrase</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Enter the system passphrase to confirm the override.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider block">
+                System Passphrase
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassphrase ? "text" : "password"}
+                  value={passphraseInput}
+                  onChange={(e) => {
+                    setPassphraseInput(e.target.value)
+                    setPassphraseError("")
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handlePassphraseSubmit()
+                    }
+                  }}
+                  placeholder="Enter passphrase"
+                  autoFocus
+                  className="w-full h-9 px-3 pr-10 rounded-md border border-border bg-card text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassphrase(!showPassphrase)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  title={showPassphrase ? "Hide passphrase" : "Show passphrase"}
+                >
+                  {showPassphrase ? (
+                    <EyeOff className="size-4" />
+                  ) : (
+                    <Eye className="size-4" />
+                  )}
+                </button>
+              </div>
+              {passphraseError && (
+                <p className="text-[10px] text-destructive font-medium">{passphraseError}</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-8 border-border"
+              onClick={() => {
+                setShowPassphraseDialog(false)
+                setPassphraseInput("")
+                setPassphraseError("")
+                setShowPassphrase(false)
+              }}
+              disabled={isResolving}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              className="text-xs h-8 font-semibold"
+              onClick={handlePassphraseSubmit}
+              disabled={isResolving || !passphraseInput}
+            >
+              {isResolving ? "Overriding..." : "Override & Settle"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 
