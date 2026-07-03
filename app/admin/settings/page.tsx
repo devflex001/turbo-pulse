@@ -527,6 +527,9 @@ export default function SettingsPage() {
                   className="h-8 text-xs"
                 />
               </div>
+              <div className="pt-2 border-t border-border/50 text-[10px] text-muted-foreground">
+                <p>Secured by <span className="font-semibold">Flexx</span> Vintage</p>
+              </div>
             </CardContent>
             <CardFooter>
               <Button
