@@ -109,6 +109,7 @@ export function CustomEventCard({
               matchId={eventId}
               competitionName={competition}
               startTime={startTime}
+              isCustomEvent={true}
             />
             <Badge
               variant={badgeConfig.variant}

@@ -15,6 +15,7 @@ interface ShareModalProps {
   startTime?: number
   open: boolean
   onOpenChange: (open: boolean) => void
+  isCustomEvent?: boolean
 }
 
 export function ShareModal({
@@ -24,11 +25,14 @@ export function ShareModal({
   startTime,
   open,
   onOpenChange,
+  isCustomEvent = false,
 }: ShareModalProps) {
   const [copied, setCopied] = React.useState(false)
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
-  const matchUrl = `${baseUrl}/markets/${matchId}`
+  const matchUrl = isCustomEvent
+    ? `${baseUrl}/events/${matchId}`
+    : `${baseUrl}/markets/${matchId}`
 
   // Format time for sharing
   const formattedTime = startTime
@@ -56,7 +60,7 @@ export function ShareModal({
 
   const handleNativeShare = async () => {
     try {
-      if (navigator.share) {
+      if (typeof navigator !== "undefined" && "share" in navigator) {
         await navigator.share({
           title: title,
           text: `Check out this match: ${title}`,
@@ -122,6 +126,7 @@ interface MatchShareProps {
   matchId: string
   competitionName?: string
   startTime?: number
+  isCustomEvent?: boolean
 }
 
 export function MatchShare({
@@ -129,6 +134,7 @@ export function MatchShare({
   matchId,
   competitionName,
   startTime,
+  isCustomEvent = false,
 }: MatchShareProps) {
   const [open, setOpen] = React.useState(false)
 
@@ -152,6 +158,7 @@ export function MatchShare({
         matchId={matchId}
         competitionName={competitionName}
         startTime={startTime}
+        isCustomEvent={isCustomEvent}
       />
     </>
   )
