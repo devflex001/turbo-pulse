@@ -31,6 +31,7 @@ import {
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { CustomEventDetail } from "./custom-event-detail"
+import { MatchShare } from "./match-share"
 
 export function PublishedCustomEventsSection() {
   const { addToBetslip } = useBetStore()
@@ -166,6 +167,12 @@ export function PublishedCustomEventsSection() {
             <span className="text-[9px] text-amber-200/80 font-semibold truncate">{event.competition}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <MatchShare
+              title={`${event.homeTeam} vs ${event.awayTeam}`}
+              matchId={event._id}
+              competitionName={event.competition}
+              startTime={event.startTime}
+            />
             <button
               onClick={() => handleOpenDetail(event)}
               className="text-[8px] font-semibold text-amber-300 hover:text-amber-200 transition-colors cursor-pointer"
