@@ -21,6 +21,7 @@ export const loginUser = mutation({
       .unique();
 
     if (!user) {
+      // Don't reveal whether phone number exists
       throw new Error("Invalid phone number or password");
     }
 
@@ -28,6 +29,7 @@ export const loginUser = mutation({
     const isValidPassword = verifyPassword(user.passwordHash, password);
 
     if (!isValidPassword) {
+      // Generic message for security - don't confirm if phone exists
       throw new Error("Invalid phone number or password");
     }
 

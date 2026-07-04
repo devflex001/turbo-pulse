@@ -39,19 +39,27 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
   const [password, setPassword] = React.useState("")
   const [showPassword, setShowPassword] = React.useState(false)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const [phoneError, setPhoneError] = React.useState("")
+  const [passwordError, setPasswordError] = React.useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Clear previous errors
+    setPhoneError("")
+    setPasswordError("")
+
+    // Validation
     if (!phone.trim()) {
-      toast.error("Please enter your phone number")
+      setPhoneError("Please enter your phone number")
       return
     }
     if (!isValidKenyanPhone(phone)) {
-      toast.error("Please enter a valid Kenyan phone number (e.g. 0712345678)")
+      setPhoneError("Invalid phone number. Use format like 0712345678")
       return
     }
     if (password.length < 6) {
-      toast.error("Password must be at least 6 characters")
+      setPasswordError("Password must be at least 6 characters")
       return
     }
 
@@ -73,7 +81,9 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
       const errMsg =
         error instanceof Error
           ? error.message
-          : "Failed to log in. Please check your credentials."
+          : "Login failed. Please check your credentials and try again."
+
+      // Show user-friendly error
       toast.error(errMsg)
       setIsSubmitting(false)
     }
@@ -99,13 +109,18 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
             type="tel"
             placeholder="e.g. 0712345678"
             value={phone}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               setPhone(e.target.value)
-            }
+              setPhoneError("")
+            }}
             disabled={isSubmitting}
             required
-            className="focus-visible:ring-primary"
+            className={`focus-visible:ring-primary ${phoneError ? "border-destructive" : ""}`}
+            aria-invalid={!!phoneError}
           />
+          {phoneError && (
+            <p className="text-xs text-destructive">{phoneError}</p>
+          )}
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -134,12 +149,14 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               value={password}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 setPassword(e.target.value)
-              }
+                setPasswordError("")
+              }}
               disabled={isSubmitting}
               required
-              className="pr-9 focus-visible:ring-primary"
+              className={`pr-9 focus-visible:ring-primary ${passwordError ? "border-destructive" : ""}`}
+              aria-invalid={!!passwordError}
             />
             <button
               type="button"
@@ -154,6 +171,9 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
               )}
             </button>
           </div>
+          {passwordError && (
+            <p className="text-xs text-destructive">{passwordError}</p>
+          )}
         </div>
         <div className="flex flex-col gap-2 pt-2">
           <Button
@@ -189,6 +209,9 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [referralCode, setReferralCode] = React.useState<string | undefined>()
+  const [phoneError, setPhoneError] = React.useState("")
+  const [passwordError, setPasswordError] = React.useState("")
+  const [confirmPasswordError, setConfirmPasswordError] = React.useState("")
 
   // Get configurable referral reward (using public query, no auth required)
   const platformConfig = useQuery(api.platformConfig.getUserFacingConfig, {})
@@ -207,20 +230,27 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Clear previous errors
+    setPhoneError("")
+    setPasswordError("")
+    setConfirmPasswordError("")
+
+    // Validation
     if (!phone.trim()) {
-      toast.error("Please enter a phone number")
+      setPhoneError("Phone number is required")
       return
     }
     if (!isValidKenyanPhone(phone)) {
-      toast.error("Please enter a valid Kenyan phone number (e.g. 0712345678)")
+      setPhoneError("Invalid phone number. Use format like 0712345678")
       return
     }
     if (password.length < 6) {
-      toast.error("Password must be at least 6 characters")
+      setPasswordError("Password must be at least 6 characters")
       return
     }
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match")
+      setConfirmPasswordError("Passwords do not match")
       return
     }
 
@@ -241,7 +271,7 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
       const errMsg =
         error instanceof Error
           ? error.message
-          : "Failed to create account. Phone number might be already registered."
+          : "Failed to create account. Please check your information and try again."
       toast.error(errMsg)
     } finally {
       setIsSubmitting(false)
@@ -277,13 +307,18 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
             type="tel"
             placeholder="e.g. 0712345678"
             value={phone}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               setPhone(e.target.value)
-            }
+              setPhoneError("")
+            }}
             disabled={isSubmitting}
             required
-            className="focus-visible:ring-primary"
+            className={`focus-visible:ring-primary ${phoneError ? "border-destructive" : ""}`}
+            aria-invalid={!!phoneError}
           />
+          {phoneError && (
+            <p className="text-xs text-destructive">{phoneError}</p>
+          )}
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-2">
@@ -299,12 +334,14 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
                 value={password}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   setPassword(e.target.value)
-                }
+                  setPasswordError("")
+                }}
                 disabled={isSubmitting}
                 required
-                className="pr-9 focus-visible:ring-primary"
+                className={`pr-9 focus-visible:ring-primary ${passwordError ? "border-destructive" : ""}`}
+                aria-invalid={!!passwordError}
               />
               <button
                 type="button"
@@ -319,6 +356,9 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
                 )}
               </button>
             </div>
+            {passwordError && (
+              <p className="text-xs text-destructive">{passwordError}</p>
+            )}
           </div>
           <div className="space-y-2">
             <label
@@ -333,12 +373,14 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
                 type={showConfirmPassword ? "text" : "password"}
                 placeholder="••••••••"
                 value={confirmPassword}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                   setConfirmPassword(e.target.value)
-                }
+                  setConfirmPasswordError("")
+                }}
                 disabled={isSubmitting}
                 required
-                className="pr-9 focus-visible:ring-primary"
+                className={`pr-9 focus-visible:ring-primary ${confirmPasswordError ? "border-destructive" : ""}`}
+                aria-invalid={!!confirmPasswordError}
               />
               <button
                 type="button"
@@ -353,6 +395,9 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
                 )}
               </button>
             </div>
+            {confirmPasswordError && (
+              <p className="text-xs text-destructive">{confirmPasswordError}</p>
+            )}
           </div>
         </div>
         <div className="flex items-start gap-2 pt-1">

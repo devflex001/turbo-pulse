@@ -185,7 +185,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       setIsLoading(false);
-      throw error;
+      // Translate error to user-friendly message and re-throw
+      const { translateAuthError } = await import("./errorMessages");
+      const friendlyError = new Error(translateAuthError(error, "login"));
+      throw friendlyError;
     }
   };
 
@@ -206,7 +209,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       setIsLoading(false);
-      throw error;
+      // Translate error to user-friendly message and re-throw
+      const { translateAuthError } = await import("./errorMessages");
+      const friendlyError = new Error(translateAuthError(error, "register"));
+      throw friendlyError;
     }
   };
 
