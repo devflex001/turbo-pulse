@@ -231,7 +231,11 @@ export default function AdminDashboard() {
                     fontSize={9}
                     tickLine={false}
                     axisLine={false}
-                    tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+                    tickFormatter={(v) => {
+                      if (v === 0) return "0";
+                      if (v >= 1000) return `${(v / 1000).toFixed(1)}k`;
+                      return `${Math.round(v)}`;
+                    }}
                   />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Area
