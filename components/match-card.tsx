@@ -121,8 +121,7 @@ export function MatchCard({ match }: MatchCardProps) {
             )}
 
             <MatchShare
-              homeTeam={match.homeTeam}
-              awayTeam={match.awayTeam}
+              title={matchTitle}
               matchId={match.sourceMatchId}
               competitionName={match.competitionName}
               startTime={match.startTime}

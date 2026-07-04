@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { useAuth } from "@/lib/auth/AuthContext"
+import { MatchShare } from "@/components/match-share"
 import { cn } from "@/lib/utils"
 import {
   calculateEventTimer,
@@ -103,6 +104,12 @@ export function CustomEventCard({
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <MatchShare
+              title={`${homeTeam} vs ${awayTeam}`}
+              matchId={eventId}
+              competitionName={competition}
+              startTime={startTime}
+            />
             <Badge
               variant={badgeConfig.variant}
               className={cn(
