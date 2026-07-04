@@ -767,6 +767,92 @@ export default function Page() {
         />
       )}
 
+      {/* Match Modal from Share Link */}
+      {matchModalOpen && selectedMatchForShare && (
+        isMobile ? (
+          <Drawer open={matchModalOpen} onOpenChange={setMatchModalOpen}>
+            <DrawerContent className="h-[90vh] flex flex-col overflow-hidden p-0 bg-card">
+              <DrawerHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
+                <DrawerTitle className="truncate text-sm font-semibold">
+                  {selectedMatchForShare.homeTeam} vs {selectedMatchForShare.awayTeam}
+                </DrawerTitle>
+                <p className="truncate text-xs text-muted-foreground">{selectedMatchForShare.competitionName}</p>
+              </DrawerHeader>
+              <div className="flex-1 overflow-hidden">
+                <MarketsPanel
+                  open={true}
+                  onOpenChange={setMatchModalOpen}
+                  match={{ ...selectedMatchForShare, mainOdds: [] } as SportsMatchWithOdds}
+                />
+              </div>
+            </DrawerContent>
+          </Drawer>
+        ) : (
+          <Sheet open={matchModalOpen} onOpenChange={setMatchModalOpen}>
+            <SheetContent
+              side="right"
+              className="!w-[min(50vw,720px)] !max-w-none flex h-dvh flex-col overflow-hidden p-0 bg-card"
+            >
+              <SheetHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
+                <SheetTitle className="truncate text-sm font-semibold">
+                  {selectedMatchForShare.homeTeam} vs {selectedMatchForShare.awayTeam}
+                </SheetTitle>
+                <p className="truncate text-xs text-muted-foreground">{selectedMatchForShare.competitionName}</p>
+              </SheetHeader>
+              <div className="flex-1 overflow-hidden">
+                <MarketsPanel
+                  open={true}
+                  onOpenChange={setMatchModalOpen}
+                  match={{ ...selectedMatchForShare, mainOdds: [] } as SportsMatchWithOdds}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+        )
+      )}
+
+      {/* Custom Event Modal from Share Link */}
+      {customEventModalOpen && selectedCustomEventForShare && (
+        isMobile ? (
+          <Drawer open={customEventModalOpen} onOpenChange={setCustomEventModalOpen}>
+            <DrawerContent className="h-[90vh] flex flex-col overflow-hidden p-0 bg-card">
+              <DrawerHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
+                <DrawerTitle className="truncate text-sm font-semibold">
+                  {selectedCustomEventForShare.homeTeam} vs {selectedCustomEventForShare.awayTeam}
+                </DrawerTitle>
+                <p className="truncate text-xs text-muted-foreground">{selectedCustomEventForShare.competition}</p>
+              </DrawerHeader>
+              <div className="flex-1 overflow-hidden flex flex-col">
+                <CustomEventDetail
+                  eventId={selectedCustomEventForShare._id as Id<"customEvents">}
+                  onBack={() => setCustomEventModalOpen(false)}
+                />
+              </div>
+            </DrawerContent>
+          </Drawer>
+        ) : (
+          <Sheet open={customEventModalOpen} onOpenChange={setCustomEventModalOpen}>
+            <SheetContent
+              side="right"
+              className="!w-[min(50vw,720px)] !max-w-none flex h-dvh flex-col overflow-hidden p-0 bg-card"
+            >
+              <SheetHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
+                <SheetTitle className="truncate text-sm font-semibold">
+                  {selectedCustomEventForShare.homeTeam} vs {selectedCustomEventForShare.awayTeam}
+                </SheetTitle>
+                <p className="truncate text-xs text-muted-foreground">{selectedCustomEventForShare.competition}</p>
+              </SheetHeader>
+              <div className="flex-1 overflow-hidden flex flex-col">
+                <CustomEventDetail
+                  eventId={selectedCustomEventForShare._id as Id<"customEvents">}
+                  onBack={() => setCustomEventModalOpen(false)}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+        )
+      )}
+
     </>
   )
 }
