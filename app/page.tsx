@@ -36,6 +36,22 @@ import {
 import type { SportsMatch } from "@/components/markets-panel"
 import { CustomEventCard } from "@/components/custom-event-card"
 import { PublishedCustomEventsSection } from "@/components/published-custom-events-section"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer"
+import { MarketsPanel, type SportsMatchWithOdds } from "@/components/markets-panel"
+import { CustomEventDetail } from "@/components/custom-event-detail"
+import { Id } from "@/convex/_generated/dataModel"
+import { useMediaQuery } from "@/hooks/use-media-query"
 
 const SLIDES = [
   {
@@ -120,6 +136,7 @@ function getSportIcon(slug: string) {
 export default function Page() {
   const router = useRouter()
   const { user, isLoading: authLoading, isAdmin } = useAuth()
+  const isMobile = useMediaQuery("(max-width: 768px)")
   const {
     activeTab,
     setActiveTab,
@@ -144,11 +161,19 @@ export default function Page() {
   const [showSignupFromReferral, setShowSignupFromReferral] = React.useState(false)
   const [forceShowModal, setForceShowModal] = React.useState(false) // Debug: force show modal
 
-  // Check for referral code on mount and open signup modal
+  // State for opening match/custom event modal from share link
+  const [selectedMatchForShare, setSelectedMatchForShare] = React.useState<any>(null)
+  const [selectedCustomEventForShare, setSelectedCustomEventForShare] = React.useState<any>(null)
+  const [matchModalOpen, setMatchModalOpen] = React.useState(false)
+  const [customEventModalOpen, setCustomEventModalOpen] = React.useState(false)
+
+  // Check for referral code and match/event query params on mount
   React.useEffect(() => {
     if (typeof window !== "undefined") {
       const searchParams = new URLSearchParams(window.location.search)
       const ref = searchParams.get("ref")
+      const matchId = searchParams.get("match")
+      const customEventId = searchParams.get("customEvent")
 
       console.log('[Referral] URL ref param:', ref)
       console.log('[Referral] User logged in:', !!user)
@@ -157,6 +182,16 @@ export default function Page() {
       if (ref && !user && !authLoading) {
         console.log('[Referral] Opening signup modal with ref:', ref)
         setShowSignupFromReferral(true)
+      }
+
+      if (matchId) {
+        console.log('[Share] Opening match modal for:', matchId)
+        setMatchModalOpen(true)
+      }
+
+      if (customEventId) {
+        console.log('[Share] Opening custom event modal for:', customEventId)
+        setCustomEventModalOpen(true)
       }
     }
   }, [user, authLoading])
@@ -241,6 +276,31 @@ export default function Page() {
   }, [allMatches])
 
   const displayedMatches = matches
+
+  // Find the match/custom event from share link when matches load
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search)
+      const matchId = searchParams.get("match")
+      const customEventId = searchParams.get("customEvent")
+
+      if (matchId && displayedMatches.length > 0 && !selectedMatchForShare) {
+        const found = displayedMatches.find((m) => m.sourceMatchId === matchId)
+        if (found) {
+          setSelectedMatchForShare(found)
+          setMatchModalOpen(true)
+        }
+      }
+
+      if (customEventId && customEvents && customEvents.length > 0 && !selectedCustomEventForShare) {
+        const found = customEvents.find((e) => e._id === customEventId)
+        if (found) {
+          setSelectedCustomEventForShare(found)
+          setCustomEventModalOpen(true)
+        }
+      }
+    }
+  }, [displayedMatches, customEvents, selectedMatchForShare, selectedCustomEventForShare])
 
   const countedMatches = React.useMemo(() => {
     return []

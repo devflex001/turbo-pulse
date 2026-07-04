@@ -30,9 +30,8 @@ export function ShareModal({
   const [copied, setCopied] = React.useState(false)
 
   const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
-  const matchUrl = isCustomEvent
-    ? `${baseUrl}/events/${matchId}`
-    : `${baseUrl}/markets/${matchId}`
+  const queryParam = isCustomEvent ? `customEvent=${matchId}` : `match=${matchId}`
+  const shareUrl = `${baseUrl}/?${queryParam}`
 
   // Format time for sharing
   const formattedTime = startTime
@@ -45,7 +44,7 @@ export function ShareModal({
     : ""
 
   // Create share text
-  const shareText = `🏆 ${title}\n${competitionName ? `📍 ${competitionName}\n` : ""}${formattedTime ? `⏰ ${formattedTime}\n\n` : "\n"}💰 Check the odds and place your bets on BetFlexx!\n\n${matchUrl}`
+  const shareText = `🏆 ${title}\n${competitionName ? `📍 ${competitionName}\n` : ""}${formattedTime ? `⏰ ${formattedTime}\n\n` : "\n"}💰 Check the odds and place your bets on BetFlexx!\n\n${shareUrl}`
 
   const copyToClipboard = async () => {
     try {
@@ -64,7 +63,7 @@ export function ShareModal({
         await navigator.share({
           title: title,
           text: `Check out this match: ${title}`,
-          url: matchUrl,
+          url: shareUrl,
         })
         onOpenChange(false)
       }
@@ -84,7 +83,7 @@ export function ShareModal({
     >
       <div className="space-y-3 py-4">
         <div className="bg-muted/50 rounded-lg p-3 border border-border text-xs text-muted-foreground">
-          <p className="truncate">{matchUrl}</p>
+          <p className="truncate">{shareUrl}</p>
         </div>
 
         <div className="space-y-2">

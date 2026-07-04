@@ -15,16 +15,28 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { PlayCircle } from "lucide-react"
 import type { SportsMatch } from "@/components/markets-panel"
+import { useMediaQuery } from "@/hooks/use-media-query"
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer"
+import { CustomEventDetail } from "@/components/custom-event-detail"
+import { Id } from "@/convex/_generated/dataModel"
 
 export default function LivePage() {
   const [betslipOpen, setBetslipOpen] = React.useState(false)
   const [now, setNow] = React.useState(() => Date.now())
+  const [selectedCustomEvent, setSelectedCustomEvent] = React.useState<any>(null)
+  const [customEventDetailOpen, setCustomEventDetailOpen] = React.useState(false)
+  const isMobile = useMediaQuery("(max-width: 768px)")
 
   // Update timer every second
   React.useEffect(() => {
@@ -101,6 +113,10 @@ export default function LivePage() {
                     competition={event.competition}
                     title={event.title}
                     totalMarkets={event.totalMarkets}
+                    onClick={() => {
+                      setSelectedCustomEvent(event)
+                      setCustomEventDetailOpen(true)
+                    }}
                   />
                 ))}
               </div>
@@ -110,7 +126,7 @@ export default function LivePage() {
           {/* Live Sports Matches Section */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-            
+
               {displayedMatches.length > 0 && (
                 <Badge variant="outline" className="font-semibold text-[10px] text-muted-foreground bg-muted/20 border-border">
                   Matches {displayedMatches.length}
@@ -147,6 +163,54 @@ export default function LivePage() {
       </div>
 
       <BottomNav liveCount={displayedMatches.length + liveCustomEvents.length} />
+
+      {/* Custom Event Detail Modal/Drawer */}
+      {isMobile ? (
+        <Drawer open={customEventDetailOpen} onOpenChange={setCustomEventDetailOpen}>
+          <DrawerContent className="h-[90vh] flex flex-col overflow-hidden p-0 bg-card">
+            {selectedCustomEvent && (
+              <>
+                <DrawerHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
+                  <DrawerTitle className="truncate text-sm font-semibold">
+                    {selectedCustomEvent.homeTeam} vs {selectedCustomEvent.awayTeam}
+                  </DrawerTitle>
+                  <p className="truncate text-xs text-muted-foreground">{selectedCustomEvent.competition}</p>
+                </DrawerHeader>
+                <div className="flex-1 overflow-hidden flex flex-col">
+                  <CustomEventDetail
+                    eventId={selectedCustomEvent._id as Id<"customEvents">}
+                    onBack={() => setCustomEventDetailOpen(false)}
+                  />
+                </div>
+              </>
+            )}
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Sheet open={customEventDetailOpen} onOpenChange={setCustomEventDetailOpen}>
+          <SheetContent
+            side="right"
+            className="!w-[min(50vw,720px)] !max-w-none flex h-dvh flex-col overflow-hidden p-0 bg-card"
+          >
+            {selectedCustomEvent && (
+              <>
+                <SheetHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
+                  <SheetTitle className="truncate text-sm font-semibold">
+                    {selectedCustomEvent.homeTeam} vs {selectedCustomEvent.awayTeam}
+                  </SheetTitle>
+                  <p className="truncate text-xs text-muted-foreground">{selectedCustomEvent.competition}</p>
+                </SheetHeader>
+                <div className="flex-1 overflow-hidden flex flex-col">
+                  <CustomEventDetail
+                    eventId={selectedCustomEvent._id as Id<"customEvents">}
+                    onBack={() => setCustomEventDetailOpen(false)}
+                  />
+                </div>
+              </>
+            )}
+          </SheetContent>
+        </Sheet>
+      )}
 
       {/* Betslip Sheet */}
       <Sheet open={betslipOpen} onOpenChange={setBetslipOpen}>

@@ -172,6 +172,7 @@ export function PublishedCustomEventsSection() {
               matchId={event._id}
               competitionName={event.competition}
               startTime={event.startTime}
+              isCustomEvent={true}
             />
             <button
               onClick={() => handleOpenDetail(event)}

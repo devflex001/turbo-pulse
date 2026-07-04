@@ -92,12 +92,7 @@ export function MatchCard({ match }: MatchCardProps) {
   }
 
   const openMarkets = () => {
-    if (isMobile) {
-      router.push(`/markets/${match.sourceMatchId}`)
-      return
-    }
-
-    setMarketsOpen(true)
+    router.push(`/live?match=${match.sourceMatchId}`)
   }
 
   return (
