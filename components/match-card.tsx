@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Radio } from "lucide-react"
 import { MarketsPanel, type SportsMatch, type SportsMatchWithOdds } from "./markets-panel"
+import { MatchShare } from "./match-share"
 import { calculateEventTimer } from "@/lib/event-timer"
 import { cn } from "@/lib/utils"
 
@@ -118,6 +119,15 @@ export function MatchCard({ match }: MatchCardProps) {
                 {formatStartTime(match.startTime)}
               </span>
             )}
+
+            <MatchShare
+              homeTeam={match.homeTeam}
+              awayTeam={match.awayTeam}
+              matchId={match.sourceMatchId}
+              competitionName={match.competitionName}
+              startTime={match.startTime}
+            />
+
             <button
               onClick={openMarkets}
               className="text-[10px] font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer"
