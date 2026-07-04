@@ -84,7 +84,7 @@ export function ShareModal({
         </div>
 
         <div className="space-y-2">
-          {navigator.share && (
+          {typeof navigator !== "undefined" && navigator.share && (
             <Button
               onClick={handleNativeShare}
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-2"
