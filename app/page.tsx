@@ -162,12 +162,12 @@ export default function Page() {
   const [forceShowModal, setForceShowModal] = React.useState(false) // Debug: force show modal
 
   // State for opening match/custom event modal from share link
-  const [selectedMatchForShare, setSelectedMatchForShare] = React.useState<any>(null)
-  const [selectedCustomEventForShare, setSelectedCustomEventForShare] = React.useState<any>(null)
+  const [matchIdFromUrl, setMatchIdFromUrl] = React.useState<string | null>(null)
+  const [customEventIdFromUrl, setCustomEventIdFromUrl] = React.useState<string | null>(null)
   const [matchModalOpen, setMatchModalOpen] = React.useState(false)
   const [customEventModalOpen, setCustomEventModalOpen] = React.useState(false)
 
-  // Check for referral code and match/event query params on mount
+  // Check URL params on mount
   React.useEffect(() => {
     if (typeof window !== "undefined") {
       const searchParams = new URLSearchParams(window.location.search)
@@ -175,26 +175,21 @@ export default function Page() {
       const matchId = searchParams.get("match")
       const customEventId = searchParams.get("customEvent")
 
-      console.log('[Referral] URL ref param:', ref)
-      console.log('[Referral] User logged in:', !!user)
-      console.log('[Referral] Auth loading:', authLoading)
-
       if (ref && !user && !authLoading) {
-        console.log('[Referral] Opening signup modal with ref:', ref)
         setShowSignupFromReferral(true)
       }
 
       if (matchId) {
-        console.log('[Share] Opening match modal for:', matchId)
+        setMatchIdFromUrl(matchId)
         setMatchModalOpen(true)
       }
 
       if (customEventId) {
-        console.log('[Share] Opening custom event modal for:', customEventId)
+        setCustomEventIdFromUrl(customEventId)
         setCustomEventModalOpen(true)
       }
     }
-  }, [user, authLoading])
+  }, [])
 
   // Pagination state for infinite scroll
   const [offset, setOffset] = React.useState(0)
@@ -276,31 +271,6 @@ export default function Page() {
   }, [allMatches])
 
   const displayedMatches = matches
-
-  // Find the match/custom event from share link when matches load
-  React.useEffect(() => {
-    if (typeof window !== "undefined") {
-      const searchParams = new URLSearchParams(window.location.search)
-      const matchId = searchParams.get("match")
-      const customEventId = searchParams.get("customEvent")
-
-      if (matchId && displayedMatches.length > 0 && !selectedMatchForShare) {
-        const found = displayedMatches.find((m) => m.sourceMatchId === matchId)
-        if (found) {
-          setSelectedMatchForShare(found)
-          setMatchModalOpen(true)
-        }
-      }
-
-      if (customEventId && customEvents && customEvents.length > 0 && !selectedCustomEventForShare) {
-        const found = customEvents.find((e) => e._id === customEventId)
-        if (found) {
-          setSelectedCustomEventForShare(found)
-          setCustomEventModalOpen(true)
-        }
-      }
-    }
-  }, [displayedMatches, customEvents, selectedMatchForShare, selectedCustomEventForShare])
 
   const countedMatches = React.useMemo(() => {
     return []
@@ -768,21 +738,18 @@ export default function Page() {
       )}
 
       {/* Match Modal from Share Link */}
-      {matchModalOpen && selectedMatchForShare && (
+      {matchModalOpen && matchIdFromUrl && (
         isMobile ? (
           <Drawer open={matchModalOpen} onOpenChange={setMatchModalOpen}>
             <DrawerContent className="h-[90vh] flex flex-col overflow-hidden p-0 bg-card">
               <DrawerHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
-                <DrawerTitle className="truncate text-sm font-semibold">
-                  {selectedMatchForShare.homeTeam} vs {selectedMatchForShare.awayTeam}
-                </DrawerTitle>
-                <p className="truncate text-xs text-muted-foreground">{selectedMatchForShare.competitionName}</p>
+                <DrawerTitle>Match Markets</DrawerTitle>
               </DrawerHeader>
               <div className="flex-1 overflow-hidden">
                 <MarketsPanel
                   open={true}
                   onOpenChange={setMatchModalOpen}
-                  match={{ ...selectedMatchForShare, mainOdds: [] } as SportsMatchWithOdds}
+                  match={{ sourceMatchId: matchIdFromUrl, homeTeam: "", awayTeam: "", startTime: 0, competitionName: "", result: "", status: 0, statusDesc: "", isLive: false, totalMarkets: 0, mainOdds: [] } as SportsMatchWithOdds}
                 />
               </div>
             </DrawerContent>
@@ -794,16 +761,13 @@ export default function Page() {
               className="!w-[min(50vw,720px)] !max-w-none flex h-dvh flex-col overflow-hidden p-0 bg-card"
             >
               <SheetHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
-                <SheetTitle className="truncate text-sm font-semibold">
-                  {selectedMatchForShare.homeTeam} vs {selectedMatchForShare.awayTeam}
-                </SheetTitle>
-                <p className="truncate text-xs text-muted-foreground">{selectedMatchForShare.competitionName}</p>
+                <SheetTitle>Match Markets</SheetTitle>
               </SheetHeader>
               <div className="flex-1 overflow-hidden">
                 <MarketsPanel
                   open={true}
                   onOpenChange={setMatchModalOpen}
-                  match={{ ...selectedMatchForShare, mainOdds: [] } as SportsMatchWithOdds}
+                  match={{ sourceMatchId: matchIdFromUrl, homeTeam: "", awayTeam: "", startTime: 0, competitionName: "", result: "", status: 0, statusDesc: "", isLive: false, totalMarkets: 0, mainOdds: [] } as SportsMatchWithOdds}
                 />
               </div>
             </SheetContent>
@@ -812,19 +776,16 @@ export default function Page() {
       )}
 
       {/* Custom Event Modal from Share Link */}
-      {customEventModalOpen && selectedCustomEventForShare && (
+      {customEventModalOpen && customEventIdFromUrl && (
         isMobile ? (
           <Drawer open={customEventModalOpen} onOpenChange={setCustomEventModalOpen}>
             <DrawerContent className="h-[90vh] flex flex-col overflow-hidden p-0 bg-card">
               <DrawerHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
-                <DrawerTitle className="truncate text-sm font-semibold">
-                  {selectedCustomEventForShare.homeTeam} vs {selectedCustomEventForShare.awayTeam}
-                </DrawerTitle>
-                <p className="truncate text-xs text-muted-foreground">{selectedCustomEventForShare.competition}</p>
+                <DrawerTitle>Event Markets</DrawerTitle>
               </DrawerHeader>
               <div className="flex-1 overflow-hidden flex flex-col">
                 <CustomEventDetail
-                  eventId={selectedCustomEventForShare._id as Id<"customEvents">}
+                  eventId={customEventIdFromUrl as Id<"customEvents">}
                   onBack={() => setCustomEventModalOpen(false)}
                 />
               </div>
@@ -837,14 +798,11 @@ export default function Page() {
               className="!w-[min(50vw,720px)] !max-w-none flex h-dvh flex-col overflow-hidden p-0 bg-card"
             >
               <SheetHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
-                <SheetTitle className="truncate text-sm font-semibold">
-                  {selectedCustomEventForShare.homeTeam} vs {selectedCustomEventForShare.awayTeam}
-                </SheetTitle>
-                <p className="truncate text-xs text-muted-foreground">{selectedCustomEventForShare.competition}</p>
+                <SheetTitle>Event Markets</SheetTitle>
               </SheetHeader>
               <div className="flex-1 overflow-hidden flex flex-col">
                 <CustomEventDetail
-                  eventId={selectedCustomEventForShare._id as Id<"customEvents">}
+                  eventId={customEventIdFromUrl as Id<"customEvents">}
                   onBack={() => setCustomEventModalOpen(false)}
                 />
               </div>
