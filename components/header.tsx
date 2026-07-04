@@ -36,6 +36,7 @@ import {
   DepositModal,
   WithdrawModal
 } from "./modals"
+import { WelcomeModal } from "./welcome-modal"
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Betslip } from "./betslip"
 import { Sidebar } from "./sidebar"
@@ -45,7 +46,7 @@ import { openSupportChat } from "@/lib/support-chat"
 
 export function Header() {
   const router = useRouter()
-  const { user, logout, isLoading } = useAuth()
+  const { user, logout, isLoading, showWelcomeModal, setShowWelcomeModal } = useAuth()
   const {
     walletBalance,
     searchQuery,
@@ -274,6 +275,7 @@ export function Header() {
       <RegisterModal open={registerOpen} onOpenChange={setRegisterOpen} />
       <DepositModal open={depositOpen} onOpenChange={setDepositOpen} />
       <WithdrawModal open={withdrawOpen} onOpenChange={setWithdrawOpen} />
+      <WelcomeModal open={showWelcomeModal} onOpenChange={setShowWelcomeModal} />
     </>
   )
 }

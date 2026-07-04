@@ -30,6 +30,8 @@ interface AuthContextType {
   adminName: string | null;
   showAdminNameModal: boolean;
   isLoadingAdminSession: boolean;
+  showWelcomeModal: boolean;
+  setShowWelcomeModal: (show: boolean) => void;
   handleAdminNameSubmit: (name: string) => Promise<void>;
   login: (phone: string, password: string) => Promise<"user" | "admin" | undefined>;
   register: (phone: string, password: string, referralCode?: string) => Promise<"user" | "admin" | undefined>;
@@ -46,6 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [adminName, setAdminName] = useState<string | null>(null);
   const [showAdminNameModal, setShowAdminNameModal] = useState(false);
   const [isLoadingAdminSession, setIsLoadingAdminSession] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   // Convex mutations
   const loginMutation = useMutation(api.auth.login.loginUser);
@@ -283,6 +286,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     adminName,
     showAdminNameModal,
     isLoadingAdminSession,
+    showWelcomeModal,
+    setShowWelcomeModal,
     handleAdminNameSubmit,
     login,
     register,

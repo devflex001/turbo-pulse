@@ -1,4 +1,5 @@
 "use client"
+"use client"
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
@@ -11,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { CopyIcon, CheckIcon, Loader2, Eye, EyeOff } from "lucide-react"
 import { WithdrawalSheet } from "@/components/withdrawal-sheet"
+import { WelcomeModal } from "@/components/welcome-modal"
 
 interface ModalProps {
   open: boolean
@@ -201,7 +203,7 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
 }
 
 export function RegisterModal({ open, onOpenChange }: ModalProps) {
-  const { register } = useAuth()
+  const { register, setShowWelcomeModal } = useAuth()
   const [phone, setPhone] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [showPassword, setShowPassword] = React.useState(false)
@@ -259,14 +261,16 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
       // Pass referral code to register function if it exists
       const role = await register(phone, password, referralCode)
 
-      toast.success(referralCode
-        ? `Account created successfully! Start inviting friends and earn KES ${referralReward.toLocaleString()} for each successful referral. Welcome to BetFlexx!`
-        : "Account created successfully! Welcome to BetFlexx.")
+      toast.success("Account created successfully!")
       onOpenChange(false)
       setPhone("")
       setPassword("")
       setConfirmPassword("")
-      // Don't reload or redirect - auth context is already updated
+
+      // Show welcome modal for new users after a brief delay
+      setTimeout(() => {
+        setShowWelcomeModal(true)
+      }, 500)
     } catch (error) {
       const errMsg =
         error instanceof Error
