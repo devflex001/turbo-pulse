@@ -39,6 +39,7 @@ export const getCurrentUser = query({
     return {
       _id: user._id,
       phone: user.phone,
+      username: user.username || undefined,
       role: user.role,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -64,6 +65,7 @@ export const getUserById = query({
     return {
       _id: user._id,
       phone: user.phone,
+      username: user.username || undefined,
       role: user.role,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,

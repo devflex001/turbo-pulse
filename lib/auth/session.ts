@@ -44,6 +44,7 @@ export function removeSessionToken() {
 export function storeUserData(userData: {
   userId: string;
   phone: string;
+  username?: string;
   role: string;
 }) {
   if (typeof window !== "undefined") {
@@ -57,6 +58,7 @@ export function storeUserData(userData: {
 export function getUserData(): {
   userId: string;
   phone: string;
+  username?: string;
   role: string;
 } | null {
   if (typeof window !== "undefined") {

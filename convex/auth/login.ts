@@ -46,6 +46,7 @@ export const loginUser = mutation({
       success: true,
       userId: user._id,
       phone: user.phone,
+      username: user.username || undefined,
       role: user.role,
       sessionToken: session.sessionToken,
       expiresAt: session.expiresAt,

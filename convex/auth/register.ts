@@ -20,11 +20,12 @@ function generateReferralCode(): string {
 export const registerUser = mutation({
   args: {
     phone: v.string(),
+    username: v.optional(v.string()),
     password: v.string(),
     referralCode: v.optional(v.string()), // referral code from signup link
   },
   handler: async (ctx, args) => {
-    const { phone, password, referralCode } = args;
+    const { phone, username, password, referralCode } = args;
 
     // Validate phone number format
     if (!isValidPhoneNumber(phone)) {
@@ -96,6 +97,7 @@ export const registerUser = mutation({
     // Create the user with referral info
     const userId = await ctx.db.insert("users", {
       phone: normalizedPhone,
+      username: username || undefined,
       passwordHash,
       role: "user",
       createdAt: Date.now(),
@@ -180,6 +182,7 @@ export const registerUser = mutation({
       success: true,
       userId,
       phone: normalizedPhone,
+      username: username || undefined,
       role: "user" as const,
       message: "User registered successfully",
       referralCode: newUserReferralCode,

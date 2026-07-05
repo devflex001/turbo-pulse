@@ -178,7 +178,7 @@ export function Header() {
                   <DropdownMenuContent align="end" className="w-56 mt-1">
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-semibold leading-none">{user.phone}</p>
+                        <p className="text-sm font-semibold leading-none">{user.username ? user.username : user.phone}</p>
                         <p className="text-xs leading-none text-muted-foreground">
                           {user.role === "admin" ? "Admin" : "User"} Account
                         </p>

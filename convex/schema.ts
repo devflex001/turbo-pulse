@@ -325,6 +325,7 @@ const schema = defineSchema({
 
   users: defineTable({
     phone: v.string(),
+    username: v.optional(v.string()),
     passwordHash: v.string(),
     role: v.union(v.literal("user"), v.literal("admin")),
     createdAt: v.number(),

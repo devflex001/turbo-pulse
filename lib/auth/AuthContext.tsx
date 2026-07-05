@@ -15,6 +15,7 @@ import { Id } from "@/convex/_generated/dataModel";
 interface User {
   _id: Id<"users">;
   phone: string;
+  username?: string;
   role: "user" | "admin";
   createdAt: number;
   updatedAt?: number;
@@ -195,7 +196,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (phone: string, password: string, referralCode?: string) => {
+  const register = async (phone: string, password: string, referralCode?: string, username?: string) => {
     try {
       setIsLoading(true);
 
@@ -204,6 +205,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         phone,
         password,
         referralCode,
+        username,
       });
 
       if (result.success) {

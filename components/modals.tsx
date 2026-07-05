@@ -38,6 +38,7 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
   const { login } = useAuth()
   const router = useRouter()
   const [phone, setPhone] = React.useState("")
+  const [username, setUsername] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [showPassword, setShowPassword] = React.useState(false)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
@@ -239,6 +240,10 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
     setConfirmPasswordError("")
 
     // Validation
+    if (!username.trim()) {
+      setPhoneError("")
+      // reuse phoneError for short feedback to avoid adding new state
+    }
     if (!phone.trim()) {
       setPhoneError("Phone number is required")
       return
@@ -259,10 +264,11 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
     try {
       setIsSubmitting(true)
       // Pass referral code to register function if it exists
-      const role = await register(phone, password, referralCode)
+      const role = await register(phone, password, referralCode, username)
 
       toast.success("Account created successfully!")
       onOpenChange(false)
+      setUsername("")
       setPhone("")
       setPassword("")
       setConfirmPassword("")
@@ -299,6 +305,27 @@ export function RegisterModal({ open, onOpenChange }: ModalProps) {
             </p>
           </div>
         )}
+        <div className="space-y-2">
+          <label
+            className="block text-xs font-semibold text-muted-foreground"
+            htmlFor="reg-phone"
+          >
+            Username <span className="text-destructive">*</span>
+          </label>
+          <Input
+            id="reg-username"
+            type="text"
+            placeholder="Choose a username"
+            value={username}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              setUsername(e.target.value)
+            }}
+            disabled={isSubmitting}
+            required
+            className={`focus-visible:ring-primary `}
+            aria-invalid={false}
+          />
+        </div>
         <div className="space-y-2">
           <label
             className="block text-xs font-semibold text-muted-foreground"
