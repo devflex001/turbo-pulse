@@ -20,6 +20,7 @@ import { ReferralSignupModal } from "@/components/referral-signup-modal"
 import { useAuth } from "@/lib/auth/AuthContext"
 import { openSupportChat } from "@/lib/support-chat"
 import { cn } from "@/lib/utils"
+import { useLockDocumentScroll } from "@/hooks/use-lock-document-scroll"
 import {
   Flame,
   HelpCircle,
@@ -145,6 +146,8 @@ function getSportIcon(slug: string) {
 }
 
 export default function Page() {
+  useLockDocumentScroll()
+
   const router = useRouter()
   const { user, isLoading: authLoading, isAdmin } = useAuth()
   const isMobile = useMediaQuery("(max-width: 768px)")

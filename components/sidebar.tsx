@@ -44,6 +44,11 @@ type MatchRecord = {
   isLive: boolean
 }
 
+type SportCounts = {
+  total: number
+  bySport: Record<string, number>
+}
+
 function titleCase(value: string) {
   return value
     .split(/[-_\s]+/)
@@ -55,21 +60,34 @@ function titleCase(value: string) {
 // Helper to map sport slugs to specific icons
 function getSportIcon(slug: string) {
   switch (slug.toLowerCase()) {
-    case "football": return Circle;
-    case "basketball": return CircleDashed;
-    case "tennis": return CircleDot;
+    case "football":
+      return Circle
+    case "basketball":
+      return CircleDashed
+    case "tennis":
+      return CircleDot
     case "rugby":
     case "mma":
-    case "boxing": return Swords;
-    case "cricket": return Trophy;
-    case "all": return LayoutGrid;
-    default: return Activity;
+    case "boxing":
+      return Swords
+    case "cricket":
+      return Trophy
+    case "all":
+      return LayoutGrid
+    default:
+      return Activity
   }
 }
 
 export function Sidebar({ className, onClose }: SidebarProps) {
-  const { activeTab, setActiveTab, setSelectedSport, selectedSport, selectedLeague, setSelectedLeague } =
-    useBetStore()
+  const {
+    activeTab,
+    setActiveTab,
+    setSelectedSport,
+    selectedSport,
+    selectedLeague,
+    setSelectedLeague,
+  } = useBetStore()
   const { user } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
@@ -78,7 +96,9 @@ export function Sidebar({ className, onClose }: SidebarProps) {
     | MatchRecord[]
     | { items: MatchRecord[] }
     | undefined
-  const sportCounts = useQuery(api.sportsData.getSportCounts, {}) as any
+  const sportCounts = useQuery(api.sportsData.getSportCounts, {}) as
+    | SportCounts
+    | undefined
   const competitions = useQuery(api.sportsData.listCompetitions, {
     sport: selectedSport,
   }) as string[] | undefined
@@ -88,7 +108,11 @@ export function Sidebar({ className, onClose }: SidebarProps) {
       return allMatches
     }
 
-    if (allMatches && typeof allMatches === "object" && Array.isArray((allMatches as { items?: unknown }).items)) {
+    if (
+      allMatches &&
+      typeof allMatches === "object" &&
+      Array.isArray((allMatches as { items?: unknown }).items)
+    ) {
       return (allMatches as { items: MatchRecord[] }).items
     }
 
@@ -103,17 +127,21 @@ export function Sidebar({ className, onClose }: SidebarProps) {
   const sportItems = React.useMemo(() => {
     // Use optimized sport counts from query
     if (!sportCounts || !sportCounts.bySport) {
-      return [{ id: "all", label: "All Sports", count: 0 }];
+      return [{ id: "all", label: "All Sports", count: 0 }]
     }
 
-    const counts = sportCounts.bySport;
+    const counts = sportCounts.bySport
     return [
       { id: "all", label: "All Sports", count: sportCounts.total },
       ...Object.entries(counts)
         .filter(([key]) => key !== "all")
         .sort((a, b) => (b[1] as number) - (a[1] as number))
-        .map(([id, count]) => ({ id, label: titleCase(id as string), count: count as number })),
-    ];
+        .map(([id, count]) => ({
+          id,
+          label: titleCase(id as string),
+          count: count as number,
+        })),
+    ]
   }, [sportCounts])
 
   const mainNavItems = [
@@ -158,21 +186,24 @@ export function Sidebar({ className, onClose }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "flex flex-col shrink-0 border-r border-border bg-card text-card-foreground w-64 h-[calc(100vh-4rem)] overflow-hidden sticky top-16",
+        "flex h-full min-h-0 w-64 shrink-0 flex-col overflow-hidden border-r border-border bg-card text-card-foreground",
         className
       )}
     >
-      <div className="pt-4 px-4 shrink-0">
-        <div className="space-y-1 w-full">
+      <div className="shrink-0 px-4 pt-4">
+        <div className="w-full space-y-1">
           {mainNavItems.map((item) => {
             const Icon = item.icon
-            const isActive = item.id === "mybets" ? pathname === "/my-bets" : (pathname === "/" && activeTab === item.id)
+            const isActive =
+              item.id === "mybets"
+                ? pathname === "/my-bets"
+                : pathname === "/" && activeTab === item.id
             return (
               <Button
                 key={item.id}
                 variant="ghost"
                 className={cn(
-                  "h-9 w-full text-sm font-normal justify-between px-3",
+                  "h-9 w-full justify-between px-3 text-sm font-normal",
                   isActive
                     ? "bg-[#4b9f71]/10 font-semibold text-[#4b9f71] hover:bg-[#4b9f71]/15 hover:text-[#4b9f71]"
                     : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
@@ -180,7 +211,12 @@ export function Sidebar({ className, onClose }: SidebarProps) {
                 onClick={() => handleTabClick(item.id)}
               >
                 <span className="flex items-center gap-2.5">
-                  <Icon className={cn("size-4 shrink-0", isActive ? "text-[#4b9f71]" : "text-muted-foreground")} />
+                  <Icon
+                    className={cn(
+                      "size-4 shrink-0",
+                      isActive ? "text-[#4b9f71]" : "text-muted-foreground"
+                    )}
+                  />
                   <span>{item.label}</span>
                 </span>
                 {"count" in item && (
@@ -194,16 +230,16 @@ export function Sidebar({ className, onClose }: SidebarProps) {
         </div>
       </div>
 
-      <div className="px-4 shrink-0">
-        <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="shrink-0 px-4">
+        <h2 className="mb-3 px-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
           Services
         </h2>
-        <div className="space-y-1 w-full">
+        <div className="w-full space-y-1">
           {user && (
             <>
               <Button
                 variant="ghost"
-                className="h-9 w-full text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground justify-start gap-2.5 px-3"
+                className="h-9 w-full justify-start gap-2.5 px-3 text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                 onClick={() => {
                   onClose?.()
                   router.push("/deposit")
@@ -214,7 +250,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
               </Button>
               <Button
                 variant="ghost"
-                className="h-9 w-full text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground justify-start gap-2.5 px-3"
+                className="h-9 w-full justify-start gap-2.5 px-3 text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                 onClick={() => {
                   onClose?.()
                   router.push("/withdraw")
@@ -225,7 +261,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
               </Button>
               <Button
                 variant="ghost"
-                className="h-9 w-full text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground justify-start gap-2.5 px-3"
+                className="h-9 w-full justify-start gap-2.5 px-3 text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                 onClick={() => {
                   onClose?.()
                   router.push("/referrals")
@@ -239,7 +275,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
 
           <Button
             variant="ghost"
-            className="h-9 w-full text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground justify-start gap-2.5 px-3"
+            className="h-9 w-full justify-start gap-2.5 px-3 text-sm font-normal text-muted-foreground hover:bg-accent/50 hover:text-foreground"
             onClick={() => {
               onClose?.()
               openSupportChat()
@@ -251,11 +287,11 @@ export function Sidebar({ className, onClose }: SidebarProps) {
         </div>
       </div>
 
-      <div className="px-4 flex-1 min-h-0 overflow-y-auto">
-        <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground sticky top-0 bg-card z-10">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4">
+        <h2 className="sticky top-0 z-10 mb-3 bg-card px-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
           Sports
         </h2>
-        <div className="space-y-1 w-full">
+        <div className="w-full space-y-1">
           {!allMatches ? (
             <>
               <Skeleton className="h-9 w-full" />
@@ -264,7 +300,9 @@ export function Sidebar({ className, onClose }: SidebarProps) {
             </>
           ) : (
             sportItems.map((sport) => {
-              const isActive = selectedSport === sport.id || (sport.id === "all" && selectedSport === "all")
+              const isActive =
+                selectedSport === sport.id ||
+                (sport.id === "all" && selectedSport === "all")
               const SportIcon = getSportIcon(sport.id)
 
               return (
@@ -272,7 +310,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
                   key={sport.id}
                   variant="ghost"
                   className={cn(
-                    "h-9 w-full text-sm font-normal justify-between px-3",
+                    "h-9 w-full justify-between px-3 text-sm font-normal",
                     isActive
                       ? "bg-[#4b9f71]/10 font-semibold text-[#4b9f71] hover:bg-[#4b9f71]/15 hover:text-[#4b9f71]"
                       : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
@@ -288,7 +326,12 @@ export function Sidebar({ className, onClose }: SidebarProps) {
                   }}
                 >
                   <span className="flex items-center gap-2.5">
-                    <SportIcon className={cn("size-4 shrink-0", isActive ? "text-[#4b9f71]" : "text-muted-foreground")} />
+                    <SportIcon
+                      className={cn(
+                        "size-4 shrink-0",
+                        isActive ? "text-[#4b9f71]" : "text-muted-foreground"
+                      )}
+                    />
                     <span className="truncate">{sport.label}</span>
                   </span>
                   <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
@@ -301,18 +344,21 @@ export function Sidebar({ className, onClose }: SidebarProps) {
         </div>
       </div>
 
-      <Collapsible defaultOpen={false} className="px-4 shrink-0 border-t border-border pt-4 pb-4">
+      <Collapsible
+        defaultOpen={false}
+        className="shrink-0 border-t border-border px-4 pt-4 pb-4"
+      >
         <CollapsibleTrigger asChild>
           <button
             type="button"
-            className="group mb-1 flex w-full items-center justify-between rounded-md px-2 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:bg-accent/50"
+            className="group mb-1 flex w-full items-center justify-between rounded-md px-2 py-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase hover:bg-accent/50"
           >
             <span>Leagues</span>
             <ChevronDown className="size-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="space-y-1 w-full pt-1 max-h-48 overflow-y-auto">
+          <div className="max-h-48 w-full space-y-1 overflow-y-auto pt-1">
             {!competitions ? (
               <>
                 <Skeleton className="h-9 w-full" />
@@ -328,7 +374,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
                     key={competition}
                     variant="ghost"
                     className={cn(
-                      "h-9 w-full text-sm font-normal justify-between px-3 text-left",
+                      "h-9 w-full justify-between px-3 text-left text-sm font-normal",
                       isActive
                         ? "bg-[#4b9f71]/10 font-semibold text-[#4b9f71] hover:bg-[#4b9f71]/15 hover:text-[#4b9f71]"
                         : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
@@ -344,7 +390,12 @@ export function Sidebar({ className, onClose }: SidebarProps) {
                   >
                     <span className="min-w-0 truncate">{competition}</span>
                     {isAllLeagues && (
-                      <Trophy className={cn("size-4 shrink-0", isActive ? "text-[#4b9f71]" : "text-muted-foreground")} />
+                      <Trophy
+                        className={cn(
+                          "size-4 shrink-0",
+                          isActive ? "text-[#4b9f71]" : "text-muted-foreground"
+                        )}
+                      />
                     )}
                   </Button>
                 )

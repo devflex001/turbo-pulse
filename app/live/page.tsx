@@ -30,8 +30,11 @@ import {
 } from "@/components/ui/drawer"
 import { CustomEventDetail } from "@/components/custom-event-detail"
 import { Id } from "@/convex/_generated/dataModel"
+import { useLockDocumentScroll } from "@/hooks/use-lock-document-scroll"
 
 export default function LivePage() {
+  useLockDocumentScroll()
+
   const [betslipOpen, setBetslipOpen] = React.useState(false)
   const [now, setNow] = React.useState(() => Date.now())
   const [selectedCustomEvent, setSelectedCustomEvent] =
