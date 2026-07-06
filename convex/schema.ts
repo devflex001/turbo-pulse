@@ -339,6 +339,8 @@ const schema = defineSchema({
     referredBy: v.optional(v.id("users")), // who referred this user
     totalReferrals: v.optional(v.number()), // total successful referrals
     totalReferralEarnings: v.optional(v.number()), // total earnings from referrals
+    referralAccessPaidAt: v.optional(v.number()), // user paid the referral access fee
+    referralAccessFee: v.optional(v.number()), // KES amount paid to unlock referrals
   })
     .index("by_phone", ["phone"])
     .index("by_role", ["role"])

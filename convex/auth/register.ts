@@ -64,6 +64,10 @@ export const registerUser = mutation({
         throw new Error("Invalid referral code");
       }
 
+      if (!referrer.referralAccessPaidAt) {
+        throw new Error("Referral access is not active");
+      }
+
       referrerId = referrer._id;
     }
 
@@ -116,7 +120,7 @@ export const registerUser = mutation({
       const now = Date.now();
 
       // Find or create referral record
-      let referralRecord = await ctx.db
+      const referralRecord = await ctx.db
         .query("referrals")
         .withIndex("by_referralCode", (q) => q.eq("referralCode", referralCode))
         .filter((q) => q.eq(q.field("status"), "pending"))
@@ -155,9 +159,9 @@ export const registerUser = mutation({
         });
 
         // Award the referrer in the wallet
-        let wallet = await ctx.db
+        const wallet = await ctx.db
           .query("wallets")
-          .filter((q) => q.eq(q.field("userId"), referrerId.toString()))
+          .withIndex("by_userId", (q) => q.eq("userId", referrerId))
           .first();
 
         if (!wallet) {
