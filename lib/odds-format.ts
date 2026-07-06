@@ -20,7 +20,10 @@ export function formatOddSpecifier(specifiers: string) {
     .split(/[|,;&]/)
     .map((part) => part.trim())
     .filter(Boolean)
-    .filter((part) => !part.toLowerCase().startsWith("variant="))
+    .filter((part) => {
+      const key = part.split("=")[0]?.trim().toLowerCase()
+      return key !== "variant" && key !== "score"
+    })
     .join(" ")
 }
 
