@@ -4,7 +4,6 @@ import {
   query,
   type MutationCtx,
 } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
 import {
   normalizedMarketValidator,
   normalizedMatchValidator,
@@ -17,6 +16,13 @@ import { getAdminSessionByTokenInternal } from "./admin/sessions";
 const DEFAULT_CADENCE_MINUTES = 5;
 const DEFAULT_DATE_WINDOW_DAYS = 2;
 const DEFAULT_PAGE_LIMIT = 5;
+
+function hasSourceChanges<T extends Record<string, unknown>>(
+  existing: Record<string, unknown>,
+  next: T
+) {
+  return Object.entries(next).some(([key, value]) => existing[key] !== value);
+}
 
 async function getOrCreateSettings(ctx: MutationCtx, now: number) {
   const existing = await ctx.db
@@ -226,7 +232,7 @@ export const upsertMatchDetail = mutation({
 
     const matchDoc = { ...args.match, lastScrapedAt: now };
     if (existingMatch) {
-      await ctx.db.replace(existingMatch._id, matchDoc);
+      await ctx.db.patch(existingMatch._id, matchDoc);
     } else {
       await ctx.db.insert("sportsMatches", matchDoc);
     }
@@ -236,7 +242,9 @@ export const upsertMatchDetail = mutation({
       const existing = marketKeyMap.get(market.marketKey);
       const marketDoc = { ...market, lastScrapedAt: now };
       if (existing) {
-        await ctx.db.replace(existing._id, marketDoc);
+        if (hasSourceChanges(existing, market)) {
+          await ctx.db.replace(existing._id, marketDoc);
+        }
       } else {
         await ctx.db.insert("sportsMarkets", marketDoc);
       }
@@ -248,7 +256,9 @@ export const upsertMatchDetail = mutation({
       const existing = oddIdMap.get(odd.sourceOddId);
       const oddDoc = { ...odd, lastScrapedAt: now };
       if (existing) {
-        await ctx.db.replace(existing._id, oddDoc);
+        if (hasSourceChanges(existing, odd)) {
+          await ctx.db.replace(existing._id, oddDoc);
+        }
       } else {
         await ctx.db.insert("sportsOdds", oddDoc);
       }

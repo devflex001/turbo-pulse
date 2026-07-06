@@ -9,7 +9,6 @@ import { BottomNav } from "@/components/bottom-nav"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Separator } from "@/components/ui/separator"
 import { LoginModal } from "@/components/modals"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
@@ -21,31 +20,41 @@ import {
   Users,
   TrendingUp,
   Gift,
-  ChevronRight,
+  Lock,
+  Wallet,
 } from "lucide-react"
 import { toast } from "sonner"
 
 export default function ReferralsPage() {
   const router = useRouter()
   const { user, isLoading } = useAuth()
-  const [mounted, setMounted] = React.useState(false)
   const [copied, setCopied] = React.useState(false)
+  const [activating, setActivating] = React.useState(false)
 
   const ensureReferralCodeMutation = useMutation(api.referrals.ensureReferralCode)
+  const activateReferralAccessMutation = useMutation(api.referrals.activateReferralAccess)
 
   const referralStats = useQuery(
     api.referrals.getReferralStats,
     user?._id ? { userId: user._id } : "skip"
   )
 
+  const walletBalance = useQuery(
+    api.bets.getWalletBalance,
+    user?._id ? { userId: user._id } : "skip"
+  )
+
+  const hasReferralAccess = Boolean(referralStats?.hasReferralAccess)
+  const referralAccessFee = referralStats?.referralAccessFee ?? 500
+
   const referralLink = useQuery(
     api.referrals.getReferralLink,
-    user?._id && referralStats?.referralCode ? { userId: user._id } : "skip"
+    user?._id && hasReferralAccess && referralStats?.referralCode ? { userId: user._id } : "skip"
   )
 
   const referralHistory = useQuery(
     api.referrals.getReferralHistory,
-    user?._id ? { userId: user._id, limit: 20 } : "skip"
+    user?._id && hasReferralAccess ? { userId: user._id, limit: 20 } : "skip"
   )
 
   // Get configurable reward amount
@@ -56,16 +65,31 @@ export default function ReferralsPage() {
   const referralReward = platformConfig?.referralReward ?? 1000
 
   React.useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  React.useEffect(() => {
-    if (mounted && user?._id) {
+    if (user?._id && hasReferralAccess) {
       ensureReferralCodeMutation({ userId: user._id }).catch((error) => {
         console.error("Failed to ensure referral code:", error)
       })
     }
-  }, [mounted, user?._id, ensureReferralCodeMutation])
+  }, [user?._id, hasReferralAccess, ensureReferralCodeMutation])
+
+  const handleActivateReferralAccess = async () => {
+    if (!user?._id) return
+
+    if ((walletBalance ?? 0) < referralAccessFee) {
+      router.push("/deposit")
+      return
+    }
+
+    try {
+      setActivating(true)
+      await activateReferralAccessMutation({ userId: user._id })
+      toast.success("Referral access unlocked")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to unlock referrals")
+    } finally {
+      setActivating(false)
+    }
+  }
 
   const handleCopyLink = (link: string) => {
     navigator.clipboard.writeText(link)
@@ -92,8 +116,6 @@ export default function ReferralsPage() {
       handleCopyLink(link)
     }
   }
-  if (!mounted) return null
-
   if (isLoading) {
     return (
       <div className="flex flex-col h-screen overflow-hidden bg-background">
@@ -137,6 +159,8 @@ export default function ReferralsPage() {
 
   const statsLoaded = referralStats !== undefined
   const linkLoaded = referralLink !== undefined
+  const walletLoaded = walletBalance !== undefined
+  const hasEnoughBalance = (walletBalance ?? 0) >= referralAccessFee
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
@@ -157,6 +181,57 @@ export default function ReferralsPage() {
                 Earn <span className="font-semibold text-[#4b9f71]">KES {referralReward.toLocaleString()}</span> for every friend you refer who signs up on BetFlexx.
               </p>
             </div>
+
+            {statsLoaded && !hasReferralAccess ? (
+              <div className="rounded-lg border border-border bg-card">
+                <div className="px-5 py-4 border-b border-border">
+                  <div className="flex items-start gap-3">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40">
+                      <Lock className="size-4 text-muted-foreground" />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="text-sm font-semibold text-foreground">Unlock referrals</h2>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        Pay KES {referralAccessFee.toLocaleString()} once to access your referral dashboard. After activation, you can share your link and earn KES {referralReward.toLocaleString()} for each successful referral.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4 px-5 py-4">
+                  <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 px-3 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <Wallet className="size-4 text-muted-foreground" />
+                      <span className="text-xs font-medium text-muted-foreground">Wallet balance</span>
+                    </div>
+                    {!walletLoaded ? (
+                      <Skeleton className="h-4 w-20" />
+                    ) : (
+                      <span className="font-mono text-sm font-semibold text-foreground">
+                        KES {(walletBalance ?? 0).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+
+                  <Button
+                    className="h-9 w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                    disabled={!walletLoaded || activating}
+                    onClick={handleActivateReferralAccess}
+                  >
+                    {activating && <Loader2 className="mr-2 size-4 animate-spin" />}
+                    {hasEnoughBalance
+                      ? `Pay KES ${referralAccessFee.toLocaleString()}`
+                      : `Deposit to unlock`}
+                  </Button>
+                  {!hasEnoughBalance && walletLoaded && (
+                    <p className="text-center text-xs text-muted-foreground">
+                      You need KES {(referralAccessFee - (walletBalance ?? 0)).toLocaleString()} more in your wallet.
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <>
 
             {/* Stats row */}
             <div className="grid grid-cols-2 gap-3 mb-8">
@@ -413,6 +488,8 @@ export default function ReferralsPage() {
 
             {/* Bottom padding for mobile nav */}
             <div className="h-8" />
+              </>
+            )}
           </div>
         </main>
       </div>

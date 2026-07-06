@@ -6,6 +6,7 @@ import { requireAuth } from "./auth/authorization"
 
 // This is the default - actual value comes from platform_config
 const DEFAULT_REFERRAL_REWARD = 1000; // KES
+const REFERRAL_ACCESS_FEE = 500; // KES
 
 // Helper to get referral reward from config
 async function getReferralReward(ctx: QueryCtx | MutationCtx): Promise<number> {
@@ -62,6 +63,10 @@ export const ensureReferralCode = mutation({
       throw new Error("User not found");
     }
 
+    if (!user.referralAccessPaidAt) {
+      throw new Error("Pay the referral access fee to unlock referrals");
+    }
+
     // If user already has a code, return it
     if (user.referralCode) {
       return {
@@ -83,6 +88,83 @@ export const ensureReferralCode = mutation({
     return {
       referralCode,
       isNew: true,
+    };
+  },
+});
+
+/**
+ * Unlock referrals by charging the one-time referral access fee from the wallet.
+ */
+export const activateReferralAccess = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    await requireAuth(ctx, args.userId.toString());
+
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    let referralCode = user.referralCode;
+    if (!referralCode) {
+      referralCode = await generateUniqueReferralCode(ctx);
+    }
+
+    if (user.referralAccessPaidAt) {
+      return {
+        success: true,
+        referralCode,
+        alreadyActive: true,
+        accessFee: user.referralAccessFee ?? REFERRAL_ACCESS_FEE,
+      };
+    }
+
+    const wallet = await ctx.db
+      .query("wallets")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .unique();
+
+    const balance = wallet?.balance ?? 0;
+    if (balance < REFERRAL_ACCESS_FEE) {
+      throw new Error("Insufficient wallet balance");
+    }
+
+    if (wallet) {
+      await ctx.db.patch(wallet._id, {
+        balance: balance - REFERRAL_ACCESS_FEE,
+      });
+    }
+
+    const now = Date.now();
+    await ctx.db.patch(args.userId, {
+      referralCode,
+      totalReferrals: user.totalReferrals ?? 0,
+      totalReferralEarnings: user.totalReferralEarnings ?? 0,
+      referralAccessPaidAt: now,
+      referralAccessFee: REFERRAL_ACCESS_FEE,
+      updatedAt: now,
+    });
+
+    await ctx.db.insert("transactions", {
+      txId: `REF-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      userId: args.userId,
+      type: "referral_access_fee",
+      amount: REFERRAL_ACCESS_FEE,
+      phone: user.phone,
+      status: "success",
+      time: now,
+      feedback: "Referral access unlocked",
+      feedbackType: "success",
+      updatedAt: now,
+    });
+
+    return {
+      success: true,
+      referralCode,
+      alreadyActive: false,
+      accessFee: REFERRAL_ACCESS_FEE,
     };
   },
 });
@@ -150,6 +232,9 @@ export const getReferralStats = query({
 
     return {
       referralCode: user.referralCode ?? null,
+      referralAccessPaidAt: user.referralAccessPaidAt ?? null,
+      referralAccessFee: user.referralAccessFee ?? REFERRAL_ACCESS_FEE,
+      hasReferralAccess: Boolean(user.referralAccessPaidAt),
       totalReferrals: user.totalReferrals ?? 0,
       totalReferralEarnings: user.totalReferralEarnings ?? 0,
       completedCount: completedReferrals.length,
@@ -221,6 +306,10 @@ export const trackReferralSignup = mutation({
       throw new Error("Invalid referral code");
     }
 
+    if (!referrer.referralAccessPaidAt) {
+      throw new Error("Referral access is not active");
+    }
+
     // Check if this user was already referred (shouldn't happen but safety check)
     if (newUser.referredBy) {
       throw new Error("User already has a referrer");
@@ -230,7 +319,7 @@ export const trackReferralSignup = mutation({
     const REFERRAL_REWARD = await getReferralReward(ctx);
 
     // Find or create the referral record
-    let referralRecord = await ctx.db
+    const referralRecord = await ctx.db
       .query("referrals")
       .withIndex("by_referralCode", (q) => q.eq("referralCode", args.referralCode))
       .filter((q) => q.eq(q.field("status"), "pending"))
@@ -274,7 +363,7 @@ export const trackReferralSignup = mutation({
     });
 
     // Award the referrer their bonus in the wallet
-    let wallet = await ctx.db
+    const wallet = await ctx.db
       .query("wallets")
       .withIndex("by_userId", (q) => q.eq("userId", referrer._id))
       .first();
@@ -321,6 +410,10 @@ export const createPendingReferral = mutation({
       throw new Error("Invalid referral code");
     }
 
+    if (!referrer.referralAccessPaidAt) {
+      throw new Error("Referral access is not active");
+    }
+
     // Check if pending referral already exists for this phone
     if (args.visitorPhone) {
       const existing = await ctx.db
@@ -364,7 +457,7 @@ export const getReferralLink = query({
     await requireAuth(ctx, args.userId.toString());
 
     const user = await ctx.db.get(args.userId);
-    if (!user || !user.referralCode) {
+    if (!user || !user.referralCode || !user.referralAccessPaidAt) {
       return null;
     }
 
@@ -397,6 +490,10 @@ export const verifyReferralCode = query({
       .first();
 
     if (!referrer) {
+      return { valid: false };
+    }
+
+    if (!referrer.referralAccessPaidAt) {
       return { valid: false };
     }
 
