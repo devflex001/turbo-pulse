@@ -98,7 +98,7 @@ export function FeaturedSportsMatchesSection() {
     const matchId = item._type === 'custom' ? item._id : item.sourceMatchId
     const oddKey = `${matchId}-${outcome.label}`
 
-    // Set loading state immediately
+    // Set loading state immediately - UI updates right away
     setLoadingOddKey(oddKey)
 
     const outcomeMap: Record<string, string> = {
@@ -125,8 +125,7 @@ export function FeaturedSportsMatchesSection() {
       matchStartTime: item.startTime,
     })
 
-    // Clear loading state after a brief delay
-    setTimeout(() => setLoadingOddKey(null), 100)
+    // Don't clear loading state - keep it selected permanently
   }
 
   const matchTitle = selectedMatch
@@ -255,19 +254,18 @@ export function FeaturedSportsMatchesSection() {
             return (
               <button
                 key={odd.label}
-                disabled={isItemFinished || isLoading}
+                disabled={isItemFinished}
                 onClick={() => !isItemFinished && handleAddToSlip(item, odd)}
                 className={cn(
                   "relative flex flex-col items-center justify-center gap-0.5 h-12 rounded-lg border transition-all duration-200 overflow-hidden",
-                  isSelected
+                  isSelected || isLoading
                     ? [
                       "border-yellow-400/80 bg-yellow-400/15",
                       "shadow-[0_0_12px_rgba(234,179,8,0.25),inset_0_1px_0_rgba(234,179,8,0.3)]",
                       "after:absolute after:inset-x-0 after:top-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-yellow-300 after:to-transparent",
                     ].join(" ")
                     : "border-white/[0.07] bg-white/[0.03] hover:bg-yellow-400/8 hover:border-yellow-400/30",
-                  isItemFinished && "cursor-not-allowed",
-                  isLoading && "opacity-60"
+                  isItemFinished && "cursor-not-allowed"
                 )}
               >
                 {isLoading ? (
@@ -276,13 +274,13 @@ export function FeaturedSportsMatchesSection() {
                   <>
                     <span className={cn(
                       "text-[10px] font-bold uppercase tracking-wide",
-                      isSelected ? "text-yellow-300" : "text-white/30"
+                      isSelected || isLoading ? "text-yellow-300" : "text-white/30"
                     )}>
                       {odd.label}
                     </span>
                     <span className={cn(
                       "text-sm font-extrabold font-mono",
-                      isSelected ? "text-yellow-200 drop-shadow-[0_0_6px_rgba(234,179,8,0.6)]" : "text-white/75"
+                      isSelected || isLoading ? "text-yellow-200 drop-shadow-[0_0_6px_rgba(234,179,8,0.6)]" : "text-white/75"
                     )}>
                       {odd.odds.toFixed(2)}
                     </span>

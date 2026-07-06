@@ -160,7 +160,8 @@ export function CustomEventDetail({
       matchStartTime: event?.startTime,
     })
 
-    setTimeout(() => setLoadingOddId(null), 100)
+    // Clear loading state after betslip is updated
+    requestAnimationFrame(() => setLoadingOddId(null))
   }
 
   const handlePublish = async () => {
@@ -335,17 +336,17 @@ export function CustomEventDetail({
                       return (
                         <button
                           key={odd._id}
-                          disabled={isEventFinished || isLoading}
+                          disabled={isEventFinished}
                           onClick={() => !isEventFinished && handleAddOdd(odd, market)}
                           className={cn(
                             "group flex flex-col items-center justify-center gap-0.5 h-11 py-1.5 px-1.5 rounded-lg border-2 transition-all w-full text-center min-w-0",
                             isEventFinished && "opacity-50 cursor-not-allowed",
-                            isSelected
+                            isSelected || isLoading
                               ? "bg-amber-400 border-amber-400 text-slate-950 hover:bg-amber-300 shadow-lg"
                               : "border-amber-400/40 bg-slate-900/50 hover:bg-slate-900/70 hover:border-amber-300/60 text-amber-300"
                           )}
                         >
-                          {isLoading ? (
+                          {isLoading && !isSelected ? (
                             <Loader className="size-3 animate-spin" />
                           ) : (
                             <>

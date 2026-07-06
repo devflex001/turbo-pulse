@@ -137,7 +137,7 @@ export function PublishedCustomEventsSection() {
       matchStartTime: event.startTime,
     })
 
-    setTimeout(() => setLoadingOddKey(null), 100)
+    // Don't clear loading state - keep it selected permanently
   }
 
   const eventTitle = selectedEvent
@@ -240,12 +240,12 @@ export function PublishedCustomEventsSection() {
               return (
                 <button
                   key={odd.label}
-                  disabled={isEventFinished || isLoading}
+                  disabled={isEventFinished}
                   onClick={() => !isEventFinished && handleAddToSlip(event, odd)}
                   className={cn(
                     "flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border-2 border-amber-400/50 bg-gradient-to-b from-amber-600/30 via-amber-700/20 to-amber-800/30 hover:from-amber-500/50 hover:via-amber-600/30 hover:to-amber-700/40 hover:border-amber-300/80 transition-all duration-200 group/odd shadow-lg hover:shadow-amber-900/50 hover:shadow-xl",
                     isEventFinished && "opacity-50 cursor-not-allowed",
-                    isLoading && "opacity-60"
+                    isLoading && "from-amber-500/60 via-amber-600/50 to-amber-700/60 border-amber-300/80"
                   )}
                 >
                   {isLoading ? (

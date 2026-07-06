@@ -103,7 +103,6 @@ export function MarketsBrowser({
   const [search, setSearch] = React.useState("")
   const [activeCategory, setActiveCategory] = React.useState("All")
   const [selectedMarketKey, setSelectedMarketKey] = React.useState<string | null>(null)
-  const [loadingOddId, setLoadingOddId] = React.useState<string | null>(null)
   const [now, setNow] = React.useState(() => Date.now())
 
   // Update timer every second to track if match is finished
@@ -171,9 +170,6 @@ export function MarketsBrowser({
   const handleOdd = (odd: SportsOdd) => {
     if (readOnly || isMatchFinished) return
 
-    // Set loading state immediately
-    setLoadingOddId(odd.sourceOddId)
-
     const outcome = formatOddOutcome(odd, match)
 
     addToBetslip({
@@ -193,28 +189,25 @@ export function MarketsBrowser({
       specifiers: odd.specifiers,
       matchStartTime: match.startTime,
     })
-
-    // Clear loading state after a brief delay to show immediate feedback
-    setTimeout(() => setLoadingOddId(null), 100)
   }
 
   const renderOddButton = (odd: SportsOdd) => {
     const selected = betslip.some((item) => item.id === odd.sourceOddId)
+    const isLoading = loadingOddId === odd.sourceOddId
     const outcome = formatOddOutcome(odd, match)
     const showSpecifier =
       !outcome.isCode && shouldShowOddSpecifier(odd.specifiers, outcome.code)
-    const isLoading = loadingOddId === odd.sourceOddId
 
     return (
       <Button
         key={odd.sourceOddId}
         variant="outline"
-        disabled={isMatchFinished || isLoading}
+        disabled={isMatchFinished}
         className={cn(
           "flex flex-col items-center justify-center gap-0.5 h-12 py-1.5 px-2 transition-all text-center min-w-0 w-full rounded-md",
           isMatchFinished && "opacity-50 cursor-not-allowed",
           readOnly && !isMatchFinished && "cursor-default",
-          selected
+          selected || isLoading
             ? "bg-[#4b9f71] text-white border border-[#4b9f71] hover:bg-[#3e865f] hover:border-[#3e865f] shadow-sm"
             : "bg-card border border-border hover:border-[#4b9f71]/50 hover:bg-accent text-foreground"
         )}
@@ -226,7 +219,7 @@ export function MarketsBrowser({
           <>
             <span className={cn(
               "min-w-0 w-full truncate text-[9px] font-semibold leading-none",
-              selected ? "text-white" : "text-muted-foreground"
+              selected || isLoading ? "text-white" : "text-muted-foreground"
             )}>
               {outcome.code}
             </span>
@@ -234,7 +227,7 @@ export function MarketsBrowser({
               <span
                 className={cn(
                   "block w-full truncate text-[8px] font-medium leading-none",
-                  selected ? "text-white/90" : "text-muted-foreground/80"
+                  selected || isLoading ? "text-white/90" : "text-muted-foreground/80"
                 )}
               >
                 {odd.specifiers}
@@ -242,7 +235,7 @@ export function MarketsBrowser({
             )}
             <span className={cn(
               "font-mono text-[12px] font-bold leading-none",
-              selected ? "text-white" : "text-foreground"
+              selected || isLoading ? "text-white" : "text-foreground"
             )}>
               {odd.oddValue.toFixed(2)}
             </span>
