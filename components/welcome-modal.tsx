@@ -25,7 +25,7 @@ export function WelcomeModal({ open, onOpenChange }: WelcomeModalProps) {
       title="Karibu BetFlexx!"
       description="Welcome to your winning journey"
     >
-      <div className="space-y-6 py-4">
+      <div className="space-y-6 ">
 
 
         {/* Main message */}
