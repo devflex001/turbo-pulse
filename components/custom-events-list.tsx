@@ -55,6 +55,7 @@ import {
   CheckCircle,
   EyeOff,
   Eye,
+  Star,
 } from "lucide-react"
 
 interface CustomEventsListProps {
@@ -152,6 +153,7 @@ export function CustomEventsList({
   const unpublishEvent = useMutation(api.customEvents.unpublishCustomEvent)
   const updateScore = useMutation(api.customEvents.updateCustomEventScore)
   const settleEvent = useMutation(api.customEvents.settleCustomEvent)
+  const toggleFeatured = useMutation(api.customEvents.toggleFeaturedEvent)
 
   const handleResolveEvent = async (passphrase?: string) => {
     if (selectedOutcomesByMarket.size === 0 || !eventToResolve) {
@@ -225,9 +227,17 @@ export function CustomEventsList({
       await unpublishEvent({ eventId: eventId as any, sessionToken: sessionToken || undefined })
       toast.success("Event unpublished")
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to unpublish"
-      )
+      toast.error(error instanceof Error ? error.message : "Failed to unpublish")
+    }
+  }
+
+  const handleToggleFeatured = async (event: any, e: React.MouseEvent) => {
+    e.stopPropagation()
+    try {
+      const result = await toggleFeatured({ eventId: event._id as any, sessionToken: sessionToken || undefined })
+      toast.success(result.featured ? "Event marked as featured" : "Event removed from featured")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update featured status")
     }
   }
 
@@ -413,7 +423,12 @@ export function CustomEventsList({
                       className="border-border hover:bg-muted/30 transition-colors"
                     >
                       <TableCell className="py-2 text-xs font-semibold text-foreground">
-                        {event.homeTeam} vs {event.awayTeam}
+                        <span className="flex items-center gap-1.5">
+                          {event.featured && (
+                            <Star className="size-3 fill-amber-400 text-amber-400 shrink-0" />
+                          )}
+                          {event.homeTeam} vs {event.awayTeam}
+                        </span>
                       </TableCell>
                       <TableCell className="py-2 text-xs text-muted-foreground">
                         {event.competition}
@@ -558,6 +573,18 @@ export function CustomEventsList({
                                 Unpublish
                               </DropdownMenuItem>
                             )}
+                            {event.status === "published" && (
+                              <DropdownMenuItem
+                                onClick={(e) => handleToggleFeatured(event, e as any)}
+                                className={cn(
+                                  "cursor-pointer gap-2 text-sm",
+                                  event.featured ? "text-amber-500" : ""
+                                )}
+                              >
+                                <Star className={cn("size-4", event.featured && "fill-amber-500 text-amber-500")} />
+                                {event.featured ? "Unmark Featured" : "Mark as Featured"}
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem
                               onClick={(e) => handleDelete(event._id, e as any)}
                               className="cursor-pointer gap-2 text-sm text-destructive"
@@ -635,7 +662,10 @@ export function CustomEventsList({
                 >
                   {/* Header: Matchup & Actions */}
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-semibold text-foreground">
+                    <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      {event.featured && (
+                        <Star className="size-3 fill-amber-400 text-amber-400 shrink-0" />
+                      )}
                       {event.homeTeam} vs {event.awayTeam}
                     </p>
                     <DropdownMenu>
@@ -714,6 +744,18 @@ export function CustomEventsList({
                           >
                             <EyeOff className="size-4" />
                             Unpublish
+                          </DropdownMenuItem>
+                        )}
+                        {event.status === "published" && (
+                          <DropdownMenuItem
+                            onClick={(e) => handleToggleFeatured(event, e as any)}
+                            className={cn(
+                              "cursor-pointer gap-2 text-sm",
+                              event.featured ? "text-amber-500" : ""
+                            )}
+                          >
+                            <Star className={cn("size-4", event.featured && "fill-amber-500 text-amber-500")} />
+                            {event.featured ? "Unmark Featured" : "Mark as Featured"}
                           </DropdownMenuItem>
                         )}
                         <DropdownMenuItem

@@ -133,7 +133,6 @@ export function CustomEventDetail({
   // Handler functions
   const handleAddOdd = (odd: CustomOddRow, market: CustomMarketRow) => {
     if (isEventFinished) {
-      toast.error("This event has finished. Betting is no longer available.")
       return
     }
 
@@ -157,7 +156,6 @@ export function CustomEventDetail({
       outcomeName: odd.outcomeName,
       matchStartTime: event?.startTime,
     })
-    toast.success(`Added ${odd.outcomeName} @ ${odd.oddValue.toFixed(2)} to betslip`)
   }
 
   const handlePublish = async () => {

@@ -53,7 +53,7 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
 
   return (
     <>
-      <div className="pb-safe relative z-40 h-16 shrink-0 overflow-visible border-t border-border bg-card lg:hidden">
+      <div className="pb-safe fixed bottom-0 left-0 right-0 z-40 h-16 overflow-visible border-t border-border bg-card lg:hidden">
         <div className="grid h-full grid-cols-5 items-center text-center">
           {/* Home Tab */}
           <button

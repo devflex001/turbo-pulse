@@ -92,12 +92,12 @@ export function MatchCard({ match }: MatchCardProps) {
   }
 
   const openMarkets = () => {
-    router.push(`/live?match=${match.sourceMatchId}`)
+    setMarketsOpen(true)
   }
 
   return (
     <>
-      <div className="flex flex-col rounded-lg bg-card border border-border text-card-foreground hover:border-muted-foreground/30 transition-all shadow-sm">
+      <div className="flex flex-col rounded-lg bg-card border border-border text-card-foreground hover:border-muted-foreground/30 transition-all shadow-lg hover:shadow-xl">
         <div className="flex items-center justify-between text-[11px] bg-muted/40 px-4 py-2.5 rounded-t-lg border-b border-border/60 gap-3">
           <div className="flex items-center gap-1.5 font-semibold text-muted-foreground min-w-0">
             <span className="truncate">{match.competitionName}</span>
@@ -160,12 +160,12 @@ export function MatchCard({ match }: MatchCardProps) {
                     variant="outline"
                     disabled={isMatchFinished}
                     className={cn(
-                      `flex flex-col gap-0.5 h-11 py-1 px-2 font-medium transition-all`,
+                      `flex flex-col z-50 gap-0.5 h-11 py-1 px-2 font-medium transition-all rounded border`,
                       isMatchFinished
                         ? "opacity-50 cursor-not-allowed"
                         : selected
-                          ? "bg-[#4b9f71] text-white border-[#4b9f71] font-bold hover:bg-[#3e865f] hover:border-[#3e865f] shadow-lg"
-                          : "border-border text-foreground hover:border-[#4b9f71]/50 hover:bg-[#4b9f71]/5"
+                          ? "!bg-yellow-900/50 !text-white !border-yellow-500 font-bold hover:!bg-yellow-600 hover:!border-yellow-600 shadow-lg"
+                          : "border-border text-foreground hover:border-yellow-500/50 hover:bg-yellow-500/10"
                     )}
                     onClick={() => !isMatchFinished && handleSelection(odd)}
                   >
