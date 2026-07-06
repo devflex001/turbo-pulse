@@ -55,7 +55,6 @@ import {
   CheckCircle,
   EyeOff,
   Eye,
-  Star,
 } from "lucide-react"
 
 interface CustomEventsListProps {

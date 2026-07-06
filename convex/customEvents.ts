@@ -970,58 +970,6 @@ export const deleteCustomEvent = mutation({
   },
 })
 
-export const toggleFeaturedEvent = mutation({
-  args: {
-    eventId: v.id("customEvents"),
-    sessionToken: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    const event = await ctx.db.get(args.eventId)
-    if (!event) throw new Error("Event not found")
-    if (event.status !== "published") {
-      throw new Error("Only published events can be featured")
-    }
-
-    const nowMs = Date.now()
-    const isFeatured = !event.featured
-
-    await ctx.db.patch(args.eventId, {
-      featured: isFeatured,
-      featuredAt: isFeatured ? nowMs : undefined,
-      updatedAt: nowMs,
-    })
-
-    if (args.sessionToken) {
-      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken)
-      if (adminSession) {
-        await logAdminActionInternal(ctx, {
-          adminName: adminSession.adminName,
-          userId: adminSession.userId,
-          actionType: isFeatured ? "feature_event" : "unfeature_event",
-          resourceType: "custom_event",
-          resourceDescription: `Event ${isFeatured ? "featured" : "unfeatured"}: ${event.title} (${event.homeTeam} vs ${event.awayTeam})`,
-        })
-      }
-    }
-
-    return { featured: isFeatured }
-  },
-})
-
-export const listFeaturedEvents = query({
-  args: {},
-  handler: async (ctx) => {
-    const results = await ctx.db
-      .query("customEvents")
-      .withIndex("by_featured", (q) => q.eq("featured", true))
-      .filter((q) => q.eq(q.field("status"), "published"))
-      .collect()
-
-    // Sort by featuredAt descending (most recently featured first)
-    return results.sort((a, b) => (b.featuredAt ?? b.createdAt) - (a.featuredAt ?? a.createdAt))
-  },
-})
-
 // Queries
 export const getCustomEvent = query({
   args: {

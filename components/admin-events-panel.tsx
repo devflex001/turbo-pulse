@@ -25,7 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { MarketsPanel, type SportsMatchWithOdds, type SportsMatch } from "@/components/markets-panel"
 import { Pagination } from "@/components/pagination"
 import { usePagination } from "@/hooks/use-pagination"
-import { ListPlus, Search, ChevronDown, Trash2 } from "lucide-react"
+import { ListPlus, Search, ChevronDown, Trash2, Star } from "lucide-react"
 import { toast } from "sonner"
 
 function formatStartTime(startTime: number) {
@@ -74,6 +74,7 @@ export function AdminEventsPanel() {
   const sessionToken =
     typeof window !== "undefined" ? localStorage.getItem("adminSessionToken") : null
   const clearJunkEventsM = useMutation(api.sportsData.clearJunkEvents)
+  const toggleFeatured = useMutation(api.sportsData.toggleFeaturedMatch)
 
   const pagination = usePagination({ pageSize: 10 })
 
@@ -166,6 +167,22 @@ export function AdminEventsPanel() {
     } finally {
       setIsClearing(false)
       setClearProgress({ deleted: 0, total: 0 })
+    }
+  }
+
+  const handleToggleFeatured = async (match: SportsMatch & { _id: any; featured?: boolean }) => {
+    if (!match._id) {
+      toast.error("Cannot feature this match — missing ID")
+      return
+    }
+    try {
+      const result = await toggleFeatured({
+        matchId: match._id,
+        sessionToken: sessionToken || undefined,
+      })
+      toast.success(result.featured ? "Match marked as featured" : "Match removed from featured")
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update featured status")
     }
   }
 
@@ -312,6 +329,7 @@ export function AdminEventsPanel() {
                     <th className="px-3 py-2 text-left">Competition</th>
                     <th className="px-3 py-2 text-left">Status</th>
                     <th className="px-3 py-2 text-right">Markets</th>
+                    <th className="px-3 py-2 text-center">Featured</th>
                     <th className="px-3 py-2 text-right">Details</th>
                   </tr>
                 </thead>
@@ -346,6 +364,20 @@ export function AdminEventsPanel() {
                       </td>
                       <td className="px-3 py-2 text-right font-mono text-muted-foreground text-[10px]">
                         {match.totalMarkets}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        <button
+                          onClick={() => handleToggleFeatured(match as any)}
+                          title={match.featured ? "Remove from featured" : "Mark as featured"}
+                          className="p-1 rounded hover:bg-muted transition-colors"
+                        >
+                          <Star
+                            className={match.featured
+                              ? "size-4 fill-amber-400 text-amber-400"
+                              : "size-4 text-muted-foreground hover:text-amber-400"
+                            }
+                          />
+                        </button>
                       </td>
                       <td className="px-3 py-2 text-right">
                         <Button
@@ -397,15 +429,29 @@ export function AdminEventsPanel() {
                       <span>•</span>
                       <span className="font-mono">{match.totalMarkets} markets</span>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 text-xs gap-1 px-2"
-                      onClick={() => setSelectedMatch(match)}
-                    >
-                      <ListPlus className="size-3" />
-                      View
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleToggleFeatured(match as any)}
+                        title={match.featured ? "Remove from featured" : "Mark as featured"}
+                        className="p-1 rounded hover:bg-muted transition-colors"
+                      >
+                        <Star
+                          className={match.featured
+                            ? "size-4 fill-amber-400 text-amber-400"
+                            : "size-4 text-muted-foreground hover:text-amber-400"
+                          }
+                        />
+                      </button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs gap-1 px-2"
+                        onClick={() => setSelectedMatch(match)}
+                      >
+                        <ListPlus className="size-3" />
+                        View
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}

@@ -406,3 +406,50 @@ export const clearJunkEvents = mutation({
     };
   },
 });
+
+export const toggleFeaturedMatch = mutation({
+  args: {
+    matchId: v.id("sportsMatches"),
+    sessionToken: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const match = await ctx.db.get(args.matchId);
+    if (!match) throw new Error("Match not found");
+
+    const isFeatured = !match.featured;
+    await ctx.db.patch(args.matchId, {
+      featured: isFeatured,
+      featuredAt: isFeatured ? Date.now() : undefined,
+    });
+
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: adminSession.userId,
+          actionType: "other",
+          resourceType: "scraper_data",
+          resourceDescription: `Match ${isFeatured ? "featured" : "unfeatured"}: ${match.homeTeam} vs ${match.awayTeam}`,
+        });
+      }
+    }
+
+    return { featured: isFeatured };
+  },
+});
+
+export const listFeaturedMatches = query({
+  args: {},
+  handler: async (ctx) => {
+    const results = await ctx.db
+      .query("sportsMatches")
+      .withIndex("by_featured", (q) => q.eq("featured", true))
+      .collect();
+
+    // Sort by featuredAt descending (most recently featured first)
+    return results.sort(
+      (a, b) => (b.featuredAt ?? b.lastScrapedAt) - (a.featuredAt ?? a.lastScrapedAt)
+    );
+  },
+});

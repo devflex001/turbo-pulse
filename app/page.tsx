@@ -244,7 +244,7 @@ export default function Page() {
     limit: 10,
   }) as any[] | undefined
 
-  const featuredEvents = useQuery(api.customEvents.listFeaturedEvents, {})
+  const featuredEvents = useQuery(api.sportsData.listFeaturedMatches, {})
 
   const leagues = useQuery(api.sportsData.listCompetitions, {
     sport: selectedSport,
@@ -544,24 +544,13 @@ export default function Page() {
                   </div>
                 ) : featuredEvents.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {featuredEvents.map((event: any) => (
-                      <CustomEventCard
-                        key={event._id}
-                        eventId={event._id}
-                        homeTeam={event.homeTeam}
-                        awayTeam={event.awayTeam}
-                        homeScore={event.homeScore ?? 0}
-                        awayScore={event.awayScore ?? 0}
-                        startTime={event.startTime}
-                        competition={event.competition}
-                        title={event.title}
-                        totalMarkets={event.totalMarkets}
-                      />
+                    {featuredEvents.map((match: any) => (
+                      <MatchCard key={match.sourceMatchId} match={match} />
                     ))}
                   </div>
                 ) : (
                   <div className="text-center py-12 border border-dashed border-border rounded-lg text-muted-foreground text-xs">
-                    No featured events yet. Admins can mark published events as featured.
+                    No featured events yet. Star a match in the admin Events tab to feature it here.
                   </div>
                 )}
               </div>
