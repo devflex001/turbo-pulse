@@ -53,6 +53,7 @@ export function PublishedCustomEventsSection() {
 
   const publishedEventItems = React.useMemo(() => {
     if (!featuredEvents) return []
+    // All published events are now returned, with featured ones already sorted to top
     return featuredEvents
   }, [featuredEvents])
 
@@ -93,7 +94,16 @@ export function PublishedCustomEventsSection() {
   }
 
   if (publishedEventItems.length === 0) {
-    return null
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-bold text-foreground">Custom Events</h2>
+        </div>
+        <div className="text-center py-6 text-xs text-muted-foreground border border-dashed border-border rounded-lg">
+          No published custom events yet.
+        </div>
+      </div>
+    )
   }
 
   const sortedByStartTime = [...publishedEventItems].sort((a, b) => a.startTime - b.startTime)
