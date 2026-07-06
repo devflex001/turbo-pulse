@@ -4,7 +4,6 @@ import {
   query,
   type MutationCtx,
 } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
 import {
   normalizedMarketValidator,
   normalizedMatchValidator,

@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
+import type { Id } from "@/convex/_generated/dataModel"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,7 +25,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MarketsPanel, type SportsMatchWithOdds, type SportsMatch } from "@/components/markets-panel"
+import { MarketsPanel, type SportsMatch } from "@/components/markets-panel"
 import { Pagination } from "@/components/pagination"
 import { usePagination } from "@/hooks/use-pagination"
 import { ListPlus, Search, ChevronDown, Trash2, Star } from "lucide-react"
@@ -78,7 +79,7 @@ const STATUSES = [
   { value: "live", label: "Live" },
 ]
 
-type MatchWithId = SportsMatch & { _id: any; featured?: boolean }
+type MatchWithId = SportsMatch & { _id: Id<"sportsMatches">; featured?: boolean }
 
 export function AdminEventsPanel() {
   const [activeTab, setActiveTab] = React.useState("synced")
@@ -436,7 +437,7 @@ export function AdminEventsPanel() {
                       </td>
                       <td className="px-3 py-2 text-center">
                         <button
-                          onClick={() => handleToggleFeatured(match as any)}
+                          onClick={() => handleToggleFeatured(match as MatchWithId)}
                           title={match.featured ? "Remove from featured" : "Mark as featured"}
                           className="p-1 rounded hover:bg-muted transition-colors"
                         >
@@ -500,7 +501,7 @@ export function AdminEventsPanel() {
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => handleToggleFeatured(match as any)}
+                        onClick={() => handleToggleFeatured(match as MatchWithId)}
                         title={match.featured ? "Remove from featured" : "Mark as featured"}
                         className="p-1 rounded hover:bg-muted transition-colors"
                       >

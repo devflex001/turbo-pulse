@@ -259,7 +259,7 @@ export const listMarkets = query({
       .withIndex("by_sourceMatchId_and_marketPriority", (q) =>
         q.eq("sourceMatchId", args.sourceMatchId)
       )
-      .take(600);
+      .take(1000);
   },
 });
 
@@ -324,7 +324,7 @@ export const listOddsByMatch = query({
       .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
         q.eq("sourceMatchId", args.sourceMatchId)
       )
-      .take(4000);
+      .take(8000);
   },
 });
 
