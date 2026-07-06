@@ -36,13 +36,11 @@ export function FeaturedSportsMatchesSection() {
   const [now, setNow] = React.useState(() => Date.now())
   const isMobile = useMediaQuery("(max-width: 768px)")
 
-  // Update timer every second
   React.useEffect(() => {
     const interval = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(interval)
   }, [])
 
-  // Fetch both featured sports matches and custom events
   const featuredMatches = useQuery(api.sportsData.listFeaturedMatches, {})
   const customEvents = useQuery(api.customEvents.getFeaturedCustomEvents, {})
 
@@ -56,7 +54,6 @@ export function FeaturedSportsMatchesSection() {
     return Array.isArray(customEvents) ? customEvents : []
   }, [customEvents])
 
-  // Combine: custom events FIRST, then sports matches
   const allItems = React.useMemo(() => {
     const combined = [
       ...customEventItems.map(e => ({ ...e, _type: 'custom' })),
@@ -72,8 +69,8 @@ export function FeaturedSportsMatchesSection() {
           <h2 className="text-base font-bold text-foreground">Featured Matches</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Skeleton className="h-48 rounded-xl" />
-          <Skeleton className="h-48 rounded-xl" />
+          <Skeleton className="h-48 rounded-xl bg-muted/50" />
+          <Skeleton className="h-48 rounded-xl bg-muted/50" />
         </div>
       </div>
     )
@@ -155,36 +152,29 @@ export function FeaturedSportsMatchesSection() {
     return (
       <div
         key={matchId}
-        className="group relative flex flex-col rounded-xl border border-border bg-card shadow-sm hover:border-primary/40 hover:shadow-md transition-all duration-200 overflow-hidden"
+        className="group relative flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-b from-card to-background shadow-sm hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500"
       >
-        {/* Top accent bar */}
-        <div className={cn(
-          "h-[3px] w-full shrink-0 transition-colors duration-300",
-          isLive ? "bg-primary" : isItemFinished ? "bg-muted-foreground/30" : "bg-primary/25"
-        )} />
+        {/* Subtle inner top glow */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/5" />
 
         {/* Header */}
-        <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-2.5 border-b border-border/60">
+        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border/40">
           <div className="flex items-center gap-2 min-w-0">
-            {isLive && (
-              <Badge variant="destructive" className="flex items-center gap-1 text-[9px] font-bold h-4 px-1.5 rounded-sm shrink-0">
-                <span className="size-1.5 rounded-full bg-white animate-pulse" />
-                LIVE
-              </Badge>
-            )}
-            {isItemFinished && !isLive && (
-              <Badge variant="outline" className="text-[9px] font-bold h-4 px-1.5 rounded-sm shrink-0 text-muted-foreground border-muted-foreground/40">
-                FT
-              </Badge>
-            )}
-            <span className="text-[10px] font-semibold text-muted-foreground truncate">{competitionName}</span>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {!isLive && !isItemFinished && (
-              <span className="text-[10px] font-mono font-semibold text-muted-foreground/70">
-                {formatCountdownToStart(timer.remainingMs)}
+            {isLive ? (
+              <span className="flex items-center gap-1.5 rounded-md bg-primary/10 border border-primary/20 px-2 py-0.5 text-xs font-semibold text-primary shrink-0">
+                <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+                Live
               </span>
-            )}
+            ) : isItemFinished ? (
+              <span className="rounded-md border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground shrink-0">
+                FT
+              </span>
+            ) : null}
+            <span className="text-xs font-medium text-muted-foreground truncate capitalize tracking-wide">
+              {competitionName}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
             <MatchShare
               title={`${item.homeTeam} vs ${item.awayTeam}`}
               matchId={matchId}
@@ -194,31 +184,38 @@ export function FeaturedSportsMatchesSection() {
             />
             <button
               onClick={() => handleOpenDetail(item)}
-              className="text-[10px] font-semibold text-primary hover:text-primary/80 transition-colors"
+              className="text-xs font-semibold text-primary/80 hover:text-primary transition-colors"
             >
-              +{item.totalMarkets} markets
+              +{item.totalMarkets} mkts
             </button>
           </div>
         </div>
 
-        {/* Teams + score */}
-        <div className="px-4 py-3.5 flex items-center gap-3">
-          <p className="font-semibold text-sm text-foreground truncate flex-1 text-right leading-tight">{item.homeTeam}</p>
-          <div className="shrink-0 min-w-[54px] text-center">
-            {isLive || isItemFinished ? (
-              <p className="text-lg font-black font-mono text-primary tabular-nums leading-none">
-                {item.homeScore ?? 0} – {item.awayScore ?? 0}
-              </p>
-            ) : (
-              <p className="text-[11px] font-bold text-muted-foreground/50 uppercase tracking-widest">vs</p>
-            )}
-          </div>
-          <p className="font-semibold text-sm text-foreground truncate flex-1 leading-tight">{item.awayTeam}</p>
+        {/* Score / countdown — centered hero */}
+        <div className="px-4 pt-6 pb-4 text-center space-y-1">
+          <p className="text-xs font-medium tracking-wide text-muted-foreground capitalize">
+            {timer.lifecycle === "not_started" ? "Starts in" : "Score"}
+          </p>
+          <p className="text-3xl font-bold tabular-nums text-foreground leading-none tracking-tight">
+            {timer.lifecycle === "not_started"
+              ? formatCountdownToStart(timer.remainingMs)
+              : `${item.homeScore ?? 0} – ${item.awayScore ?? 0}`}
+          </p>
         </div>
 
-        {/* Odds row */}
+        {/* Teams */}
+        <div className="flex items-center justify-center gap-3 px-4 pb-5">
+          <p className="font-semibold text-sm text-foreground/90 truncate text-right flex-1">{item.homeTeam}</p>
+          <p className="text-xs font-medium text-muted-foreground shrink-0">vs</p>
+          <p className="font-semibold text-sm text-foreground/90 truncate flex-1">{item.awayTeam}</p>
+        </div>
+
+        {/* Divider */}
+        <div className="mx-4 h-px bg-border/40" />
+
+        {/* Odds */}
         <div className={cn(
-          "grid grid-cols-3 gap-2 px-4 pb-4",
+          "grid grid-cols-3 gap-2.5 p-4",
           isItemFinished && "opacity-40 pointer-events-none"
         )}>
           {[
@@ -231,12 +228,12 @@ export function FeaturedSportsMatchesSection() {
               disabled={isItemFinished}
               onClick={() => !isItemFinished && handleAddToSlip(item, odd)}
               className={cn(
-                "flex flex-col items-center justify-center gap-0.5 h-11 rounded-lg border border-border bg-muted/30 hover:bg-primary/8 hover:border-primary/50 hover:text-primary transition-all duration-150",
+                "flex flex-col items-center justify-center gap-1 h-14 rounded-xl border border-border/50 bg-muted/30 hover:bg-primary/10 hover:border-primary/30 transition-all duration-300",
                 isItemFinished && "cursor-not-allowed"
               )}
             >
-              <span className="text-[9px] font-semibold text-muted-foreground group-hover:text-primary/70">{odd.label}</span>
-              <span className="text-xs font-bold font-mono text-foreground">{odd.odds.toFixed(2)}</span>
+              <span className="text-xs font-medium text-muted-foreground">{odd.label}</span>
+              <span className="text-sm font-semibold font-mono text-foreground">{odd.odds.toFixed(2)}</span>
             </button>
           ))}
         </div>
@@ -247,25 +244,24 @@ export function FeaturedSportsMatchesSection() {
   if (isMobile) {
     return (
       <>
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-base font-bold text-foreground">Featured Matches</h2>
-            <Badge variant="outline" className="text-[10px] font-mono">
+            <Badge variant="secondary" className="text-xs font-medium px-2 py-0.5">
               {allItems.length}
             </Badge>
           </div>
 
-          <div className="grid grid-cols-1 gap-2">
+          <div className="grid grid-cols-1 gap-3">
             {allItems.map(renderMatchCard)}
           </div>
         </div>
 
-        {/* Mobile Drawer */}
         <Drawer open={detailOpen} onOpenChange={setDetailOpen}>
           <DrawerContent className="h-[90vh] flex flex-col overflow-hidden p-0 bg-card">
-            <DrawerHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
-              <DrawerTitle className="truncate text-sm font-semibold">{matchTitle}</DrawerTitle>
-              <p className="truncate text-xs text-muted-foreground">{selectedMatch?.competition || selectedMatch?.competitionName}</p>
+            <DrawerHeader className="shrink-0 border-b border-border px-4 py-4 text-left">
+              <DrawerTitle className="truncate text-base font-semibold">{matchTitle}</DrawerTitle>
+              <p className="truncate text-sm text-muted-foreground mt-0.5 capitalize">{selectedMatch?.competition || selectedMatch?.competitionName}</p>
             </DrawerHeader>
             {content}
           </DrawerContent>
@@ -276,29 +272,27 @@ export function FeaturedSportsMatchesSection() {
 
   return (
     <>
-      <div className="space-y-2">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-foreground">Featured Matches</h2>
-          <Badge variant="outline" className="text-[10px] font-mono">
+          <h2 className="text-lg font-bold text-foreground">Featured Matches</h2>
+          <Badge variant="secondary" className="text-xs font-medium px-2.5 py-0.5">
             {allItems.length}
           </Badge>
         </div>
 
-        {/* Featured Match Cards (Desktop) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {allItems.map(renderMatchCard)}
         </div>
       </div>
 
-      {/* Desktop Sheet */}
       <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
         <SheetContent
           side="right"
           className="!w-[min(50vw,720px)] !max-w-none flex h-dvh flex-col overflow-hidden p-0 bg-card"
         >
-          <SheetHeader className="shrink-0 border-b border-border px-4 py-3 text-left">
-            <SheetTitle className="truncate text-sm font-semibold">{matchTitle}</SheetTitle>
-            <p className="truncate text-xs text-muted-foreground">{selectedMatch?.competition || selectedMatch?.competitionName}</p>
+          <SheetHeader className="shrink-0 border-b border-border px-6 py-5 text-left">
+            <SheetTitle className="truncate text-lg font-semibold">{matchTitle}</SheetTitle>
+            <p className="truncate text-sm text-muted-foreground mt-1 capitalize">{selectedMatch?.competition || selectedMatch?.competitionName}</p>
           </SheetHeader>
           {content}
         </SheetContent>
