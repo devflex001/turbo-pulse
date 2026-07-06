@@ -244,6 +244,8 @@ export default function Page() {
     limit: 10,
   }) as any[] | undefined
 
+  const featuredEvents = useQuery(api.customEvents.listFeaturedEvents, {})
+
   const leagues = useQuery(api.sportsData.listCompetitions, {
     sport: selectedSport,
   }) as string[] | undefined
@@ -531,22 +533,35 @@ export default function Page() {
               <div className="space-y-4">
                 <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
                   <Flame className="size-4 text-primary fill-current" />
-                  Featured Market Highlights
+                  Featured Events
                 </h2>
-                {!matches ? (
+                {featuredEvents === undefined ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Skeleton className="h-32 rounded-lg" />
+                    <Skeleton className="h-32 rounded-lg" />
                     <Skeleton className="h-32 rounded-lg" />
                     <Skeleton className="h-32 rounded-lg" />
                   </div>
-                ) : displayedMatches.slice(0, 4).length > 0 ? (
+                ) : featuredEvents.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {displayedMatches.slice(0, 4).map((match) => (
-                      <MatchCard key={match.sourceMatchId} match={match} />
+                    {featuredEvents.map((event: any) => (
+                      <CustomEventCard
+                        key={event._id}
+                        eventId={event._id}
+                        homeTeam={event.homeTeam}
+                        awayTeam={event.awayTeam}
+                        homeScore={event.homeScore ?? 0}
+                        awayScore={event.awayScore ?? 0}
+                        startTime={event.startTime}
+                        competition={event.competition}
+                        title={event.title}
+                        totalMarkets={event.totalMarkets}
+                      />
                     ))}
                   </div>
                 ) : (
                   <div className="text-center py-12 border border-dashed border-border rounded-lg text-muted-foreground text-xs">
-                    No featured fixtures available.
+                    No featured events yet. Admins can mark published events as featured.
                   </div>
                 )}
               </div>

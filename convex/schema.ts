@@ -252,6 +252,9 @@ const schema = defineSchema({
     createdAt: v.number(),
     updatedAt: v.number(),
     publishedAt: v.optional(v.number()),
+    // Featured flag
+    featured: v.optional(v.boolean()),
+    featuredAt: v.optional(v.number()),
     // Settlement fields
     settledAt: v.optional(v.number()),
     winningMarketId: v.optional(v.id("customMarkets")),
@@ -260,7 +263,8 @@ const schema = defineSchema({
     .index("by_status", ["status"])
     .index("by_startTime", ["startTime"])
     .index("by_status_and_startTime", ["status", "startTime"])
-    .index("by_createdBy", ["createdBy"]),
+    .index("by_createdBy", ["createdBy"])
+    .index("by_featured", ["featured"]),
   customMarkets: defineTable({
     eventId: v.id("customEvents"),
     marketKey: v.string(),
