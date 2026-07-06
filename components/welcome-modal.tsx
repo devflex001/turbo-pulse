@@ -3,7 +3,9 @@
 import * as React from "react"
 import { ResponsiveModal } from "@/components/ui/responsive-modal"
 import { Button } from "@/components/ui/button"
-import { Sparkles } from "lucide-react"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { Gift, Users } from "lucide-react"
 
 interface WelcomeModalProps {
   open: boolean
@@ -11,6 +13,11 @@ interface WelcomeModalProps {
 }
 
 export function WelcomeModal({ open, onOpenChange }: WelcomeModalProps) {
+  const platformConfig = useQuery(api.platformConfig.getUserFacingConfig, {})
+
+  const bonusPercent = platformConfig?.firstDepositBonusPercent ?? 25
+  const referralAmount = platformConfig?.referralReward ?? 1000
+
   return (
     <ResponsiveModal
       open={open}
@@ -49,6 +56,35 @@ export function WelcomeModal({ open, onOpenChange }: WelcomeModalProps) {
           <FeatureItem icon="⚡" label="Fast" />
           <FeatureItem icon="🎯" label="Accurate" />
           <FeatureItem icon="🏆" label="Rewarding" />
+        </div>
+
+        {/* Bonuses Section */}
+        <div className="space-y-3 pt-4 border-t border-border/50">
+          {/* First Deposit Bonus */}
+          <div className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800">
+            <Gift className="h-5 w-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 text-sm">
+              <p className="font-semibold text-emerald-900 dark:text-emerald-100">
+                {bonusPercent}% First Deposit Bonus
+              </p>
+              <p className="text-xs text-emerald-800 dark:text-emerald-200">
+                Get {bonusPercent}% extra on your first deposit to boost your bets
+              </p>
+            </div>
+          </div>
+
+          {/* Referral Bonus */}
+          <div className="flex items-start gap-3 p-3 rounded-lg bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
+            <Users className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 text-sm">
+              <p className="font-semibold text-blue-900 dark:text-blue-100">
+                Earn KES {referralAmount.toLocaleString()} Per Referral
+              </p>
+              <p className="text-xs text-blue-800 dark:text-blue-200">
+                Invite friends and earn KES {referralAmount.toLocaleString()} for each successful referral
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* CTA Button */}
