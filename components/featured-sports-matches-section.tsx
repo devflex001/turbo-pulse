@@ -161,7 +161,7 @@ export function FeaturedSportsMatchesSection() {
         key={matchId}
         className={cn(
           "group relative flex flex-col overflow-hidden rounded-xl transition-all duration-300",
-          "bg-[#0a0c10] border border-yellow-500/30",
+          "bg-[#071a0f] border border-yellow-500/25",
           "shadow-[0_0_0_1px_rgba(234,179,8,0.08),0_4px_24px_rgba(0,0,0,0.6)]",
           "hover:border-yellow-400/60 hover:shadow-[0_0_0_1px_rgba(234,179,8,0.2),0_8px_32px_rgba(234,179,8,0.12),0_4px_24px_rgba(0,0,0,0.7)]"
         )}
@@ -184,11 +184,7 @@ export function FeaturedSportsMatchesSection() {
               <span className="rounded border border-white/10 px-1.5 py-0.5 text-[10px] font-bold text-white/30 shrink-0 uppercase tracking-wide">
                 FT
               </span>
-            ) : (
-              <span className="rounded bg-yellow-500/10 border border-yellow-500/30 px-1.5 py-0.5 text-[10px] font-bold text-yellow-400/90 shrink-0 uppercase tracking-wide">
-                ★ Featured
-              </span>
-            )}
+            ) : null}
             <span className="text-[11px] font-medium text-white/35 truncate capitalize">
               {competitionName}
             </span>
