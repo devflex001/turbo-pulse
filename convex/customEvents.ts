@@ -1024,15 +1024,31 @@ export const getCustomEvent = query({
 export const getFeaturedCustomEvents = query({
   args: {},
   handler: async (ctx) => {
-    const events = await ctx.db
+    // Fetch all published events
+    const allPublished = await ctx.db
       .query("customEvents")
-      .withIndex("by_featured", (q) => q.eq("featured", true))
-      .take(20)
+      .withIndex("by_status", (q) => q.eq("status", "published"))
+      .collect()
 
-    // Only show published, non-settled featured events (or settled ones still relevant)
-    return events
-      .filter((e) => e.status === "published")
-      .sort((a, b) => (b.featuredAt ?? 0) - (a.featuredAt ?? 0))
+    // Sort: Featured first (by featuredAt descending), then all published (by startTime)
+    return allPublished
+      .sort((a, b) => {
+        // Featured events first
+        const aIsFeatured = a.featured === true
+        const bIsFeatured = b.featured === true
+
+        if (aIsFeatured && !bIsFeatured) return -1
+        if (!aIsFeatured && bIsFeatured) return 1
+
+        // Both featured: sort by featuredAt descending
+        if (aIsFeatured && bIsFeatured) {
+          return (b.featuredAt ?? 0) - (a.featuredAt ?? 0)
+        }
+
+        // Both not featured: sort by startTime ascending
+        return a.startTime - b.startTime
+      })
+      .slice(0, 50)
   },
 })
 

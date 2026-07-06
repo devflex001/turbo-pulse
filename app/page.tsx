@@ -36,6 +36,7 @@ import {
 import type { SportsMatch } from "@/components/markets-panel"
 import { CustomEventCard } from "@/components/custom-event-card"
 import { PublishedCustomEventsSection } from "@/components/published-custom-events-section"
+import { FeaturedSportsMatchesSection } from "@/components/featured-sports-matches-section"
 import {
   Sheet,
   SheetContent,
@@ -244,7 +245,7 @@ export default function Page() {
     limit: 10,
   }) as any[] | undefined
 
-  const featuredEvents = useQuery(api.sportsData.listFeaturedMatches, {})
+  const featuredEvents = useQuery(api.sportsData.listFeaturedMatches, {}) as (SportsMatch & { firstMarket?: any })[] | undefined
 
   const leagues = useQuery(api.sportsData.listCompetitions, {
     sport: selectedSport,
@@ -486,6 +487,10 @@ export default function Page() {
                   </div>
                 )}
 
+                {/* Featured Sports Matches */}
+                <FeaturedSportsMatchesSection />
+
+                {/* Featured Custom Events */}
                 <PublishedCustomEventsSection />
 
                 <div className="space-y-3">
@@ -549,24 +554,35 @@ export default function Page() {
                   <Flame className="size-4 text-primary fill-current" />
                   Featured Events
                 </h2>
-                {featuredEvents === undefined ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Skeleton className="h-32 rounded-lg" />
-                    <Skeleton className="h-32 rounded-lg" />
-                    <Skeleton className="h-32 rounded-lg" />
-                    <Skeleton className="h-32 rounded-lg" />
-                  </div>
-                ) : featuredEvents.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {featuredEvents.map((match: any) => (
-                      <MatchCard key={match.sourceMatchId} match={match} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 border border-dashed border-border rounded-lg text-muted-foreground text-xs">
-                    No featured events yet. Star a match in the admin Events tab to feature it here.
-                  </div>
-                )}
+
+                {/* Featured Custom Events */}
+                <PublishedCustomEventsSection />
+
+                {/* Featured Sports Matches */}
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <Activity className="size-4 text-muted-foreground" />
+                    Featured Matches
+                  </h3>
+                  {featuredEvents === undefined ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Skeleton className="h-32 rounded-lg" />
+                      <Skeleton className="h-32 rounded-lg" />
+                      <Skeleton className="h-32 rounded-lg" />
+                      <Skeleton className="h-32 rounded-lg" />
+                    </div>
+                  ) : Array.isArray(featuredEvents) && featuredEvents.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {featuredEvents.map((match) => (
+                        <MatchCard key={match.sourceMatchId} match={match} />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 border border-dashed border-border rounded-lg text-muted-foreground text-xs">
+                      No featured sports matches yet.
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 
