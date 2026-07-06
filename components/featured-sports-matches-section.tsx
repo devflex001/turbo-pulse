@@ -3,12 +3,9 @@
 import * as React from "react"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import type { Id } from "@/convex/_generated/dataModel"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { useBetStore } from "@/hooks/use-bet-store"
-import { useAuth } from "@/lib/auth/AuthContext"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import {
   Sheet,
   SheetContent,
@@ -25,16 +22,15 @@ import { Skeleton } from "@/components/ui/skeleton"
 import {
   calculateEventTimer,
   formatCountdownToStart,
-  getEventBadgeConfig,
 } from "@/lib/event-timer"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { MarketsPanel } from "./markets-panel"
 import { MatchShare } from "./match-share"
+import { CustomEventDetail } from "./custom-event-detail"
 
 export function FeaturedSportsMatchesSection() {
   const { addToBetslip } = useBetStore()
-  const { user } = useAuth()
   const [detailOpen, setDetailOpen] = React.useState(false)
   const [selectedMatch, setSelectedMatch] = React.useState<any>(null)
   const [now, setNow] = React.useState(() => Date.now())
@@ -132,7 +128,11 @@ export function FeaturedSportsMatchesSection() {
   const content = selectedMatch && (
     <div className="flex-1 overflow-hidden flex flex-col">
       {selectedMatch._type === 'custom' ? (
-        <div>Custom event detail view</div>
+        <CustomEventDetail
+          eventId={selectedMatch._id}
+          adminControls={false}
+          hideHeader={true}
+        />
       ) : (
         <MarketsPanel
           open={detailOpen}
@@ -146,94 +146,99 @@ export function FeaturedSportsMatchesSection() {
 
   const renderMatchCard = (item: any) => {
     const timer = calculateEventTimer(item.startTime, now)
-    const badgeConfig = getEventBadgeConfig(timer.lifecycle)
     const isItemFinished = timer.isFinished
+    const isLive = timer.isLive
     const isCustom = item._type === 'custom'
+    const competitionName = isCustom ? item.competition : item.competitionName
+    const matchId = isCustom ? item._id : item.sourceMatchId
 
     return (
       <div
-        key={isCustom ? item._id : item.sourceMatchId}
-        className="group relative overflow-hidden rounded-xl border border-amber-500/20 bg-card hover:border-amber-300/60 hover:shadow-[0_0_20px_rgba(251,191,36,0.2)] transition-all duration-300 shadow-lg"
+        key={matchId}
+        className="group relative flex flex-col rounded-xl border border-border bg-card shadow-sm hover:border-primary/40 hover:shadow-md transition-all duration-200 overflow-hidden"
       >
-        {/* Header: Sport | Competition | Markets & Status (top right) */}
-        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-amber-400/20 bg-slate-900/30">
+        {/* Top accent bar */}
+        <div className={cn(
+          "h-[3px] w-full shrink-0 transition-colors duration-300",
+          isLive ? "bg-primary" : isItemFinished ? "bg-muted-foreground/30" : "bg-primary/25"
+        )} />
+
+        {/* Header */}
+        <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-2.5 border-b border-border/60">
           <div className="flex items-center gap-2 min-w-0">
-            <Badge variant="outline" className="text-[8px] font-bold uppercase bg-amber-500/20 text-amber-300 border-amber-400/40 shrink-0">
-              {isCustom ? item.sport : item.sportSlug || "Sports"}
-            </Badge>
-            <span className="text-[9px] text-amber-200/80 font-semibold truncate">{isCustom ? item.competition : item.competitionName}</span>
+            {isLive && (
+              <Badge variant="destructive" className="flex items-center gap-1 text-[9px] font-bold h-4 px-1.5 rounded-sm shrink-0">
+                <span className="size-1.5 rounded-full bg-white animate-pulse" />
+                LIVE
+              </Badge>
+            )}
+            {isItemFinished && !isLive && (
+              <Badge variant="outline" className="text-[9px] font-bold h-4 px-1.5 rounded-sm shrink-0 text-muted-foreground border-muted-foreground/40">
+                FT
+              </Badge>
+            )}
+            <span className="text-[10px] font-semibold text-muted-foreground truncate">{competitionName}</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {!isLive && !isItemFinished && (
+              <span className="text-[10px] font-mono font-semibold text-muted-foreground/70">
+                {formatCountdownToStart(timer.remainingMs)}
+              </span>
+            )}
             <MatchShare
               title={`${item.homeTeam} vs ${item.awayTeam}`}
-              matchId={isCustom ? item._id : item.sourceMatchId}
-              competitionName={isCustom ? item.competition : item.competitionName}
+              matchId={matchId}
+              competitionName={competitionName}
               startTime={item.startTime}
               isCustomEvent={isCustom}
             />
             <button
               onClick={() => handleOpenDetail(item)}
-              className="text-[8px] font-semibold text-amber-300 hover:text-amber-200 transition-colors cursor-pointer"
+              className="text-[10px] font-semibold text-primary hover:text-primary/80 transition-colors"
             >
               +{item.totalMarkets} markets
             </button>
-            <Badge
-              variant={badgeConfig.variant}
-              className={cn(
-                "text-[8px] font-bold whitespace-nowrap bg-amber-400/30 text-amber-100 border-amber-400/50",
-                badgeConfig.animate && "animate-pulse"
-              )}
-            >
-              {badgeConfig.label}
-            </Badge>
           </div>
         </div>
 
-        {/* Main content - TIGHT SPACING */}
-        <div className="px-4 py-3 space-y-2 bg-slate-900/20">
-          {/* Countdown / Score - CENTERED */}
-          <div className="space-y-0.5 text-center">
-            <p className="text-[8px] text-amber-300/70 font-bold uppercase tracking-wider">
-              {timer.lifecycle === "not_started" ? "Starts In" : "Score"}
-            </p>
-            <p className="text-2xl font-black text-amber-100 tabular-nums leading-tight drop-shadow-lg">
-              {timer.lifecycle === "not_started"
-                ? formatCountdownToStart(timer.remainingMs)
-                : `${item.homeScore ?? 0} - ${item.awayScore ?? 0}`}
-            </p>
+        {/* Teams + score */}
+        <div className="px-4 py-3.5 flex items-center gap-3">
+          <p className="font-semibold text-sm text-foreground truncate flex-1 text-right leading-tight">{item.homeTeam}</p>
+          <div className="shrink-0 min-w-[54px] text-center">
+            {isLive || isItemFinished ? (
+              <p className="text-lg font-black font-mono text-primary tabular-nums leading-none">
+                {item.homeScore ?? 0} – {item.awayScore ?? 0}
+              </p>
+            ) : (
+              <p className="text-[11px] font-bold text-muted-foreground/50 uppercase tracking-widest">vs</p>
+            )}
           </div>
+          <p className="font-semibold text-sm text-foreground truncate flex-1 leading-tight">{item.awayTeam}</p>
+        </div>
 
-          {/* Teams - Compact with better spacing */}
-          <div className="flex items-center justify-center gap-2">
-            <p className="font-semibold text-sm text-amber-100 truncate text-center flex-1">{item.homeTeam}</p>
-            <p className="text-xs font-medium text-amber-300/70 shrink-0">vs</p>
-            <p className="font-semibold text-sm text-amber-100 truncate text-center flex-1">{item.awayTeam}</p>
-          </div>
-
-          {/* Odds Display - Top 3 outcomes - ADD TO BETSLIP */}
-          <div className={cn(
-            "grid grid-cols-3 gap-2 pt-1",
-            isItemFinished && "opacity-50 pointer-events-none"
-          )}>
-            {[
-              { label: "1", odds: 2.35 },
-              { label: "X", odds: 3.15 },
-              { label: "2", odds: 3.90 },
-            ].map((odd) => (
-              <button
-                key={odd.label}
-                disabled={isItemFinished}
-                onClick={() => !isItemFinished && handleAddToSlip(item, odd)}
-                className={cn(
-                  "flex flex-col items-center justify-center gap-1 p-2 rounded-lg border bg-card border-amber-500/40 hover:from-amber-800/60 hover:to-amber-900/40 hover:border-amber-300/60 transition-all duration-200 group/odd",
-                  isItemFinished && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                <span className="text-[9px] font-semibold text-amber-300">{odd.label}</span>
-                <span className="text-xs font-bold text-amber-200">{odd.odds.toFixed(2)}</span>
-              </button>
-            ))}
-          </div>
+        {/* Odds row */}
+        <div className={cn(
+          "grid grid-cols-3 gap-2 px-4 pb-4",
+          isItemFinished && "opacity-40 pointer-events-none"
+        )}>
+          {[
+            { label: "1", odds: 2.35 },
+            { label: "X", odds: 3.15 },
+            { label: "2", odds: 3.90 },
+          ].map((odd) => (
+            <button
+              key={odd.label}
+              disabled={isItemFinished}
+              onClick={() => !isItemFinished && handleAddToSlip(item, odd)}
+              className={cn(
+                "flex flex-col items-center justify-center gap-0.5 h-11 rounded-lg border border-border bg-muted/30 hover:bg-primary/8 hover:border-primary/50 hover:text-primary transition-all duration-150",
+                isItemFinished && "cursor-not-allowed"
+              )}
+            >
+              <span className="text-[9px] font-semibold text-muted-foreground group-hover:text-primary/70">{odd.label}</span>
+              <span className="text-xs font-bold font-mono text-foreground">{odd.odds.toFixed(2)}</span>
+            </button>
+          ))}
         </div>
       </div>
     )
