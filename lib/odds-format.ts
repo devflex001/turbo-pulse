@@ -15,6 +15,15 @@ function compact(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]/g, "")
 }
 
+export function formatOddSpecifier(specifiers: string) {
+  return specifiers
+    .split(/[|,;&]/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .filter((part) => !part.toLowerCase().startsWith("variant="))
+    .join(" ")
+}
+
 function isOneXTwoMarket(odd: OddLike) {
   const marketName = compact(odd.marketName ?? "")
   const marketKey = compact(odd.marketKey ?? "")
@@ -72,9 +81,13 @@ export function compareFormattedOdds(a: OddLike, b: OddLike, match: MatchLike) {
 export function shouldShowOddSpecifier(specifiers: string, label: string) {
   if (!specifiers.trim()) return false
 
+  const visibleSpecifiers = formatOddSpecifier(specifiers)
+
+  if (!visibleSpecifiers) return false
+
   const normalizedLabel = compact(label)
-  const normalizedSpecifiers = compact(specifiers)
-  const scoreValues = Array.from(specifiers.matchAll(/(?:^|[|,;&\s])score=([^|,;&\s]+)/gi))
+  const normalizedSpecifiers = compact(visibleSpecifiers)
+  const scoreValues = Array.from(visibleSpecifiers.matchAll(/(?:^|[|,;&\s])score=([^|,;&\s]+)/gi))
     .map((match) => compact(match[1] ?? ""))
     .filter(Boolean)
 
@@ -86,6 +99,7 @@ export function shouldShowOddSpecifier(specifiers: string, label: string) {
 
   const values = specifiers
     .split(/[|,;&]/)
+    .filter((part) => !part.trim().toLowerCase().startsWith("variant="))
     .map((part) => part.split("=").pop()?.trim() ?? "")
     .filter(Boolean)
     .map(compact)

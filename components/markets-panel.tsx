@@ -7,6 +7,7 @@ import { useBetStore } from "@/hooks/use-bet-store"
 import {
   compareFormattedOdds,
   formatOddOutcome,
+  formatOddSpecifier,
   shouldShowOddSpecifier,
   formatMarketName,
 } from "@/lib/odds-format"
@@ -197,6 +198,7 @@ export function MarketsBrowser({
   const renderOddButton = (odd: SportsOdd) => {
     const selected = betslip.some((item) => item.id === odd.sourceOddId)
     const outcome = formatOddOutcome(odd, match)
+    const specifier = formatOddSpecifier(odd.specifiers)
     const showSpecifier =
       !outcome.isCode && shouldShowOddSpecifier(odd.specifiers, outcome.code)
 
@@ -206,7 +208,7 @@ export function MarketsBrowser({
         variant="outline"
         disabled={isMatchFinished}
         className={cn(
-          "flex h-12 w-full min-w-0 items-center justify-between gap-2 rounded-md px-3 py-2 text-left transition-all",
+          "flex h-14 w-full min-w-0 flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-center transition-all",
           isMatchFinished && "opacity-50 cursor-not-allowed",
           readOnly && !isMatchFinished && "cursor-default",
           selected
@@ -215,9 +217,9 @@ export function MarketsBrowser({
         )}
         onClick={() => !isMatchFinished && handleOdd(odd)}
       >
-        <span className="min-w-0 flex-1">
+        <span className="flex min-w-0 max-w-full flex-col items-center gap-0.5">
           <span className={cn(
-            "block truncate text-[11px] font-semibold leading-tight",
+            "block max-w-full truncate text-[11px] font-semibold leading-tight",
             selected ? "text-primary-foreground" : "text-foreground"
           )}>
             {outcome.code}
@@ -225,16 +227,16 @@ export function MarketsBrowser({
           {showSpecifier && (
             <span
               className={cn(
-                "block truncate text-[9px] font-medium leading-tight",
+                "block max-w-full truncate text-[9px] font-medium leading-tight",
                 selected ? "text-primary-foreground/80" : "text-muted-foreground"
               )}
             >
-              {odd.specifiers}
+              {specifier}
             </span>
           )}
         </span>
         <span className={cn(
-          "shrink-0 font-mono text-[12px] font-bold leading-none",
+          "font-mono text-sm font-bold leading-none",
           selected ? "text-primary-foreground" : "text-foreground"
         )}>
           {odd.oddValue.toFixed(2)}
