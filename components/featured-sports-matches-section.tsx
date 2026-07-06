@@ -161,48 +161,35 @@ export function FeaturedSportsMatchesSection() {
         key={matchId}
         className={cn(
           "group relative flex flex-col overflow-hidden rounded-xl transition-all duration-300",
-          // Premium dark background with amber/gold shimmer border
-          "bg-[#0d1117] shadow-lg",
-          isLive
-            ? "border border-emerald-500/60 shadow-emerald-500/10 shadow-lg"
-            : "border border-amber-500/40 shadow-amber-500/5 shadow-lg",
-          "hover:border-amber-400/70 hover:shadow-amber-400/15 hover:shadow-xl"
+          "bg-[#0a0c10] border border-yellow-500/30",
+          "shadow-[0_0_0_1px_rgba(234,179,8,0.08),0_4px_24px_rgba(0,0,0,0.6)]",
+          "hover:border-yellow-400/60 hover:shadow-[0_0_0_1px_rgba(234,179,8,0.2),0_8px_32px_rgba(234,179,8,0.12),0_4px_24px_rgba(0,0,0,0.7)]"
         )}
       >
-        {/* Shiny top highlight line */}
-        <div className={cn(
-          "pointer-events-none absolute inset-x-0 top-0 h-[2px]",
-          isLive
-            ? "bg-gradient-to-r from-transparent via-emerald-400 to-transparent"
-            : "bg-gradient-to-r from-transparent via-amber-400 to-transparent"
-        )} />
+        {/* Gold shimmer top line */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-yellow-400 to-transparent opacity-80" />
 
-        {/* Subtle radial glow in background */}
-        <div className={cn(
-          "pointer-events-none absolute inset-0 opacity-[0.04]",
-          isLive
-            ? "bg-[radial-gradient(ellipse_at_top,_#10b981,_transparent_70%)]"
-            : "bg-[radial-gradient(ellipse_at_top,_#f59e0b,_transparent_70%)]"
-        )} />
+        {/* Deep gold radial glow at top */}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_50%_0%,rgba(234,179,8,0.10),transparent)]" />
 
         {/* Header */}
-        <div className="relative flex items-center justify-between gap-2 px-3 py-2 border-b border-white/[0.06]">
+        <div className="relative flex items-center justify-between gap-2 px-3 py-2 border-b border-yellow-500/10">
           <div className="flex items-center gap-1.5 min-w-0">
             {isLive ? (
-              <span className="flex items-center gap-1 rounded bg-emerald-500/15 border border-emerald-500/40 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400 shrink-0 uppercase tracking-wide">
-                <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="flex items-center gap-1 rounded bg-yellow-400/10 border border-yellow-400/40 px-1.5 py-0.5 text-[10px] font-bold text-yellow-300 shrink-0 uppercase tracking-wide">
+                <span className="size-1.5 rounded-full bg-yellow-400 animate-pulse" />
                 Live
               </span>
             ) : isItemFinished ? (
-              <span className="rounded border border-white/10 px-1.5 py-0.5 text-[10px] font-bold text-white/40 shrink-0 uppercase tracking-wide">
+              <span className="rounded border border-white/10 px-1.5 py-0.5 text-[10px] font-bold text-white/30 shrink-0 uppercase tracking-wide">
                 FT
               </span>
             ) : (
-              <span className="rounded bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-bold text-amber-400/90 shrink-0 uppercase tracking-wide">
-                Featured
+              <span className="rounded bg-yellow-500/10 border border-yellow-500/30 px-1.5 py-0.5 text-[10px] font-bold text-yellow-400/90 shrink-0 uppercase tracking-wide">
+                ★ Featured
               </span>
             )}
-            <span className="text-[11px] font-medium text-white/40 truncate capitalize">
+            <span className="text-[11px] font-medium text-white/35 truncate capitalize">
               {competitionName}
             </span>
           </div>
@@ -216,7 +203,7 @@ export function FeaturedSportsMatchesSection() {
             />
             <button
               onClick={() => handleOpenDetail(item)}
-              className="text-[11px] font-semibold text-amber-400/70 hover:text-amber-300 transition-colors"
+              className="text-[11px] font-semibold text-yellow-500/70 hover:text-yellow-300 transition-colors"
             >
               +{item.totalMarkets} mkts
             </button>
@@ -225,13 +212,10 @@ export function FeaturedSportsMatchesSection() {
 
         {/* Score / countdown */}
         <div className="relative px-4 pt-3 pb-2 text-center">
-          <p className="text-[10px] font-semibold tracking-widest text-white/30 uppercase mb-0.5">
+          <p className="text-[10px] font-semibold tracking-widest text-white/25 uppercase mb-0.5">
             {timer.lifecycle === "not_started" ? "Starts In" : "Score"}
           </p>
-          <p className={cn(
-            "text-2xl font-extrabold tabular-nums leading-none tracking-tight",
-            isLive ? "text-emerald-300" : "text-amber-300"
-          )}>
+          <p className="text-2xl font-extrabold tabular-nums leading-none tracking-tight text-yellow-300 drop-shadow-[0_0_12px_rgba(234,179,8,0.5)]">
             {timer.lifecycle === "not_started"
               ? formatCountdownToStart(timer.remainingMs)
               : `${item.homeScore ?? 0} – ${item.awayScore ?? 0}`}
@@ -240,13 +224,13 @@ export function FeaturedSportsMatchesSection() {
 
         {/* Teams */}
         <div className="relative flex items-center justify-center gap-2 px-4 pb-3">
-          <p className="font-bold text-[13px] text-white/90 truncate text-right flex-1">{item.homeTeam}</p>
-          <p className="text-[10px] font-semibold text-white/25 shrink-0 uppercase tracking-widest">vs</p>
-          <p className="font-bold text-[13px] text-white/90 truncate flex-1">{item.awayTeam}</p>
+          <p className="font-bold text-[13px] text-white/85 truncate text-right flex-1">{item.homeTeam}</p>
+          <p className="text-[10px] font-semibold text-white/20 shrink-0 uppercase tracking-widest">vs</p>
+          <p className="font-bold text-[13px] text-white/85 truncate flex-1">{item.awayTeam}</p>
         </div>
 
         {/* Divider */}
-        <div className="mx-3 h-px bg-white/[0.06]" />
+        <div className="mx-3 h-px bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
 
         {/* Odds */}
         <div className={cn(
@@ -267,23 +251,24 @@ export function FeaturedSportsMatchesSection() {
                 className={cn(
                   "relative flex flex-col items-center justify-center gap-0.5 h-12 rounded-lg border transition-all duration-200 overflow-hidden",
                   isSelected
-                    ? cn(
-                      "border-amber-400/80 bg-amber-500/20 shadow-md shadow-amber-500/20",
-                      "after:absolute after:inset-x-0 after:top-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-amber-300/80 after:to-transparent"
-                    )
-                    : "border-white/[0.08] bg-white/[0.03] hover:bg-amber-500/10 hover:border-amber-400/40",
+                    ? [
+                      "border-yellow-400/80 bg-yellow-400/15",
+                      "shadow-[0_0_12px_rgba(234,179,8,0.25),inset_0_1px_0_rgba(234,179,8,0.3)]",
+                      "after:absolute after:inset-x-0 after:top-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-yellow-300 after:to-transparent",
+                    ].join(" ")
+                    : "border-white/[0.07] bg-white/[0.03] hover:bg-yellow-400/8 hover:border-yellow-400/30",
                   isItemFinished && "cursor-not-allowed"
                 )}
               >
                 <span className={cn(
                   "text-[10px] font-bold uppercase tracking-wide",
-                  isSelected ? "text-amber-300" : "text-white/35"
+                  isSelected ? "text-yellow-300" : "text-white/30"
                 )}>
                   {odd.label}
                 </span>
                 <span className={cn(
                   "text-sm font-extrabold font-mono",
-                  isSelected ? "text-amber-200" : "text-white/80"
+                  isSelected ? "text-yellow-200 drop-shadow-[0_0_6px_rgba(234,179,8,0.6)]" : "text-white/75"
                 )}>
                   {odd.odds.toFixed(2)}
                 </span>
@@ -301,7 +286,7 @@ export function FeaturedSportsMatchesSection() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-white/90 tracking-wide uppercase">Featured Matches</h2>
-            <span className="rounded-md bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 text-xs font-bold text-amber-400">
+            <span className="rounded-md bg-yellow-500/15 border border-yellow-500/30 px-2 py-0.5 text-xs font-bold text-yellow-400">
               {allItems.length}
             </span>
           </div>
@@ -329,7 +314,7 @@ export function FeaturedSportsMatchesSection() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-bold text-white/90 tracking-wide uppercase">Featured Matches</h2>
-          <span className="rounded-md bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 text-xs font-bold text-amber-400">
+          <span className="rounded-md bg-yellow-500/15 border border-yellow-500/30 px-2 py-0.5 text-xs font-bold text-yellow-400">
             {allItems.length}
           </span>
         </div>
