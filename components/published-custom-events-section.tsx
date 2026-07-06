@@ -158,7 +158,7 @@ export function PublishedCustomEventsSection() {
     return (
       <div
         key={event._id}
-        className="group relative overflow-hidden rounded-2xl border-2 border-amber-400/40 bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-amber-900/40 hover:border-amber-300/80 hover:shadow-[0_0_40px_rgba(251,191,36,0.3)] transition-all duration-300 shadow-2xl backdrop-blur-sm"
+        className="group relative overflow-hidden rounded-2xl border-2 border-amber-400/40 bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-amber-900/40 hover:border-amber-300/80 hover:shadow-2xl transition-all duration-300 shadow-xl backdrop-blur-sm"
       >
         {/* Premium background glow effect */}
         <div className="absolute inset-0 bg-gradient-to-t from-amber-600/5 via-transparent to-amber-500/5 pointer-events-none" />

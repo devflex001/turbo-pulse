@@ -97,7 +97,7 @@ export function MatchCard({ match }: MatchCardProps) {
 
   return (
     <>
-      <div className="flex flex-col rounded-lg bg-card border border-border text-card-foreground hover:border-muted-foreground/30 transition-all shadow-sm">
+      <div className="flex flex-col rounded-lg bg-card border border-border text-card-foreground hover:border-muted-foreground/30 transition-all shadow-lg hover:shadow-xl">
         <div className="flex items-center justify-between text-[11px] bg-muted/40 px-4 py-2.5 rounded-t-lg border-b border-border/60 gap-3">
           <div className="flex items-center gap-1.5 font-semibold text-muted-foreground min-w-0">
             <span className="truncate">{match.competitionName}</span>
