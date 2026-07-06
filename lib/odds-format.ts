@@ -74,8 +74,14 @@ export function shouldShowOddSpecifier(specifiers: string, label: string) {
 
   const normalizedLabel = compact(label)
   const normalizedSpecifiers = compact(specifiers)
+  const scoreValues = Array.from(specifiers.matchAll(/(?:^|[|,;&\s])score=([^|,;&\s]+)/gi))
+    .map((match) => compact(match[1] ?? ""))
+    .filter(Boolean)
 
   if (!normalizedLabel) return true
+  if (scoreValues.length > 0 && scoreValues.every((value) => normalizedLabel.includes(value))) {
+    return false
+  }
   if (normalizedLabel.includes(normalizedSpecifiers)) return false
 
   const values = specifiers

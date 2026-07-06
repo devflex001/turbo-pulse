@@ -87,6 +87,10 @@ function marketCategory(market: SportsMarket) {
   return market.marketTypes[0] || market.marketType || "Other"
 }
 
+function marketMeta(market: SportsMarket) {
+  return market.marketTypes.length > 0 ? market.marketTypes.join(", ") : market.marketType || "Other"
+}
+
 function sortOdds(a: SportsOdd, b: SportsOdd) {
   return a.priority - b.priority || a.outcomeName.localeCompare(b.outcomeName)
 }
@@ -202,34 +206,36 @@ export function MarketsBrowser({
         variant="outline"
         disabled={isMatchFinished}
         className={cn(
-          "flex flex-col items-center justify-center gap-0.5 h-12 py-1.5 px-2 transition-all text-center min-w-0 w-full rounded-md",
+          "flex h-12 w-full min-w-0 items-center justify-between gap-2 rounded-md px-3 py-2 text-left transition-all",
           isMatchFinished && "opacity-50 cursor-not-allowed",
           readOnly && !isMatchFinished && "cursor-default",
           selected
-            ? "bg-[#4b9f71] text-white border border-[#4b9f71] hover:bg-[#3e865f] hover:border-[#3e865f] shadow-sm"
-            : "bg-card border border-border hover:border-[#4b9f71]/50 hover:bg-accent text-foreground"
+            ? "border-primary bg-primary text-primary-foreground shadow-sm hover:border-primary hover:bg-primary/90"
+            : "border-border/70 bg-background/40 text-foreground hover:border-primary/70 hover:bg-primary/5 focus-visible:border-primary focus-visible:ring-primary/30"
         )}
         onClick={() => !isMatchFinished && handleOdd(odd)}
       >
-        <span className={cn(
-          "min-w-0 w-full truncate text-[9px] font-semibold leading-none",
-          selected ? "text-white" : "text-muted-foreground"
-        )}>
-          {outcome.code}
-        </span>
-        {showSpecifier && (
-          <span
-            className={cn(
-              "block w-full truncate text-[8px] font-medium leading-none",
-              selected ? "text-white/90" : "text-muted-foreground/80"
-            )}
-          >
-            {odd.specifiers}
+        <span className="min-w-0 flex-1">
+          <span className={cn(
+            "block truncate text-[11px] font-semibold leading-tight",
+            selected ? "text-primary-foreground" : "text-foreground"
+          )}>
+            {outcome.code}
           </span>
-        )}
+          {showSpecifier && (
+            <span
+              className={cn(
+                "block truncate text-[9px] font-medium leading-tight",
+                selected ? "text-primary-foreground/80" : "text-muted-foreground"
+              )}
+            >
+              {odd.specifiers}
+            </span>
+          )}
+        </span>
         <span className={cn(
-          "font-mono text-[12px] font-bold leading-none",
-          selected ? "text-white" : "text-foreground"
+          "shrink-0 font-mono text-[12px] font-bold leading-none",
+          selected ? "text-primary-foreground" : "text-foreground"
         )}>
           {odd.oddValue.toFixed(2)}
         </span>
@@ -254,8 +260,8 @@ export function MarketsBrowser({
           className={cn(
             "h-auto min-h-10 w-full justify-between gap-3 px-3 py-2 text-left rounded-md transition-all border",
             effectiveMarketKey === market.marketKey
-              ? "bg-[#4b9f71]/10 text-foreground border-[#4b9f71]/50 hover:bg-[#4b9f71]/15"
-              : "border-transparent hover:bg-accent/50"
+              ? "border-primary/50 bg-primary/10 text-foreground hover:bg-primary/15"
+              : "border-transparent hover:bg-primary/5"
           )}
           onClick={() => setSelectedMarketKey(market.marketKey)}
         >
@@ -264,7 +270,7 @@ export function MarketsBrowser({
               {formatMarketName(market, match)}
             </span>
             <span className="block whitespace-normal break-words text-[10px] leading-tight text-muted-foreground">
-              {market.marketTypes.length > 0 ? market.marketTypes.join(", ") : market.marketType || "Other"}
+              {marketMeta(market)}
             </span>
           </span>
           <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
@@ -278,14 +284,16 @@ export function MarketsBrowser({
   const sheetContent = (
     <div className="space-y-4 p-4">
       {selectedMarket && (
-        <div className="space-y-1">
-          <h3 className="text-sm font-semibold leading-tight">{formatMarketName(selectedMarket, match)}</h3>
-          <p className="text-xs text-muted-foreground">
-            {selectedMarket.marketTypes.length > 0
-              ? selectedMarket.marketTypes.join(", ")
-              : selectedMarket.marketType || "Other"}
-            {" "}- {selectedMarket.oddsCount} odds
-          </p>
+        <div className="flex items-start justify-between gap-3 border-b border-border/60 pb-3">
+          <div className="min-w-0">
+            <h3 className="truncate text-sm font-semibold leading-tight">
+              {formatMarketName(selectedMarket, match)}
+            </h3>
+            <p className="truncate text-xs text-muted-foreground">{marketMeta(selectedMarket)}</p>
+          </div>
+          <span className="shrink-0 rounded-md border border-border bg-muted/30 px-2 py-1 font-mono text-[10px] text-muted-foreground">
+            {selectedMarket.oddsCount}
+          </span>
         </div>
       )}
 
@@ -323,7 +331,7 @@ export function MarketsBrowser({
   )
 
   const pageContent = (
-    <div className="space-y-3 px-3 sm:px-4 py-3 pb-32">
+    <div className="space-y-2 px-2 py-2 pb-32 sm:px-4 sm:py-3">
       {(!markets || !allOdds) && (
         <div className="space-y-2">
           <Skeleton className="h-10 w-full" />
@@ -344,22 +352,17 @@ export function MarketsBrowser({
         if (!marketOdds.length) return null
 
         return (
-          <section key={market.marketKey} className="rounded-lg border border-border bg-card">
-            <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2">
+          <section key={market.marketKey} className="overflow-hidden rounded-md border border-border/70 bg-card">
+            <div className="flex min-h-10 items-center border-b border-border/60 bg-muted/20 px-3 py-2">
               <div className="min-w-0">
-                <h3 className="truncate text-[11px] font-semibold leading-tight text-foreground/90">
+                <h3 className="truncate text-[11px] font-semibold leading-tight text-foreground">
                   {formatMarketName(market, match)}
                 </h3>
-                <p className="truncate text-[9px] font-medium text-muted-foreground">
-                  {market.marketTypes.length > 0
-                    ? market.marketTypes.join(", ")
-                    : market.marketType || "Other"}
-                </p>
               </div>
             </div>
 
             <div className={cn(
-              "grid gap-2 p-3",
+              "grid gap-1.5 p-2.5",
               marketOdds.length === 2 || marketOdds.length === 4 ? "grid-cols-2" : "grid-cols-3"
             )}>
               {marketOdds.map(renderOddButton)}
