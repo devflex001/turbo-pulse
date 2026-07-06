@@ -351,6 +351,9 @@ export const clearJunkEvents = mutation({
     for (const match of oldMatches) {
       // Skip live matches
       if (match.status === 1) continue;
+      // Keep featured matches manageable after full time instead of deleting
+      // them before an admin can unfeature or remove them from the featured tab.
+      if (match.featured) continue;
 
       // Delete markets using index (small batch)
       const markets = await ctx.db
@@ -440,16 +443,33 @@ export const toggleFeaturedMatch = mutation({
 });
 
 export const listFeaturedMatches = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+    includeFirstMarket: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const pageSize = Math.max(1, Math.min(args.limit ?? 50, 100));
+    const offset = Math.max(0, args.offset ?? 0);
+    const fetchLimit = (Math.ceil(offset / pageSize) + 2) * pageSize;
+    const includeFirstMarket = args.includeFirstMarket ?? true;
+
     const results = await ctx.db
       .query("sportsMatches")
       .withIndex("by_featured", (q) => q.eq("featured", true))
-      .collect();
+      .take(fetchLimit);
+
+    const paged = results
+      .sort(
+        (a, b) => (b.featuredAt ?? b.lastScrapedAt) - (a.featuredAt ?? a.lastScrapedAt)
+      )
+      .slice(offset, offset + pageSize);
+
+    if (!includeFirstMarket) return paged;
 
     // For each match, fetch the first market + its top 3 odds so MatchCard renders correctly
     const withOdds = await Promise.all(
-      results.map(async (match) => {
+      paged.map(async (match) => {
         const firstMarket = await ctx.db
           .query("sportsMarkets")
           .withIndex("by_sourceMatchId_and_marketPriority", (q) =>
@@ -477,9 +497,89 @@ export const listFeaturedMatches = query({
       })
     );
 
-    // Sort by featuredAt descending (most recently featured first)
-    return withOdds.sort(
-      (a, b) => (b.featuredAt ?? b.lastScrapedAt) - (a.featuredAt ?? a.lastScrapedAt)
-    );
+    return withOdds;
+  },
+});
+
+export const deleteSportsMatch = mutation({
+  args: {
+    matchId: v.id("sportsMatches"),
+    sessionToken: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+    if (!adminSession) throw new Error("Admin session required");
+
+    const match = await ctx.db.get(args.matchId);
+    if (!match) {
+      return {
+        matchDeleted: true,
+        marketsDeleted: 0,
+        oddsDeleted: 0,
+        hasMore: false,
+      };
+    }
+
+    let oddsDeleted = 0;
+    const odds = await ctx.db
+      .query("sportsOdds")
+      .withIndex("by_sourceMatchId", (q) => q.eq("sourceMatchId", match.sourceMatchId))
+      .take(300);
+
+    for (const odd of odds) {
+      await ctx.db.delete(odd._id);
+      oddsDeleted++;
+    }
+
+    if (odds.length === 300) {
+      return {
+        matchDeleted: false,
+        marketsDeleted: 0,
+        oddsDeleted,
+        hasMore: true,
+      };
+    }
+
+    let marketsDeleted = 0;
+    const markets = await ctx.db
+      .query("sportsMarkets")
+      .withIndex("by_sourceMatchId_and_marketPriority", (q) =>
+        q.eq("sourceMatchId", match.sourceMatchId)
+      )
+      .take(200);
+
+    for (const market of markets) {
+      await ctx.db.delete(market._id);
+      marketsDeleted++;
+    }
+
+    if (markets.length === 200) {
+      return {
+        matchDeleted: false,
+        marketsDeleted,
+        oddsDeleted,
+        hasMore: true,
+      };
+    }
+
+    await ctx.db.delete(args.matchId);
+
+    await logAdminActionInternal(ctx, {
+      adminName: adminSession.adminName,
+      userId: adminSession.userId,
+      actionType: "other",
+      resourceType: "scraper_data",
+      resourceDescription: `Deleted sports match: ${match.homeTeam} vs ${match.awayTeam}`,
+      details: {
+        newValue: `${marketsDeleted} markets and ${oddsDeleted} odds deleted in final batch`,
+      },
+    });
+
+    return {
+      matchDeleted: true,
+      marketsDeleted,
+      oddsDeleted,
+      hasMore: false,
+    };
   },
 });
