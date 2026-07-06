@@ -19,13 +19,7 @@ export function WelcomeModal({ open, onOpenChange }: WelcomeModalProps) {
       description="Welcome to your winning journey"
     >
       <div className="space-y-6 py-4">
-        {/* Decorative top accent */}
-        <div className="flex justify-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-primary">New Member</span>
-          </div>
-        </div>
+
 
         {/* Main message */}
         <div className="space-y-4 text-center">
