@@ -158,7 +158,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "flex flex-col shrink-0 border-r border-border bg-card text-card-foreground overflow-hidden w-64",
+        "flex flex-col shrink-0 border-r border-border bg-card text-card-foreground w-64 h-[calc(100vh-4rem)] overflow-hidden sticky top-16",
         className
       )}
     >

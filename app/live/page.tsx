@@ -75,13 +75,13 @@ export default function LivePage() {
   }, [customEvents])
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background">
+    <div className="flex flex-col min-h-screen bg-background">
       <Header />
 
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar className="hidden lg:flex w-60 shrink-0 overflow-y-auto border-r border-border" />
+      <div className="flex flex-1 min-h-0">
+        <Sidebar className="hidden lg:flex w-60 shrink-0 border-r border-border" />
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-6 scrollbar-thin pb-20 lg:pb-0">
+        <main className="flex-1 overflow-auto p-4 sm:p-6 flex flex-col gap-6 pb-20 lg:pb-0 min-w-0">
           {/* Page Title */}
           <div className="flex items-center gap-2 sticky top-0 z-10 bg-background/95 backdrop-blur py-2 -mx-4 sm:-mx-6 px-4 sm:px-6">
             <span className="h-2.5 w-2.5 rounded-full bg-destructive animate-pulse" />

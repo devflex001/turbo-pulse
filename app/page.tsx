@@ -299,13 +299,13 @@ export default function Page() {
 
   return (
     <>
-      <div className="flex flex-col h-screen overflow-hidden bg-background">
+      <div className="flex flex-col min-h-screen bg-background">
         <Header />
 
-        <div className="flex flex-1 overflow-hidden">
-          <Sidebar className="hidden lg:flex w-60 shrink-0 overflow-y-auto border-r border-border" />
+        <div className="flex flex-1 min-h-0">
+          <Sidebar className="hidden lg:flex w-60 shrink-0 border-r border-border" />
 
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-2 scrollbar-thin pb-20 lg:pb-0">
+          <main className="flex-1 overflow-auto p-4 sm:p-6 flex flex-col gap-2 pb-20 lg:pb-0 min-w-0">
             {((activeTab === "home" || activeTab === "live" || activeTab === "featured" || activeTab === "how-it-works" || activeTab === "faqs" || activeTab === "contact" || activeTab === "custom" || activeTab === "mybets") || !activeTab) && (
 
               <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-0 border-b border-border scrollbar-none shrink-0">
