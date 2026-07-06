@@ -23,10 +23,10 @@ import {
   formatCountdownToStart,
 } from "@/lib/event-timer"
 import { cn } from "@/lib/utils"
-import { toast } from "sonner"
 import { MarketsPanel } from "./markets-panel"
 import { MatchShare } from "./match-share"
 import { CustomEventDetail } from "./custom-event-detail"
+import { Loader } from "lucide-react"
 
 // Track selected (added) bet outcomes per match
 type SelectedOdds = Record<string, string | null>
@@ -37,6 +37,7 @@ export function FeaturedSportsMatchesSection() {
   const [selectedMatch, setSelectedMatch] = React.useState<any>(null)
   const [now, setNow] = React.useState(() => Date.now())
   const [selectedOdds, setSelectedOdds] = React.useState<SelectedOdds>({})
+  const [loadingOddKey, setLoadingOddKey] = React.useState<string | null>(null)
   const isMobile = useMediaQuery("(max-width: 768px)")
 
   React.useEffect(() => {
@@ -91,9 +92,14 @@ export function FeaturedSportsMatchesSection() {
   const handleAddToSlip = (item: any, outcome: { label: string; odds: number }) => {
     const timer = calculateEventTimer(item.startTime, now)
     if (timer.isFinished) {
-      toast.error("This event has finished. Betting is no longer available.")
       return
     }
+
+    const matchId = item._type === 'custom' ? item._id : item.sourceMatchId
+    const oddKey = `${matchId}-${outcome.label}`
+
+    // Set loading state immediately
+    setLoadingOddKey(oddKey)
 
     const outcomeMap: Record<string, string> = {
       "1": item.homeTeam,
@@ -101,16 +107,13 @@ export function FeaturedSportsMatchesSection() {
       "2": item.awayTeam,
     }
 
-    const matchId = item._type === 'custom' ? item._id : item.sourceMatchId
-    const matchName = `${item.homeTeam} vs ${item.awayTeam}`
-
-    // Update selected odds for this match
+    // Update selected odds for this match - this provides immediate visual feedback
     setSelectedOdds((prev) => ({ ...prev, [matchId]: outcome.label }))
 
     addToBetslip({
       id: `${matchId}-${outcome.label}`,
       matchId,
-      matchName,
+      matchName: `${item.homeTeam} vs ${item.awayTeam}`,
       team1: item.homeTeam,
       team2: item.awayTeam,
       market: "1X2",
@@ -121,7 +124,9 @@ export function FeaturedSportsMatchesSection() {
       outcomeName: outcomeMap[outcome.label] || outcome.label,
       matchStartTime: item.startTime,
     })
-    toast.success(`Added ${outcomeMap[outcome.label]} @ ${outcome.odds.toFixed(2)} to betslip`)
+
+    // Clear loading state after a brief delay
+    setTimeout(() => setLoadingOddKey(null), 100)
   }
 
   const matchTitle = selectedMatch
@@ -161,7 +166,7 @@ export function FeaturedSportsMatchesSection() {
         key={matchId}
         className={cn(
           "group relative flex flex-col overflow-hidden rounded-xl transition-all duration-300",
-          "bg-[#071a0f] border border-yellow-500/25",
+          "bg-card border border-yellow-500/25",
           "shadow-2xl",
           "hover:shadow-xl"
         )}
@@ -245,10 +250,12 @@ export function FeaturedSportsMatchesSection() {
             { label: "2", odds: 3.90 },
           ].map((odd) => {
             const isSelected = activeOdd === odd.label
+            const oddKey = `${matchId}-${odd.label}`
+            const isLoading = loadingOddKey === oddKey
             return (
               <button
                 key={odd.label}
-                disabled={isItemFinished}
+                disabled={isItemFinished || isLoading}
                 onClick={() => !isItemFinished && handleAddToSlip(item, odd)}
                 className={cn(
                   "relative flex flex-col items-center justify-center gap-0.5 h-12 rounded-lg border transition-all duration-200 overflow-hidden",
@@ -259,21 +266,28 @@ export function FeaturedSportsMatchesSection() {
                       "after:absolute after:inset-x-0 after:top-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-yellow-300 after:to-transparent",
                     ].join(" ")
                     : "border-white/[0.07] bg-white/[0.03] hover:bg-yellow-400/8 hover:border-yellow-400/30",
-                  isItemFinished && "cursor-not-allowed"
+                  isItemFinished && "cursor-not-allowed",
+                  isLoading && "opacity-60"
                 )}
               >
-                <span className={cn(
-                  "text-[10px] font-bold uppercase tracking-wide",
-                  isSelected ? "text-yellow-300" : "text-white/30"
-                )}>
-                  {odd.label}
-                </span>
-                <span className={cn(
-                  "text-sm font-extrabold font-mono",
-                  isSelected ? "text-yellow-200 drop-shadow-[0_0_6px_rgba(234,179,8,0.6)]" : "text-white/75"
-                )}>
-                  {odd.odds.toFixed(2)}
-                </span>
+                {isLoading ? (
+                  <Loader className="size-3 animate-spin" />
+                ) : (
+                  <>
+                    <span className={cn(
+                      "text-[10px] font-bold uppercase tracking-wide",
+                      isSelected ? "text-yellow-300" : "text-white/30"
+                    )}>
+                      {odd.label}
+                    </span>
+                    <span className={cn(
+                      "text-sm font-extrabold font-mono",
+                      isSelected ? "text-yellow-200 drop-shadow-[0_0_6px_rgba(234,179,8,0.6)]" : "text-white/75"
+                    )}>
+                      {odd.odds.toFixed(2)}
+                    </span>
+                  </>
+                )}
               </button>
             )
           })}

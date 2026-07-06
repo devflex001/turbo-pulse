@@ -28,9 +28,9 @@ import {
   getEventBadgeConfig,
 } from "@/lib/event-timer"
 import { cn } from "@/lib/utils"
-import { toast } from "sonner"
 import { CustomEventDetail } from "./custom-event-detail"
 import { MatchShare } from "./match-share"
+import { Loader } from "lucide-react"
 
 export function PublishedCustomEventsSection() {
   const { addToBetslip } = useBetStore()
@@ -39,6 +39,7 @@ export function PublishedCustomEventsSection() {
   const [detailOpen, setDetailOpen] = React.useState(false)
   const [selectedEvent, setSelectedEvent] = React.useState<any>(null)
   const [now, setNow] = React.useState(() => Date.now())
+  const [loadingOddKey, setLoadingOddKey] = React.useState<string | null>(null)
   const notifiedEventIdsRef = React.useRef(new Set<string>())
   const isMobile = useMediaQuery("(max-width: 768px)")
 
@@ -109,9 +110,11 @@ export function PublishedCustomEventsSection() {
   const handleAddToSlip = (event: any, outcome: { label: string; odds: number }) => {
     const timer = calculateEventTimer(event.startTime, now)
     if (timer.isFinished) {
-      toast.error("This event has finished. Betting is no longer available.")
       return
     }
+
+    const oddKey = `${event._id}-${outcome.label}`
+    setLoadingOddKey(oddKey)
 
     const outcomeMap: Record<string, string> = {
       "1": event.homeTeam,
@@ -133,7 +136,8 @@ export function PublishedCustomEventsSection() {
       outcomeName: outcomeMap[outcome.label] || outcome.label,
       matchStartTime: event.startTime,
     })
-    toast.success(`Added ${outcomeMap[outcome.label]} @ ${outcome.odds.toFixed(2)} to betslip`)
+
+    setTimeout(() => setLoadingOddKey(null), 100)
   }
 
   const eventTitle = selectedEvent
@@ -230,20 +234,31 @@ export function PublishedCustomEventsSection() {
               { label: "1", odds: 2.35 },
               { label: "X", odds: 3.15 },
               { label: "2", odds: 3.90 },
-            ].map((odd) => (
-              <button
-                key={odd.label}
-                disabled={isEventFinished}
-                onClick={() => !isEventFinished && handleAddToSlip(event, odd)}
-                className={cn(
-                  "flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border-2 border-amber-400/50 bg-gradient-to-b from-amber-600/30 via-amber-700/20 to-amber-800/30 hover:from-amber-500/50 hover:via-amber-600/30 hover:to-amber-700/40 hover:border-amber-300/80 transition-all duration-200 group/odd shadow-lg hover:shadow-amber-900/50 hover:shadow-xl",
-                  isEventFinished && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                <span className="text-[9px] font-bold text-amber-100 uppercase">{odd.label}</span>
-                <span className="text-sm font-black text-amber-100 drop-shadow-md">{odd.odds.toFixed(2)}</span>
-              </button>
-            ))}
+            ].map((odd) => {
+              const oddKey = `${event._id}-${odd.label}`
+              const isLoading = loadingOddKey === oddKey
+              return (
+                <button
+                  key={odd.label}
+                  disabled={isEventFinished || isLoading}
+                  onClick={() => !isEventFinished && handleAddToSlip(event, odd)}
+                  className={cn(
+                    "flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border-2 border-amber-400/50 bg-gradient-to-b from-amber-600/30 via-amber-700/20 to-amber-800/30 hover:from-amber-500/50 hover:via-amber-600/30 hover:to-amber-700/40 hover:border-amber-300/80 transition-all duration-200 group/odd shadow-lg hover:shadow-amber-900/50 hover:shadow-xl",
+                    isEventFinished && "opacity-50 cursor-not-allowed",
+                    isLoading && "opacity-60"
+                  )}
+                >
+                  {isLoading ? (
+                    <Loader className="size-3 animate-spin" />
+                  ) : (
+                    <>
+                      <span className="text-[9px] font-bold text-amber-100 uppercase">{odd.label}</span>
+                      <span className="text-sm font-black text-amber-100 drop-shadow-md">{odd.odds.toFixed(2)}</span>
+                    </>
+                  )}
+                </button>
+              )
+            })}
           </div>
         </div>
 
