@@ -53,7 +53,7 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
 
   return (
     <>
-      <div className="pb-safe fixed bottom-0 left-0 right-0 z-40 h-16 overflow-visible border-t border-border bg-card lg:hidden">
+      <div className="pb-safe z-55 fixed bottom-0 left-0 right-0 z-40 h-16 overflow-visible border-t border-border bg-card lg:hidden">
         <div className="grid h-full grid-cols-5 items-center text-center">
           {/* Home Tab */}
           <button
@@ -158,7 +158,7 @@ export function BottomNav({ liveCount }: { liveCount: number }) {
       <Sheet open={betslipOpen} onOpenChange={setBetslipOpen}>
         <SheetContent
           side="bottom"
-          className="flex h-[85vh] max-h-[720px] flex-col gap-0 rounded-t-2xl border-t border-border bg-card p-0"
+          className="flex h-[85vh]  max-h-screen flex-col gap-0 rounded-t-2xl border-t border-border bg-card p-0"
         >
           <SheetHeader className="border-b border-border bg-muted/20 p-4">
             <SheetTitle className="text-lg font-bold">
