@@ -490,9 +490,6 @@ export default function Page() {
                 {/* Featured Sports Matches */}
                 <FeaturedSportsMatchesSection />
 
-                {/* Featured Custom Events */}
-                <PublishedCustomEventsSection />
-
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
@@ -555,34 +552,11 @@ export default function Page() {
                   Featured Events
                 </h2>
 
-                {/* Featured Custom Events */}
+                {/* Featured Custom Events ON TOP */}
                 <PublishedCustomEventsSection />
 
                 {/* Featured Sports Matches */}
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                    <Activity className="size-4 text-muted-foreground" />
-                    Featured Matches
-                  </h3>
-                  {featuredEvents === undefined ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Skeleton className="h-32 rounded-lg" />
-                      <Skeleton className="h-32 rounded-lg" />
-                      <Skeleton className="h-32 rounded-lg" />
-                      <Skeleton className="h-32 rounded-lg" />
-                    </div>
-                  ) : Array.isArray(featuredEvents) && featuredEvents.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {featuredEvents.map((match) => (
-                        <MatchCard key={match.sourceMatchId} match={match} />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 border border-dashed border-border rounded-lg text-muted-foreground text-xs">
-                      No featured sports matches yet.
-                    </div>
-                  )}
-                </div>
+                <FeaturedSportsMatchesSection />
               </div>
             )}
 
