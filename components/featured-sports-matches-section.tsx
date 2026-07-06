@@ -178,7 +178,13 @@ export function FeaturedSportsMatchesSection() {
             {isLive ? (
               <span className="flex items-center gap-1 rounded bg-yellow-400/10 border border-yellow-400/40 px-1.5 py-0.5 text-[10px] font-bold text-yellow-300 shrink-0 uppercase tracking-wide">
                 <span className="size-1.5 rounded-full bg-yellow-400 animate-pulse" />
-                Live
+                {timer.lifecycle === "first_half"
+                  ? "Live (1H)"
+                  : timer.lifecycle === "halftime"
+                    ? "Live (HT)"
+                    : timer.lifecycle === "second_half"
+                      ? "Live (2H)"
+                      : "Live"}
               </span>
             ) : isItemFinished ? (
               <span className="rounded border border-white/10 px-1.5 py-0.5 text-[10px] font-bold text-white/30 shrink-0 uppercase tracking-wide">
