@@ -5,7 +5,6 @@ import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { useBetStore } from "@/hooks/use-bet-store"
-import { Badge } from "@/components/ui/badge"
 import {
   Sheet,
   SheetContent,
@@ -29,11 +28,15 @@ import { MarketsPanel } from "./markets-panel"
 import { MatchShare } from "./match-share"
 import { CustomEventDetail } from "./custom-event-detail"
 
+// Track selected (added) bet outcomes per match
+type SelectedOdds = Record<string, string | null>
+
 export function FeaturedSportsMatchesSection() {
   const { addToBetslip } = useBetStore()
   const [detailOpen, setDetailOpen] = React.useState(false)
   const [selectedMatch, setSelectedMatch] = React.useState<any>(null)
   const [now, setNow] = React.useState(() => Date.now())
+  const [selectedOdds, setSelectedOdds] = React.useState<SelectedOdds>({})
   const isMobile = useMediaQuery("(max-width: 768px)")
 
   React.useEffect(() => {
@@ -101,6 +104,9 @@ export function FeaturedSportsMatchesSection() {
     const matchId = item._type === 'custom' ? item._id : item.sourceMatchId
     const matchName = `${item.homeTeam} vs ${item.awayTeam}`
 
+    // Update selected odds for this match
+    setSelectedOdds((prev) => ({ ...prev, [matchId]: outcome.label }))
+
     addToBetslip({
       id: `${matchId}-${outcome.label}`,
       matchId,
@@ -148,33 +154,59 @@ export function FeaturedSportsMatchesSection() {
     const isCustom = item._type === 'custom'
     const competitionName = isCustom ? item.competition : item.competitionName
     const matchId = isCustom ? item._id : item.sourceMatchId
+    const activeOdd = selectedOdds[matchId] ?? null
 
     return (
       <div
         key={matchId}
-        className="group relative flex flex-col overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-b from-card to-background shadow-sm hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 transition-all duration-500"
+        className={cn(
+          "group relative flex flex-col overflow-hidden rounded-xl transition-all duration-300",
+          // Premium dark background with amber/gold shimmer border
+          "bg-[#0d1117] shadow-lg",
+          isLive
+            ? "border border-emerald-500/60 shadow-emerald-500/10 shadow-lg"
+            : "border border-amber-500/40 shadow-amber-500/5 shadow-lg",
+          "hover:border-amber-400/70 hover:shadow-amber-400/15 hover:shadow-xl"
+        )}
       >
-        {/* Subtle inner top glow */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-white/5" />
+        {/* Shiny top highlight line */}
+        <div className={cn(
+          "pointer-events-none absolute inset-x-0 top-0 h-[2px]",
+          isLive
+            ? "bg-gradient-to-r from-transparent via-emerald-400 to-transparent"
+            : "bg-gradient-to-r from-transparent via-amber-400 to-transparent"
+        )} />
+
+        {/* Subtle radial glow in background */}
+        <div className={cn(
+          "pointer-events-none absolute inset-0 opacity-[0.04]",
+          isLive
+            ? "bg-[radial-gradient(ellipse_at_top,_#10b981,_transparent_70%)]"
+            : "bg-[radial-gradient(ellipse_at_top,_#f59e0b,_transparent_70%)]"
+        )} />
 
         {/* Header */}
-        <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border/40">
-          <div className="flex items-center gap-2 min-w-0">
+        <div className="relative flex items-center justify-between gap-2 px-3 py-2 border-b border-white/[0.06]">
+          <div className="flex items-center gap-1.5 min-w-0">
             {isLive ? (
-              <span className="flex items-center gap-1.5 rounded-md bg-primary/10 border border-primary/20 px-2 py-0.5 text-xs font-semibold text-primary shrink-0">
-                <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+              <span className="flex items-center gap-1 rounded bg-emerald-500/15 border border-emerald-500/40 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400 shrink-0 uppercase tracking-wide">
+                <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 Live
               </span>
             ) : isItemFinished ? (
-              <span className="rounded-md border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground shrink-0">
+              <span className="rounded border border-white/10 px-1.5 py-0.5 text-[10px] font-bold text-white/40 shrink-0 uppercase tracking-wide">
                 FT
               </span>
-            ) : null}
-            <span className="text-xs font-medium text-muted-foreground truncate capitalize tracking-wide">
+            ) : (
+              <span className="rounded bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-bold text-amber-400/90 shrink-0 uppercase tracking-wide">
+                Featured
+              </span>
+            )}
+            <span className="text-[11px] font-medium text-white/40 truncate capitalize">
               {competitionName}
             </span>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <MatchShare
               title={`${item.homeTeam} vs ${item.awayTeam}`}
               matchId={matchId}
@@ -184,19 +216,22 @@ export function FeaturedSportsMatchesSection() {
             />
             <button
               onClick={() => handleOpenDetail(item)}
-              className="text-xs font-semibold text-primary/80 hover:text-primary transition-colors"
+              className="text-[11px] font-semibold text-amber-400/70 hover:text-amber-300 transition-colors"
             >
               +{item.totalMarkets} mkts
             </button>
           </div>
         </div>
 
-        {/* Score / countdown — centered hero */}
-        <div className="px-4 pt-6 pb-4 text-center space-y-1">
-          <p className="text-xs font-medium tracking-wide text-muted-foreground capitalize">
-            {timer.lifecycle === "not_started" ? "Starts in" : "Score"}
+        {/* Score / countdown */}
+        <div className="relative px-4 pt-3 pb-2 text-center">
+          <p className="text-[10px] font-semibold tracking-widest text-white/30 uppercase mb-0.5">
+            {timer.lifecycle === "not_started" ? "Starts In" : "Score"}
           </p>
-          <p className="text-3xl font-bold tabular-nums text-foreground leading-none tracking-tight">
+          <p className={cn(
+            "text-2xl font-extrabold tabular-nums leading-none tracking-tight",
+            isLive ? "text-emerald-300" : "text-amber-300"
+          )}>
             {timer.lifecycle === "not_started"
               ? formatCountdownToStart(timer.remainingMs)
               : `${item.homeScore ?? 0} – ${item.awayScore ?? 0}`}
@@ -204,38 +239,57 @@ export function FeaturedSportsMatchesSection() {
         </div>
 
         {/* Teams */}
-        <div className="flex items-center justify-center gap-3 px-4 pb-5">
-          <p className="font-semibold text-sm text-foreground/90 truncate text-right flex-1">{item.homeTeam}</p>
-          <p className="text-xs font-medium text-muted-foreground shrink-0">vs</p>
-          <p className="font-semibold text-sm text-foreground/90 truncate flex-1">{item.awayTeam}</p>
+        <div className="relative flex items-center justify-center gap-2 px-4 pb-3">
+          <p className="font-bold text-[13px] text-white/90 truncate text-right flex-1">{item.homeTeam}</p>
+          <p className="text-[10px] font-semibold text-white/25 shrink-0 uppercase tracking-widest">vs</p>
+          <p className="font-bold text-[13px] text-white/90 truncate flex-1">{item.awayTeam}</p>
         </div>
 
         {/* Divider */}
-        <div className="mx-4 h-px bg-border/40" />
+        <div className="mx-3 h-px bg-white/[0.06]" />
 
         {/* Odds */}
         <div className={cn(
-          "grid grid-cols-3 gap-2.5 p-4",
+          "relative grid grid-cols-3 gap-2 p-3",
           isItemFinished && "opacity-40 pointer-events-none"
         )}>
           {[
             { label: "1", odds: 2.35 },
             { label: "X", odds: 3.15 },
             { label: "2", odds: 3.90 },
-          ].map((odd) => (
-            <button
-              key={odd.label}
-              disabled={isItemFinished}
-              onClick={() => !isItemFinished && handleAddToSlip(item, odd)}
-              className={cn(
-                "flex flex-col items-center justify-center gap-1 h-14 rounded-xl border border-border/50 bg-muted/30 hover:bg-primary/10 hover:border-primary/30 transition-all duration-300",
-                isItemFinished && "cursor-not-allowed"
-              )}
-            >
-              <span className="text-xs font-medium text-muted-foreground">{odd.label}</span>
-              <span className="text-sm font-semibold font-mono text-foreground">{odd.odds.toFixed(2)}</span>
-            </button>
-          ))}
+          ].map((odd) => {
+            const isSelected = activeOdd === odd.label
+            return (
+              <button
+                key={odd.label}
+                disabled={isItemFinished}
+                onClick={() => !isItemFinished && handleAddToSlip(item, odd)}
+                className={cn(
+                  "relative flex flex-col items-center justify-center gap-0.5 h-12 rounded-lg border transition-all duration-200 overflow-hidden",
+                  isSelected
+                    ? cn(
+                      "border-amber-400/80 bg-amber-500/20 shadow-md shadow-amber-500/20",
+                      "after:absolute after:inset-x-0 after:top-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-amber-300/80 after:to-transparent"
+                    )
+                    : "border-white/[0.08] bg-white/[0.03] hover:bg-amber-500/10 hover:border-amber-400/40",
+                  isItemFinished && "cursor-not-allowed"
+                )}
+              >
+                <span className={cn(
+                  "text-[10px] font-bold uppercase tracking-wide",
+                  isSelected ? "text-amber-300" : "text-white/35"
+                )}>
+                  {odd.label}
+                </span>
+                <span className={cn(
+                  "text-sm font-extrabold font-mono",
+                  isSelected ? "text-amber-200" : "text-white/80"
+                )}>
+                  {odd.odds.toFixed(2)}
+                </span>
+              </button>
+            )
+          })}
         </div>
       </div>
     )
@@ -244,12 +298,12 @@ export function FeaturedSportsMatchesSection() {
   if (isMobile) {
     return (
       <>
-        <div className="space-y-3">
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-foreground">Featured Matches</h2>
-            <Badge variant="secondary" className="text-xs font-medium px-2 py-0.5">
+            <h2 className="text-sm font-bold text-white/90 tracking-wide uppercase">Featured Matches</h2>
+            <span className="rounded-md bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 text-xs font-bold text-amber-400">
               {allItems.length}
-            </Badge>
+            </span>
           </div>
 
           <div className="grid grid-cols-1 gap-3">
@@ -272,15 +326,15 @@ export function FeaturedSportsMatchesSection() {
 
   return (
     <>
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-foreground">Featured Matches</h2>
-          <Badge variant="secondary" className="text-xs font-medium px-2.5 py-0.5">
+          <h2 className="text-sm font-bold text-white/90 tracking-wide uppercase">Featured Matches</h2>
+          <span className="rounded-md bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 text-xs font-bold text-amber-400">
             {allItems.length}
-          </Badge>
+          </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {allItems.map(renderMatchCard)}
         </div>
       </div>
