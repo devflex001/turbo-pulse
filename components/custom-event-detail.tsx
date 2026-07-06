@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
-import { EyeOff, Send, Save, Trash2, Search } from "lucide-react"
+import { EyeOff, Send, Save, Trash2, Search, Loader } from "lucide-react"
 import { formatOddOutcome } from "@/lib/odds-format"
 import { calculateEventTimer } from "@/lib/event-timer"
 
@@ -69,6 +69,7 @@ export function CustomEventDetail({
   const [homeScore, setHomeScore] = React.useState<string>("")
   const [awayScore, setAwayScore] = React.useState<string>("")
   const [savingScore, setSavingScore] = React.useState(false)
+  const [loadingOddId, setLoadingOddId] = React.useState<string | null>(null)
   const [now, setNow] = React.useState(() => Date.now())
 
   // Update timer every second
@@ -133,9 +134,10 @@ export function CustomEventDetail({
   // Handler functions
   const handleAddOdd = (odd: CustomOddRow, market: CustomMarketRow) => {
     if (isEventFinished) {
-      toast.error("This event has finished. Betting is no longer available.")
       return
     }
+
+    setLoadingOddId(odd._id)
 
     const outcomeMap: Record<string, string> = {
       "1": event?.homeTeam || "Home",
@@ -157,7 +159,8 @@ export function CustomEventDetail({
       outcomeName: odd.outcomeName,
       matchStartTime: event?.startTime,
     })
-    toast.success(`Added ${odd.outcomeName} @ ${odd.oddValue.toFixed(2)} to betslip`)
+
+    setTimeout(() => setLoadingOddId(null), 100)
   }
 
   const handlePublish = async () => {
@@ -316,6 +319,7 @@ export function CustomEventDetail({
                   >
                     {odds.map((odd) => {
                       const isSelected = betslip.some((item) => item.id === `${event._id}-${odd._id}`)
+                      const isLoading = loadingOddId === odd._id
                       const outcome = formatOddOutcome(
                         {
                           marketName: market.name,
@@ -331,7 +335,7 @@ export function CustomEventDetail({
                       return (
                         <button
                           key={odd._id}
-                          disabled={isEventFinished}
+                          disabled={isEventFinished || isLoading}
                           onClick={() => !isEventFinished && handleAddOdd(odd, market)}
                           className={cn(
                             "group flex flex-col items-center justify-center gap-0.5 h-11 py-1.5 px-1.5 rounded-lg border-2 transition-all w-full text-center min-w-0",
@@ -341,22 +345,28 @@ export function CustomEventDetail({
                               : "border-amber-400/40 bg-slate-900/50 hover:bg-slate-900/70 hover:border-amber-300/60 text-amber-300"
                           )}
                         >
-                          <span
-                            className={cn(
-                              "text-[9px] font-bold truncate min-w-0 w-full drop-shadow-sm",
-                              isSelected ? "text-slate-950" : "text-amber-300"
-                            )}
-                          >
-                            {outcome.code}
-                          </span>
-                          <span
-                            className={cn(
-                              "font-bold text-[12px] font-mono drop-shadow-sm",
-                              isSelected ? "text-slate-950" : "text-amber-200"
-                            )}
-                          >
-                            {odd.oddValue.toFixed(2)}
-                          </span>
+                          {isLoading ? (
+                            <Loader className="size-3 animate-spin" />
+                          ) : (
+                            <>
+                              <span
+                                className={cn(
+                                  "text-[9px] font-bold truncate min-w-0 w-full drop-shadow-sm",
+                                  isSelected ? "text-slate-950" : "text-amber-300"
+                                )}
+                              >
+                                {outcome.code}
+                              </span>
+                              <span
+                                className={cn(
+                                  "font-bold text-[12px] font-mono drop-shadow-sm",
+                                  isSelected ? "text-slate-950" : "text-amber-200"
+                                )}
+                              >
+                                {odd.oddValue.toFixed(2)}
+                              </span>
+                            </>
+                          )}
                         </button>
                       )
                     })}
