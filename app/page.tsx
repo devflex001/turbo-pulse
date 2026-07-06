@@ -714,7 +714,7 @@ export default function Page() {
               </>
             )}
 
-            <footer className="mt-auto pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+            <footer className="pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
               <div className="flex flex-col gap-1 text-center sm:text-left">
                 <span className="font-bold text-foreground text-sm">BetFlexx</span>
                 <span>Smart betting tracker with full market ingestion. Play responsibly.</span>

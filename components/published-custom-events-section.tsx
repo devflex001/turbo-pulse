@@ -30,16 +30,14 @@ import {
 import { cn } from "@/lib/utils"
 import { CustomEventDetail } from "./custom-event-detail"
 import { MatchShare } from "./match-share"
-import { Loader } from "lucide-react"
 
 export function PublishedCustomEventsSection() {
-  const { addToBetslip } = useBetStore()
+  const { addToBetslip, betslip } = useBetStore()
   const { user } = useAuth()
   const notifyCustomEventStarted = useMutation(api.notifications.notifyCustomEventStarted)
   const [detailOpen, setDetailOpen] = React.useState(false)
   const [selectedEvent, setSelectedEvent] = React.useState<any>(null)
   const [now, setNow] = React.useState(() => Date.now())
-  const [loadingOddKey, setLoadingOddKey] = React.useState<string | null>(null)
   const notifiedEventIdsRef = React.useRef(new Set<string>())
   const isMobile = useMediaQuery("(max-width: 768px)")
 
@@ -113,9 +111,6 @@ export function PublishedCustomEventsSection() {
       return
     }
 
-    const oddKey = `${event._id}-${outcome.label}`
-    setLoadingOddKey(oddKey)
-
     const outcomeMap: Record<string, string> = {
       "1": event.homeTeam,
       "X": "Draw",
@@ -136,8 +131,6 @@ export function PublishedCustomEventsSection() {
       outcomeName: outcomeMap[outcome.label] || outcome.label,
       matchStartTime: event.startTime,
     })
-
-    // Don't clear loading state - keep it selected permanently
   }
 
   const eventTitle = selectedEvent
@@ -208,7 +201,7 @@ export function PublishedCustomEventsSection() {
         <div className="relative z-10 px-5 py-5 space-y-3 bg-gradient-to-b from-slate-900/30 via-slate-900/20 to-slate-900/40">
           {/* Countdown / Score - CENTERED */}
           <div className="space-y-1.5 text-center">
-            <p className="text-[8px] text-amber-300/80 font-bold uppercase tracking-widest">
+            <p className="text-[8px] text-amber-300/80 font-bold">
               {timer.lifecycle === "not_started" ? "Starts In" : "Score"}
             </p>
             <p className="text-3xl font-black text-amber-100 tabular-nums leading-tight drop-shadow-xl bg-gradient-to-b from-amber-200 to-amber-100 bg-clip-text text-transparent">
@@ -235,8 +228,7 @@ export function PublishedCustomEventsSection() {
               { label: "X", odds: 3.15 },
               { label: "2", odds: 3.90 },
             ].map((odd) => {
-              const oddKey = `${event._id}-${odd.label}`
-              const isLoading = loadingOddKey === oddKey
+              const isActive = betslip.some((item) => item.id === `${event._id}-${odd.label}`)
               return (
                 <button
                   key={odd.label}
@@ -245,17 +237,11 @@ export function PublishedCustomEventsSection() {
                   className={cn(
                     "flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border-2 border-amber-400/50 bg-gradient-to-b from-amber-600/30 via-amber-700/20 to-amber-800/30 hover:from-amber-500/50 hover:via-amber-600/30 hover:to-amber-700/40 hover:border-amber-300/80 transition-all duration-200 group/odd shadow-lg hover:shadow-amber-900/50 hover:shadow-xl",
                     isEventFinished && "opacity-50 cursor-not-allowed",
-                    isLoading && "from-amber-500/60 via-amber-600/50 to-amber-700/60 border-amber-300/80"
+                    isActive && "from-amber-500/60 via-amber-600/50 to-amber-700/60 border-amber-300/80"
                   )}
                 >
-                  {isLoading ? (
-                    <Loader className="size-3 animate-spin" />
-                  ) : (
-                    <>
-                      <span className="text-[9px] font-bold text-amber-100 uppercase">{odd.label}</span>
-                      <span className="text-sm font-black text-amber-100 drop-shadow-md">{odd.odds.toFixed(2)}</span>
-                    </>
-                  )}
+                  <span className="text-[9px] font-bold text-amber-100 uppercase">{odd.label}</span>
+                  <span className="text-sm font-black text-amber-100 drop-shadow-md">{odd.odds.toFixed(2)}</span>
                 </button>
               )
             })}
