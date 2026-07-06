@@ -26,7 +26,6 @@ import { cn } from "@/lib/utils"
 import { MarketsPanel } from "./markets-panel"
 import { MatchShare } from "./match-share"
 import { CustomEventDetail } from "./custom-event-detail"
-import { Loader } from "lucide-react"
 
 // Track selected (added) bet outcomes per match
 type SelectedOdds = Record<string, string | null>
@@ -37,7 +36,6 @@ export function FeaturedSportsMatchesSection() {
   const [selectedMatch, setSelectedMatch] = React.useState<any>(null)
   const [now, setNow] = React.useState(() => Date.now())
   const [selectedOdds, setSelectedOdds] = React.useState<SelectedOdds>({})
-  const [loadingOddKey, setLoadingOddKey] = React.useState<string | null>(null)
   const isMobile = useMediaQuery("(max-width: 768px)")
 
   React.useEffect(() => {
@@ -96,10 +94,6 @@ export function FeaturedSportsMatchesSection() {
     }
 
     const matchId = item._type === 'custom' ? item._id : item.sourceMatchId
-    const oddKey = `${matchId}-${outcome.label}`
-
-    // Set loading state immediately - UI updates right away
-    setLoadingOddKey(oddKey)
 
     const outcomeMap: Record<string, string> = {
       "1": item.homeTeam,
@@ -124,8 +118,6 @@ export function FeaturedSportsMatchesSection() {
       outcomeName: outcomeMap[outcome.label] || outcome.label,
       matchStartTime: item.startTime,
     })
-
-    // Don't clear loading state - keep it selected permanently
   }
 
   const matchTitle = selectedMatch
@@ -218,7 +210,7 @@ export function FeaturedSportsMatchesSection() {
 
         {/* Score / countdown */}
         <div className="relative px-4 pt-3 pb-2 text-center">
-          <p className="text-[10px] font-semibold tracking-widest text-white/25 uppercase mb-0.5">
+          <p className="text-[10px] font-semibold  text-white/30  mb-0.5">
             {timer.lifecycle === "not_started" ? "Starts In" : "Score"}
           </p>
           <p className="text-2xl font-extrabold tabular-nums leading-none tracking-tight text-yellow-300 drop-shadow-[0_0_12px_rgba(234,179,8,0.5)]">
@@ -249,8 +241,6 @@ export function FeaturedSportsMatchesSection() {
             { label: "2", odds: 3.90 },
           ].map((odd) => {
             const isSelected = activeOdd === odd.label
-            const oddKey = `${matchId}-${odd.label}`
-            const isLoading = loadingOddKey === oddKey
             return (
               <button
                 key={odd.label}
@@ -258,7 +248,7 @@ export function FeaturedSportsMatchesSection() {
                 onClick={() => !isItemFinished && handleAddToSlip(item, odd)}
                 className={cn(
                   "relative flex flex-col items-center justify-center gap-0.5 h-12 rounded-lg border transition-all duration-200 overflow-hidden",
-                  isSelected || isLoading
+                  isSelected
                     ? [
                       "border-yellow-400/80 bg-yellow-400/15",
                       "shadow-[0_0_12px_rgba(234,179,8,0.25),inset_0_1px_0_rgba(234,179,8,0.3)]",
@@ -268,24 +258,18 @@ export function FeaturedSportsMatchesSection() {
                   isItemFinished && "cursor-not-allowed"
                 )}
               >
-                {isLoading ? (
-                  <Loader className="size-3 animate-spin" />
-                ) : (
-                  <>
-                    <span className={cn(
-                      "text-[10px] font-bold uppercase tracking-wide",
-                      isSelected || isLoading ? "text-yellow-300" : "text-white/30"
-                    )}>
-                      {odd.label}
-                    </span>
-                    <span className={cn(
-                      "text-sm font-extrabold font-mono",
-                      isSelected || isLoading ? "text-yellow-200 drop-shadow-[0_0_6px_rgba(234,179,8,0.6)]" : "text-white/75"
-                    )}>
-                      {odd.odds.toFixed(2)}
-                    </span>
-                  </>
-                )}
+                <span className={cn(
+                  "text-[10px] font-bold uppercase tracking-wide",
+                  isSelected ? "text-yellow-300" : "text-white/30"
+                )}>
+                  {odd.label}
+                </span>
+                <span className={cn(
+                  "text-sm font-extrabold font-mono",
+                  isSelected ? "text-yellow-200 drop-shadow-[0_0_6px_rgba(234,179,8,0.6)]" : "text-white/75"
+                )}>
+                  {odd.odds.toFixed(2)}
+                </span>
               </button>
             )
           })}

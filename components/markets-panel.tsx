@@ -20,7 +20,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { calculateEventTimer } from "@/lib/event-timer"
-import { Loader } from "lucide-react"
 
 type SportsOdd = {
   sourceOddId: string
@@ -193,7 +192,6 @@ export function MarketsBrowser({
 
   const renderOddButton = (odd: SportsOdd) => {
     const selected = betslip.some((item) => item.id === odd.sourceOddId)
-    const isLoading = loadingOddId === odd.sourceOddId
     const outcome = formatOddOutcome(odd, match)
     const showSpecifier =
       !outcome.isCode && shouldShowOddSpecifier(odd.specifiers, outcome.code)
@@ -207,40 +205,34 @@ export function MarketsBrowser({
           "flex flex-col items-center justify-center gap-0.5 h-12 py-1.5 px-2 transition-all text-center min-w-0 w-full rounded-md",
           isMatchFinished && "opacity-50 cursor-not-allowed",
           readOnly && !isMatchFinished && "cursor-default",
-          selected || isLoading
+          selected
             ? "bg-[#4b9f71] text-white border border-[#4b9f71] hover:bg-[#3e865f] hover:border-[#3e865f] shadow-sm"
             : "bg-card border border-border hover:border-[#4b9f71]/50 hover:bg-accent text-foreground"
         )}
         onClick={() => !isMatchFinished && handleOdd(odd)}
       >
-        {isLoading ? (
-          <Loader className="size-3 animate-spin" />
-        ) : (
-          <>
-            <span className={cn(
-              "min-w-0 w-full truncate text-[9px] font-semibold leading-none",
-              selected || isLoading ? "text-white" : "text-muted-foreground"
-            )}>
-              {outcome.code}
-            </span>
-            {showSpecifier && (
-              <span
-                className={cn(
-                  "block w-full truncate text-[8px] font-medium leading-none",
-                  selected || isLoading ? "text-white/90" : "text-muted-foreground/80"
-                )}
-              >
-                {odd.specifiers}
-              </span>
+        <span className={cn(
+          "min-w-0 w-full truncate text-[9px] font-semibold leading-none",
+          selected ? "text-white" : "text-muted-foreground"
+        )}>
+          {outcome.code}
+        </span>
+        {showSpecifier && (
+          <span
+            className={cn(
+              "block w-full truncate text-[8px] font-medium leading-none",
+              selected ? "text-white/90" : "text-muted-foreground/80"
             )}
-            <span className={cn(
-              "font-mono text-[12px] font-bold leading-none",
-              selected || isLoading ? "text-white" : "text-foreground"
-            )}>
-              {odd.oddValue.toFixed(2)}
-            </span>
-          </>
+          >
+            {odd.specifiers}
+          </span>
         )}
+        <span className={cn(
+          "font-mono text-[12px] font-bold leading-none",
+          selected ? "text-white" : "text-foreground"
+        )}>
+          {odd.oddValue.toFixed(2)}
+        </span>
       </Button>
     )
   }
