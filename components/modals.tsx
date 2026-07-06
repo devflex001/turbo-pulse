@@ -206,6 +206,7 @@ export function LoginModal({ open, onOpenChange }: ModalProps) {
 export function RegisterModal({ open, onOpenChange }: ModalProps) {
   const { register, setShowWelcomeModal } = useAuth()
   const [phone, setPhone] = React.useState("")
+  const [username, setUsername] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [showPassword, setShowPassword] = React.useState(false)
   const [confirmPassword, setConfirmPassword] = React.useState("")
