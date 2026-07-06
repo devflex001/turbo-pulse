@@ -160,22 +160,22 @@ export function MatchCard({ match }: MatchCardProps) {
                     variant="outline"
                     disabled={isMatchFinished}
                     className={cn(
-                      `flex flex-col z-50 gap-0.5 h-11 py-1 px-2 font-medium transition-all`,
+                      `flex flex-col z-50 gap-0.5 h-11 py-1 px-2 font-medium transition-all rounded border`,
                       isMatchFinished
                         ? "opacity-50 cursor-not-allowed"
                         : selected
-                          ? "bg-yellow-500 text-white border-yellow-500 font-bold hover:bg-yellow-600 hover:border-yellow-600 shadow-lg"
+                          ? "!bg-yellow-900/50 !text-white !border-yellow-500 font-bold hover:!bg-yellow-600 hover:!border-yellow-600 shadow-lg"
                           : "border-border text-foreground hover:border-yellow-500/50 hover:bg-yellow-500/10"
                     )}
                     onClick={() => !isMatchFinished && handleSelection(odd)}
                   >
                     <span className={cn(
                       "text-[9px] font-semibold",
-                      selected ? "text-primary-foreground" : "text-muted-foreground"
+                      selected ? "text-white" : "text-muted-foreground"
                     )}>
                       {outcome.code}
                     </span>
-                    <span className={cn("text-xs font-bold font-mono", selected ? "text-primary-foreground" : "text-foreground")}>
+                    <span className={cn("text-xs font-bold font-mono", selected ? "text-white" : "text-foreground")}>
                       {odd.oddValue.toFixed(2)}
                     </span>
                   </Button>
