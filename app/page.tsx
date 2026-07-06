@@ -490,7 +490,7 @@ export default function Page() {
                 {/* Featured Sports Matches */}
                 <FeaturedSportsMatchesSection />
 
-                <div className="space-y-3">
+                <div className="space-y-3 mt-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
                       <PlayCircle className="size-4 text-muted-foreground" />

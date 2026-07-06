@@ -281,9 +281,9 @@ export function FeaturedSportsMatchesSection() {
   if (isMobile) {
     return (
       <>
-        <div className="space-y-2">
+        <div className="space-y-2 mt-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-white/90 tracking-wide uppercase">Featured Matches</h2>
+            <h2 className="text-sm font-bold text-white/90 uppercase tracking-wide ">Featured Matches</h2>
             <span className="rounded-md bg-yellow-500/15 border border-yellow-500/30 px-2 py-0.5 text-xs font-bold text-yellow-400">
               {allItems.length}
             </span>
@@ -309,9 +309,9 @@ export function FeaturedSportsMatchesSection() {
 
   return (
     <>
-      <div className="space-y-3">
+      <div className="space-y-3 mt-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-white/90 tracking-wide uppercase">Featured Matches</h2>
+          <h2 className="text-sm font-bold text-white/90 uppercase tracking-wide ">Featured Matches</h2>
           <span className="rounded-md bg-yellow-500/15 border border-yellow-500/30 px-2 py-0.5 text-xs font-bold text-yellow-400">
             {allItems.length}
           </span>
