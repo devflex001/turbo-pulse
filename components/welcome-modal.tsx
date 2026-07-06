@@ -29,7 +29,7 @@ export function WelcomeModal({ open, onOpenChange }: WelcomeModalProps) {
 
 
         {/* Main message */}
-        <div className="space-y-4 text-center">
+        <div className="space-y-2 text-center">
           {/* Headline */}
           <div className="space-y-2">
             <h2 className="text-2xl font-bold bg-gradient-to-r from-primary via-primary to-primary/80 bg-clip-text text-transparent">
