@@ -20,6 +20,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import { calculateEventTimer } from "@/lib/event-timer"
+import { Loader } from "lucide-react"
 
 type SportsOdd = {
   sourceOddId: string
@@ -102,6 +103,7 @@ export function MarketsBrowser({
   const [search, setSearch] = React.useState("")
   const [activeCategory, setActiveCategory] = React.useState("All")
   const [selectedMarketKey, setSelectedMarketKey] = React.useState<string | null>(null)
+  const [loadingOddId, setLoadingOddId] = React.useState<string | null>(null)
   const [now, setNow] = React.useState(() => Date.now())
 
   // Update timer every second to track if match is finished
@@ -169,6 +171,9 @@ export function MarketsBrowser({
   const handleOdd = (odd: SportsOdd) => {
     if (readOnly || isMatchFinished) return
 
+    // Set loading state immediately
+    setLoadingOddId(odd.sourceOddId)
+
     const outcome = formatOddOutcome(odd, match)
 
     addToBetslip({
@@ -188,6 +193,9 @@ export function MarketsBrowser({
       specifiers: odd.specifiers,
       matchStartTime: match.startTime,
     })
+
+    // Clear loading state after a brief delay to show immediate feedback
+    setTimeout(() => setLoadingOddId(null), 100)
   }
 
   const renderOddButton = (odd: SportsOdd) => {
@@ -195,12 +203,13 @@ export function MarketsBrowser({
     const outcome = formatOddOutcome(odd, match)
     const showSpecifier =
       !outcome.isCode && shouldShowOddSpecifier(odd.specifiers, outcome.code)
+    const isLoading = loadingOddId === odd.sourceOddId
 
     return (
       <Button
         key={odd.sourceOddId}
         variant="outline"
-        disabled={isMatchFinished}
+        disabled={isMatchFinished || isLoading}
         className={cn(
           "flex flex-col items-center justify-center gap-0.5 h-12 py-1.5 px-2 transition-all text-center min-w-0 w-full rounded-md",
           isMatchFinished && "opacity-50 cursor-not-allowed",
@@ -211,28 +220,34 @@ export function MarketsBrowser({
         )}
         onClick={() => !isMatchFinished && handleOdd(odd)}
       >
-        <span className={cn(
-          "min-w-0 w-full truncate text-[9px] font-semibold leading-none",
-          selected ? "text-white" : "text-muted-foreground"
-        )}>
-          {outcome.code}
-        </span>
-        {showSpecifier && (
-          <span
-            className={cn(
-              "block w-full truncate text-[8px] font-medium leading-none",
-              selected ? "text-white/90" : "text-muted-foreground/80"
+        {isLoading ? (
+          <Loader className="size-3 animate-spin" />
+        ) : (
+          <>
+            <span className={cn(
+              "min-w-0 w-full truncate text-[9px] font-semibold leading-none",
+              selected ? "text-white" : "text-muted-foreground"
+            )}>
+              {outcome.code}
+            </span>
+            {showSpecifier && (
+              <span
+                className={cn(
+                  "block w-full truncate text-[8px] font-medium leading-none",
+                  selected ? "text-white/90" : "text-muted-foreground/80"
+                )}
+              >
+                {odd.specifiers}
+              </span>
             )}
-          >
-            {odd.specifiers}
-          </span>
+            <span className={cn(
+              "font-mono text-[12px] font-bold leading-none",
+              selected ? "text-white" : "text-foreground"
+            )}>
+              {odd.oddValue.toFixed(2)}
+            </span>
+          </>
         )}
-        <span className={cn(
-          "font-mono text-[12px] font-bold leading-none",
-          selected ? "text-white" : "text-foreground"
-        )}>
-          {odd.oddValue.toFixed(2)}
-        </span>
       </Button>
     )
   }
