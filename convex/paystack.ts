@@ -360,34 +360,74 @@ export const updateTransactionStatus = mutation({
     // If successful, update wallet balance
     if (args.status === "success" && oldStatus !== "success" && args.amount && transaction.userId) {
       const userId = transaction.userId as Id<"users">;
-      await updateWalletBalance(ctx, userId, args.amount, "add")
-      console.log(`[Wallet] Credited with KES ${args.amount}`)
+      let totalCreditAmount = args.amount;
+      let bonusAmount = 0;
+
+      // Check if this is first deposit and apply bonus
+      if (transaction.type === "deposit") {
+        const user = await ctx.db.get(userId);
+
+        // Only apply bonus if user hasn't received it yet
+        if (user && !user.firstDepositBonusReceivedAt) {
+          // Get the bonus percentage from config
+          const config = await ctx.db
+            .query("platform_config")
+            .withIndex("by_key", (q) => q.eq("key", "main"))
+            .first();
+
+          const bonusPercent = config?.firstDepositBonusPercent ?? 25;
+          bonusAmount = Math.round((args.amount * bonusPercent) / 100);
+          totalCreditAmount = args.amount + bonusAmount;
+
+          // Mark user as having received the bonus
+          await ctx.db.patch(userId, {
+            firstDepositBonusReceivedAt: Date.now(),
+            firstDepositBonusAmount: bonusAmount,
+          });
+
+          console.log(
+            `[First Deposit Bonus] User ${userId}: Bonus ${bonusPercent}% = KES ${bonusAmount}`
+          );
+        }
+      }
+
+      // Credit the wallet with deposit + bonus
+      await updateWalletBalance(ctx, userId, totalCreditAmount, "add")
+      console.log(`[Wallet] Credited with KES ${totalCreditAmount} (deposit: ${args.amount}, bonus: ${bonusAmount})`);
 
       if (transaction.userId && transaction.type === "deposit") {
+        const message = bonusAmount > 0
+          ? `${formatKes(args.amount)} has been added to your wallet plus a ${Math.round((bonusAmount / args.amount) * 100)}% first-time bonus of ${formatKes(bonusAmount)}!`
+          : `${formatKes(args.amount)} has been added to your wallet.`;
+
         await notifyUser(ctx, {
           recipientUserId: transaction.userId,
           type: "payment",
-          title: "Deposit successful",
-          message: `${formatKes(args.amount)} has been added to your wallet.`,
+          title: bonusAmount > 0 ? "🎉 Deposit successful + Bonus!" : "Deposit successful",
+          message,
           href: "/account",
           dedupeKey: `transaction-success:user:${transaction._id}`,
           metadata: {
             transactionId: transaction._id,
-            amount: args.amount,
+            amount: totalCreditAmount,
           },
         })
       }
 
       if (transaction.type === "deposit") {
+        const adminMessage = bonusAmount > 0
+          ? `${formatKes(args.amount)} deposited${transaction.phone ? ` by ${transaction.phone}` : ""} (+ ${formatKes(bonusAmount)} first-time bonus).`
+          : `${formatKes(args.amount)} was deposited${transaction.phone ? ` by ${transaction.phone}` : ""}.`;
+
         await notifyAdmins(ctx, {
           type: "payment",
           title: "New Paystack deposit",
-          message: `${formatKes(args.amount)} was deposited${transaction.phone ? ` by ${transaction.phone}` : ""}.`,
+          message: adminMessage,
           href: "/admin/payments",
           dedupeKey: `transaction-success:${transaction._id}`,
           metadata: {
             transactionId: transaction._id,
-            amount: args.amount,
+            amount: totalCreditAmount,
           },
         })
       }

@@ -5,11 +5,12 @@ import { requireAdmin } from "./auth/authorization";
 const CONFIG_KEY = "main";
 
 const DEFAULTS = {
-  minDeposit: 100,
-  minWithdrawal: 500,
-  withdrawalFeePercent: 2.5,
+  minDeposit: 500,
+  minWithdrawal: 5000,
+  withdrawalFeePercent: 15,
   instantProcessingFee: 150,
   referralReward: 1000,
+  firstDepositBonusPercent: 25,
 };
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -67,6 +68,8 @@ export const getUserFacingConfig = query({
       instantProcessingFee:
         config?.instantProcessingFee ?? DEFAULTS.instantProcessingFee,
       referralReward: config?.referralReward ?? DEFAULTS.referralReward,
+      firstDepositBonusPercent:
+        config?.firstDepositBonusPercent ?? DEFAULTS.firstDepositBonusPercent,
     };
   },
 });
@@ -87,6 +90,7 @@ export const saveConfig = mutation({
     withdrawalFeePercent: v.optional(v.number()),
     instantProcessingFee: v.optional(v.number()),
     referralReward: v.optional(v.number()),
+    firstDepositBonusPercent: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const admin = await requireAdmin(ctx, args.userId);
@@ -105,6 +109,7 @@ export const saveConfig = mutation({
     if (args.withdrawalFeePercent !== undefined) changes.push(`withdrawalFeePercent: ${args.withdrawalFeePercent}%`);
     if (args.instantProcessingFee !== undefined) changes.push(`instantProcessingFee: ${args.instantProcessingFee}`);
     if (args.referralReward !== undefined) changes.push(`referralReward: ${args.referralReward}`);
+    if (args.firstDepositBonusPercent !== undefined) changes.push(`firstDepositBonusPercent: ${args.firstDepositBonusPercent}%`);
 
     if (!existing) {
       await ctx.db.insert("platform_config", {
@@ -116,6 +121,7 @@ export const saveConfig = mutation({
         instantProcessingFee:
           args.instantProcessingFee ?? DEFAULTS.instantProcessingFee,
         referralReward: args.referralReward ?? DEFAULTS.referralReward,
+        firstDepositBonusPercent: args.firstDepositBonusPercent ?? DEFAULTS.firstDepositBonusPercent,
         updatedAt: now,
         updatedBy,
       });
@@ -133,6 +139,9 @@ export const saveConfig = mutation({
         }),
         ...(args.referralReward !== undefined && {
           referralReward: args.referralReward,
+        }),
+        ...(args.firstDepositBonusPercent !== undefined && {
+          firstDepositBonusPercent: args.firstDepositBonusPercent,
         }),
         updatedAt: now,
         updatedBy,

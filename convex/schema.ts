@@ -342,6 +342,8 @@ const schema = defineSchema({
     totalReferralEarnings: v.optional(v.number()), // total earnings from referrals
     referralAccessPaidAt: v.optional(v.number()), // user paid the referral access fee
     referralAccessFee: v.optional(v.number()), // KES amount paid to unlock referrals
+    firstDepositBonusReceivedAt: v.optional(v.number()), // timestamp when user received first-time deposit bonus
+    firstDepositBonusAmount: v.optional(v.number()), // amount of bonus received (25% of first deposit)
   })
     .index("by_phone", ["phone"])
     .index("by_role", ["role"])
@@ -452,6 +454,7 @@ const schema = defineSchema({
     withdrawalFeePercent: v.number(),
     instantProcessingFee: v.number(), // KES 150 by default
     referralReward: v.optional(v.number()), // KES amount for each successful referral
+    firstDepositBonusPercent: v.optional(v.number()), // bonus percentage for first deposit (default 25%)
     updatedAt: v.number(),
     updatedBy: v.string(),
   }).index("by_key", ["key"]),
