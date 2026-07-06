@@ -162,8 +162,8 @@ export function FeaturedSportsMatchesSection() {
         className={cn(
           "group relative flex flex-col overflow-hidden rounded-xl transition-all duration-300",
           "bg-[#071a0f] border border-yellow-500/25",
-          "shadow-[0_0_0_1px_rgba(234,179,8,0.08),0_4px_24px_rgba(0,0,0,0.6)]",
-          "hover:border-yellow-400/60 hover:shadow-[0_0_0_1px_rgba(234,179,8,0.2),0_8px_32px_rgba(234,179,8,0.12),0_4px_24px_rgba(0,0,0,0.7)]"
+          "shadow-2xl",
+          "hover:shadow-xl"
         )}
       >
         {/* Gold shimmer top line */}
