@@ -406,3 +406,80 @@ export const clearJunkEvents = mutation({
     };
   },
 });
+
+export const toggleFeaturedMatch = mutation({
+  args: {
+    matchId: v.id("sportsMatches"),
+    sessionToken: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const match = await ctx.db.get(args.matchId);
+    if (!match) throw new Error("Match not found");
+
+    const isFeatured = !match.featured;
+    await ctx.db.patch(args.matchId, {
+      featured: isFeatured,
+      featuredAt: isFeatured ? Date.now() : undefined,
+    });
+
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: adminSession.userId,
+          actionType: "other",
+          resourceType: "scraper_data",
+          resourceDescription: `Match ${isFeatured ? "featured" : "unfeatured"}: ${match.homeTeam} vs ${match.awayTeam}`,
+        });
+      }
+    }
+
+    return { featured: isFeatured };
+  },
+});
+
+export const listFeaturedMatches = query({
+  args: {},
+  handler: async (ctx) => {
+    const results = await ctx.db
+      .query("sportsMatches")
+      .withIndex("by_featured", (q) => q.eq("featured", true))
+      .collect();
+
+    // For each match, fetch the first market + its top 3 odds so MatchCard renders correctly
+    const withOdds = await Promise.all(
+      results.map(async (match) => {
+        const firstMarket = await ctx.db
+          .query("sportsMarkets")
+          .withIndex("by_sourceMatchId_and_marketPriority", (q) =>
+            q.eq("sourceMatchId", match.sourceMatchId)
+          )
+          .first();
+
+        const firstMarketOdds = firstMarket
+          ? await ctx.db
+            .query("sportsOdds")
+            .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
+              q
+                .eq("sourceMatchId", match.sourceMatchId)
+                .eq("marketKey", firstMarket.marketKey)
+            )
+            .take(3)
+          : [];
+
+        return {
+          ...match,
+          firstMarket: firstMarket
+            ? { ...firstMarket, odds: firstMarketOdds }
+            : null,
+        };
+      })
+    );
+
+    // Sort by featuredAt descending (most recently featured first)
+    return withOdds.sort(
+      (a, b) => (b.featuredAt ?? b.lastScrapedAt) - (a.featuredAt ?? a.lastScrapedAt)
+    );
+  },
+});

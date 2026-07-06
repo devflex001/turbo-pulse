@@ -46,6 +46,7 @@ type SportsMarket = {
 
 // Base match type without odds (for optimized loading)
 export type SportsMatch = {
+  _id?: string
   source?: string
   sportSlug?: string
   sourceMatchId: string
@@ -58,6 +59,8 @@ export type SportsMatch = {
   statusDesc: string
   isLive: boolean
   totalMarkets: number
+  featured?: boolean
+  featuredAt?: number
 }
 
 // Extended match type with odds (for backwards compatibility)

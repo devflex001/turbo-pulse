@@ -81,7 +81,7 @@ export default function LivePage() {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar className="hidden lg:flex w-60 shrink-0 overflow-y-auto border-r border-border" />
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-6 scrollbar-thin">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-6 scrollbar-thin pb-20 lg:pb-0">
           {/* Page Title */}
           <div className="flex items-center gap-2 sticky top-0 z-10 bg-background/95 backdrop-blur py-2 -mx-4 sm:-mx-6 px-4 sm:px-6">
             <span className="h-2.5 w-2.5 rounded-full bg-destructive animate-pulse" />

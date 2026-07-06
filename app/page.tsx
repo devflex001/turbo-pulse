@@ -36,6 +36,7 @@ import {
 import type { SportsMatch } from "@/components/markets-panel"
 import { CustomEventCard } from "@/components/custom-event-card"
 import { PublishedCustomEventsSection } from "@/components/published-custom-events-section"
+import { FeaturedSportsMatchesSection } from "@/components/featured-sports-matches-section"
 import {
   Sheet,
   SheetContent,
@@ -244,6 +245,8 @@ export default function Page() {
     limit: 10,
   }) as any[] | undefined
 
+  const featuredEvents = useQuery(api.sportsData.listFeaturedMatches, {}) as (SportsMatch & { firstMarket?: any })[] | undefined
+
   const leagues = useQuery(api.sportsData.listCompetitions, {
     sport: selectedSport,
   }) as string[] | undefined
@@ -302,7 +305,7 @@ export default function Page() {
         <div className="flex flex-1 overflow-hidden">
           <Sidebar className="hidden lg:flex w-60 shrink-0 overflow-y-auto border-r border-border" />
 
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-2 scrollbar-thin">
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-2 scrollbar-thin pb-20 lg:pb-0">
             {((activeTab === "home" || activeTab === "live" || activeTab === "featured" || activeTab === "how-it-works" || activeTab === "faqs" || activeTab === "contact" || activeTab === "custom" || activeTab === "mybets") || !activeTab) && (
 
               <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-0 border-b border-border scrollbar-none shrink-0">
@@ -347,6 +350,20 @@ export default function Page() {
                   >
                     <Flame className="size-4" />
                     Featured
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "h-9 px-3 rounded-md text-sm font-semibold shrink-0 gap-1.5 border transition-all",
+                      activeTab === "custom"
+                        ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
+                        : "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
+                    )}
+                    onClick={() => { setActiveTab("custom"); setSelectedSport("all"); setSelectedLeague("All Leagues"); }}
+                  >
+                    <LayoutGrid className="size-4" />
+                    Custom Events
                   </Button>
                 </div>
 
@@ -470,9 +487,10 @@ export default function Page() {
                   </div>
                 )}
 
-                <PublishedCustomEventsSection />
+                {/* Featured Sports Matches */}
+                <FeaturedSportsMatchesSection />
 
-                <div className="space-y-3">
+                <div className="space-y-3 mt-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
                       <PlayCircle className="size-4 text-muted-foreground" />
@@ -531,30 +549,24 @@ export default function Page() {
               <div className="space-y-4">
                 <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
                   <Flame className="size-4 text-primary fill-current" />
-                  Featured Market Highlights
+                  Featured Events
                 </h2>
-                {!matches ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Skeleton className="h-32 rounded-lg" />
-                    <Skeleton className="h-32 rounded-lg" />
-                  </div>
-                ) : displayedMatches.slice(0, 4).length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {displayedMatches.slice(0, 4).map((match) => (
-                      <MatchCard key={match.sourceMatchId} match={match} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 border border-dashed border-border rounded-lg text-muted-foreground text-xs">
-                    No featured fixtures available.
-                  </div>
-                )}
+
+                {/* Featured Custom Events ON TOP */}
+                <PublishedCustomEventsSection />
+
+                {/* Featured Sports Matches */}
+                <FeaturedSportsMatchesSection />
               </div>
             )}
 
             {activeTab === "custom" && (
-              <div className="text-center py-12 border border-dashed border-border rounded-lg text-muted-foreground text-xs">
-                Custom mock events are disabled while live scraped markets are active.
+              <div className="space-y-4">
+                <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <Flame className="size-4 text-primary fill-current" />
+                  Featured Events
+                </h2>
+                <PublishedCustomEventsSection />
               </div>
             )}
 
@@ -702,7 +714,7 @@ export default function Page() {
               </>
             )}
 
-            <footer className="mt-auto pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+            <footer className="pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
               <div className="flex flex-col gap-1 text-center sm:text-left">
                 <span className="font-bold text-foreground text-sm">BetFlexx</span>
                 <span>Smart betting tracker with full market ingestion. Play responsibly.</span>

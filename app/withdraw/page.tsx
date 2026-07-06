@@ -37,7 +37,7 @@ export default function WithdrawalPage() {
           </div>
           <BottomNav liveCount={0} />
         </div>
-        <LoginModal open={true} onOpenChange={() => {}} />
+        <LoginModal open={true} onOpenChange={() => { }} />
       </>
     )
   }
@@ -49,7 +49,7 @@ export default function WithdrawalPage() {
       <div className="mx-auto flex w-full max-w-[1400px] flex-1 overflow-hidden">
         <Sidebar className="hidden h-full w-60 shrink-0 lg:flex" />
 
-        <main className="flex h-full min-w-0 flex-1 scrollbar-thin flex-col gap-4 overflow-y-auto p-4 sm:p-6">
+        <main className="flex h-full min-w-0 flex-1 scrollbar-thin flex-col gap-4 overflow-y-auto p-4 sm:p-6 pb-20 lg:pb-4">
           {/* Minimal Header */}
           <div className="flex items-center gap-2">
             <Link href="/" className="hidden sm:inline-block">
