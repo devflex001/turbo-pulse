@@ -49,27 +49,12 @@ export function PublishedCustomEventsSection() {
     return () => clearInterval(interval)
   }, [])
 
-  const publishedEvents = useQuery(api.customEvents.listCustomEvents, {
-    status: "published",
-    limit: 6,
-  })
+  const featuredEvents = useQuery(api.customEvents.getFeaturedCustomEvents, {})
 
   const publishedEventItems = React.useMemo(() => {
-    if (Array.isArray(publishedEvents)) {
-      return publishedEvents
-    }
-
-    if (
-      publishedEvents &&
-      typeof publishedEvents === "object" &&
-      "items" in publishedEvents &&
-      Array.isArray(publishedEvents.items)
-    ) {
-      return publishedEvents.items
-    }
-
-    return []
-  }, [publishedEvents])
+    if (!featuredEvents) return []
+    return featuredEvents
+  }, [featuredEvents])
 
   React.useEffect(() => {
     if (!user) {
@@ -92,6 +77,20 @@ export function PublishedCustomEventsSection() {
       })
     }
   }, [notifyCustomEventStarted, now, publishedEventItems, user])
+
+  if (featuredEvents === undefined) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-bold text-foreground">Featured Events</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Skeleton className="h-48 rounded-xl" />
+          <Skeleton className="h-48 rounded-xl" />
+        </div>
+      </div>
+    )
+  }
 
   if (publishedEventItems.length === 0) {
     return null

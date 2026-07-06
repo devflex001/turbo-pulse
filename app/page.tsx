@@ -350,6 +350,20 @@ export default function Page() {
                     <Flame className="size-4" />
                     Featured
                   </Button>
+
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "h-9 px-3 rounded-md text-sm font-semibold shrink-0 gap-1.5 border transition-all",
+                      activeTab === "custom"
+                        ? "bg-[#4b9f71]/10 text-[#4b9f71] border-[#4b9f71]/50"
+                        : "bg-card text-muted-foreground border-transparent hover:bg-accent hover:text-foreground"
+                    )}
+                    onClick={() => { setActiveTab("custom"); setSelectedSport("all"); setSelectedLeague("All Leagues"); }}
+                  >
+                    <LayoutGrid className="size-4" />
+                    Custom Events
+                  </Button>
                 </div>
 
                 <div className="w-px h-6 bg-border mx-0.5 shrink-0" />
@@ -557,8 +571,12 @@ export default function Page() {
             )}
 
             {activeTab === "custom" && (
-              <div className="text-center py-12 border border-dashed border-border rounded-lg text-muted-foreground text-xs">
-                Custom mock events are disabled while live scraped markets are active.
+              <div className="space-y-4">
+                <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+                  <Flame className="size-4 text-primary fill-current" />
+                  Featured Events
+                </h2>
+                <PublishedCustomEventsSection />
               </div>
             )}
 

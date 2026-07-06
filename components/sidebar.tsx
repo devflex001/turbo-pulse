@@ -119,6 +119,7 @@ export function Sidebar({ className, onClose }: SidebarProps) {
   const mainNavItems = [
     { id: "home", label: "Homepage", icon: Home },
     { id: "live", label: "Live Matches", icon: PlayCircle, count: liveCount },
+    { id: "custom", label: "Custom Events", icon: LayoutGrid },
     { id: "mybets", label: "My Bets", icon: History },
   ]
 

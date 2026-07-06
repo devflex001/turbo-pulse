@@ -918,6 +918,47 @@ export const unpublishCustomEvent = mutation({
   },
 })
 
+export const toggleFeaturedEvent = mutation({
+  args: {
+    eventId: v.id("customEvents"),
+    sessionToken: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const event = await ctx.db.get(args.eventId)
+    if (!event) throw new Error("Event not found")
+    if (event.status !== "published")
+      throw new Error("Only published events can be featured")
+
+    const isFeatured = !event.featured
+    const now = Date.now()
+
+    await ctx.db.patch(args.eventId, {
+      featured: isFeatured,
+      featuredAt: isFeatured ? now : undefined,
+      updatedAt: now,
+    })
+
+    // Log the action
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken)
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: adminSession.userId,
+          actionType: "update_custom_event",
+          resourceType: "custom_event",
+          resourceDescription: `Event ${isFeatured ? "featured" : "unfeatured"}: ${event.title}`,
+          details: {
+            newValue: isFeatured ? "featured" : "unfeatured",
+          },
+        })
+      }
+    }
+
+    return { featured: isFeatured }
+  },
+})
+
 export const deleteCustomEvent = mutation({
   args: {
     eventId: v.id("customEvents"),
@@ -977,6 +1018,21 @@ export const getCustomEvent = query({
   },
   handler: async (ctx, args) => {
     return await ctx.db.get(args.eventId)
+  },
+})
+
+export const getFeaturedCustomEvents = query({
+  args: {},
+  handler: async (ctx) => {
+    const events = await ctx.db
+      .query("customEvents")
+      .withIndex("by_featured", (q) => q.eq("featured", true))
+      .take(20)
+
+    // Only show published, non-settled featured events (or settled ones still relevant)
+    return events
+      .filter((e) => e.status === "published")
+      .sort((a, b) => (b.featuredAt ?? 0) - (a.featuredAt ?? 0))
   },
 })
 

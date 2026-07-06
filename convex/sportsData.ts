@@ -447,8 +447,38 @@ export const listFeaturedMatches = query({
       .withIndex("by_featured", (q) => q.eq("featured", true))
       .collect();
 
+    // For each match, fetch the first market + its top 3 odds so MatchCard renders correctly
+    const withOdds = await Promise.all(
+      results.map(async (match) => {
+        const firstMarket = await ctx.db
+          .query("sportsMarkets")
+          .withIndex("by_sourceMatchId_and_marketPriority", (q) =>
+            q.eq("sourceMatchId", match.sourceMatchId)
+          )
+          .first();
+
+        const firstMarketOdds = firstMarket
+          ? await ctx.db
+            .query("sportsOdds")
+            .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
+              q
+                .eq("sourceMatchId", match.sourceMatchId)
+                .eq("marketKey", firstMarket.marketKey)
+            )
+            .take(3)
+          : [];
+
+        return {
+          ...match,
+          firstMarket: firstMarket
+            ? { ...firstMarket, odds: firstMarketOdds }
+            : null,
+        };
+      })
+    );
+
     // Sort by featuredAt descending (most recently featured first)
-    return results.sort(
+    return withOdds.sort(
       (a, b) => (b.featuredAt ?? b.lastScrapedAt) - (a.featuredAt ?? a.lastScrapedAt)
     );
   },
