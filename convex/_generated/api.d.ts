@@ -43,6 +43,7 @@ import type * as scrapers_types from "../scrapers/types.js";
 import type * as sportsData from "../sportsData.js";
 import type * as supportChat from "../supportChat.js";
 import type * as tests_walletIsolationTest from "../tests/walletIsolationTest.js";
+import type * as utils_circuitBreaker from "../utils/circuitBreaker.js";
 import type * as withdrawals from "../withdrawals.js";
 
 import type {
@@ -87,6 +88,7 @@ declare const fullApi: ApiFromModules<{
   sportsData: typeof sportsData;
   supportChat: typeof supportChat;
   "tests/walletIsolationTest": typeof tests_walletIsolationTest;
+  "utils/circuitBreaker": typeof utils_circuitBreaker;
   withdrawals: typeof withdrawals;
 }>;
 

@@ -1,7 +1,6 @@
 "use client"
-
 import * as React from "react"
-import { useMutation, useQuery, useAction } from "convex/react"
+import { useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useAuth } from "@/lib/auth/AuthContext"
 import { Button } from "@/components/ui/button"
@@ -14,7 +13,7 @@ import { PlayCircle } from "lucide-react"
 import { ScraperConfigDrawer, type ScraperConfig } from "@/components/scraper-config-drawer"
 import { StatCard } from "@/components/stat-card"
 import { ScraperLiveLogs } from "@/components/scraper-live-logs"
-import { kwikbetAdapter } from "@/convex/scrapers/kwikbet"
+import { kwikbetAdapter } from "@/lib/scrapers/kwikbet"
 import type { Id } from "@/convex/_generated/dataModel"
 
 // 8 Most popular sports from KwikBet
@@ -113,8 +112,6 @@ export function AdminScraperPanel() {
   const noteMatchFailure = useMutation(api.scraper.noteMatchFailure)
   const upsertMatchDetail = useMutation(api.scraper.upsertMatchDetail)
   const updateRunStats = useMutation(api.scraper.updateRunStats)
-  const fetchSportsMatchPages = useAction(api.scraper.fetchSportsMatchPages)
-  const fetchSportsMatchDetail = useAction(api.scraper.fetchSportsMatchDetail)
 
   const settings = overview?.settings as any
   const runs = overview?.runs ?? []
@@ -160,7 +157,7 @@ export function AdminScraperPanel() {
 
       for (const date of window.dates) {
         try {
-          const pageMatches = await fetchSportsMatchPages({
+          const pageMatches = await kwikbetAdapter.fetchMatchPages({
             date,
             live: false,
             limit: Number(config.matchLimit),
@@ -196,9 +193,7 @@ export function AdminScraperPanel() {
 
       await mapConcurrent(sourceMatchIds, DETAIL_CONCURRENCY, async (sourceMatchId) => {
         try {
-          const detail = await fetchSportsMatchDetail({
-            sourceMatchId,
-          })
+          const detail = await kwikbetAdapter.fetchMatchDetails(sourceMatchId)
           const normalized = kwikbetAdapter.normalizeDetail(detail)
 
           const result = await upsertMatchDetail({

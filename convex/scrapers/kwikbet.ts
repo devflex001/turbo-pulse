@@ -8,7 +8,8 @@ import { circuitBreakers } from "../utils/circuitBreaker";
 
 export const KWIKBET_SOURCE = "kwikbet";
 
-const BASE_URL = "https://sports-api.kwikbet.co.ke/v2";
+// Updated API endpoint - KwikBet migrated from sports-api to backend-apis
+const BASE_URL = "https://backend-apis.kwikbet.co.ke/sports/v2";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -105,10 +106,15 @@ async function fetchJsonWithRetry(url: string, page?: number): Promise<unknown> 
 
         // Log response headers for 5xx errors to help diagnose
         if (response.status >= 500) {
-          console.error(
-            `[KWIKBET 5XX] Response headers:`,
-            Object.fromEntries(response.headers.entries())
-          );
+          try {
+            const headersObj: Record<string, string> = {};
+            response.headers.forEach((value, key) => {
+              headersObj[key] = value;
+            });
+            console.error(`[KWIKBET 5XX] Response headers:`, headersObj);
+          } catch (e) {
+            console.error(`[KWIKBET 5XX] Could not parse headers`);
+          }
           const bodyText = await response.text().catch(() => "(unable to read body)");
           console.error(`[KWIKBET 5XX] Response body: ${bodyText.substring(0, 200)}`);
 
@@ -268,8 +274,9 @@ export const kwikbetAdapter: ScraperAdapter = {
   sourceKey: KWIKBET_SOURCE,
   async fetchMatchPages({ date, live, limit, maxPages, sportIds }) {
     const matches: unknown[] = [];
+    const sportIdList = sportIds && sportIds.length > 0 ? sportIds : [1];
     console.log(
-      `[KWIKBET FETCH] Starting fetch for ${maxPages} pages (limit: ${limit}). Date: ${date}, Live: ${live}, Sports: ${sportIds.join(",")}`
+      `[KWIKBET FETCH] Starting fetch for ${maxPages} pages (limit: ${limit}). Date: ${date}, Live: ${live}, Sports: ${sportIdList.join(",")}`
     );
 
     for (let page = 1; page <= maxPages; page++) {
@@ -280,7 +287,7 @@ export const kwikbetAdapter: ScraperAdapter = {
       }
 
       const params = new URLSearchParams({
-        sport_id: sportIds ? sportIds.join(",") : "1",
+        sport_id: sportIdList.join(","),
         sort_by: "start_time",
         date,
         live: live ? "true" : "false",
