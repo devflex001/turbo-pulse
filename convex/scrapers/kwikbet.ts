@@ -4,6 +4,7 @@ import type {
   NormalizedOdd,
   ScraperAdapter,
 } from "./types";
+import { circuitBreakers } from "../utils/circuitBreaker";
 
 export const KWIKBET_SOURCE = "kwikbet";
 
@@ -68,33 +69,84 @@ async function sleep(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function fetchJsonWithRetry(url: string): Promise<unknown> {
+async function fetchJsonWithRetry(url: string, page?: number): Promise<unknown> {
   let lastError: unknown = null;
+  const pageNum = page ?? 1;
+  const breaker = circuitBreakers.kwikbet;
+
+  // Check if circuit is open
+  if (breaker.isOpen()) {
+    const state = breaker.getState();
+    console.error(
+      `[KWIKBET CIRCUIT] Circuit is ${state.state}, rejecting request for page ${pageNum}`
+    );
+    throw new Error(
+      `KwikBet circuit breaker is open (${state.failureCount}/3 failures) - service temporarily unavailable`
+    );
+  }
 
   for (let attempt = 0; attempt < 3; attempt++) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10_000);
 
     try {
+      console.log(`[KWIKBET] Fetching page ${pageNum}, attempt ${attempt + 1}/3: ${url}`);
+
       const response = await fetch(url, {
         headers: { Accept: "application/json" },
         signal: controller.signal,
       });
 
       if (!response.ok) {
-        throw new Error(`KwikBet request failed ${response.status} ${response.statusText}`);
+        const errorMsg = `KwikBet request failed ${response.status} ${response.statusText}`;
+        console.error(
+          `[KWIKBET ERROR] Page ${pageNum}, attempt ${attempt + 1}/3: ${errorMsg}. URL: ${url}`
+        );
+
+        // Log response headers for 5xx errors to help diagnose
+        if (response.status >= 500) {
+          console.error(
+            `[KWIKBET 5XX] Response headers:`,
+            Object.fromEntries(response.headers.entries())
+          );
+          const bodyText = await response.text().catch(() => "(unable to read body)");
+          console.error(`[KWIKBET 5XX] Response body: ${bodyText.substring(0, 200)}`);
+
+          // Record failure for circuit breaker on 5xx
+          breaker.recordFailure();
+        }
+
+        throw new Error(errorMsg);
       }
+
+      console.log(`[KWIKBET SUCCESS] Page ${pageNum} fetched successfully`);
+
+      // Record success - resets failure count if in CLOSED, increments recovery if HALF_OPEN
+      breaker.recordSuccess();
 
       return await response.json();
     } catch (error) {
       lastError = error;
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error(`[KWIKBET RETRY] Page ${pageNum}: ${errorMsg}`);
+
       if (attempt < 2) {
-        await sleep(250 * 2 ** attempt);
+        const delayMs = 250 * 2 ** attempt;
+        console.log(`[KWIKBET] Retrying page ${pageNum} in ${delayMs}ms...`);
+        await sleep(delayMs);
       }
     } finally {
       clearTimeout(timeout);
     }
   }
+
+  // All retries exhausted - record failure for circuit breaker
+  breaker.recordFailure();
+
+  const finalError = lastError instanceof Error ? lastError.message : String(lastError);
+  console.error(
+    `[KWIKBET FAILED] Page ${pageNum} failed after 3 attempts. Last error: ${finalError}`
+  );
 
   throw lastError instanceof Error ? lastError : new Error("KwikBet request failed");
 }
@@ -216,10 +268,16 @@ export const kwikbetAdapter: ScraperAdapter = {
   sourceKey: KWIKBET_SOURCE,
   async fetchMatchPages({ date, live, limit, maxPages, sportIds }) {
     const matches: unknown[] = [];
+    console.log(
+      `[KWIKBET FETCH] Starting fetch for ${maxPages} pages (limit: ${limit}). Date: ${date}, Live: ${live}, Sports: ${sportIds.join(",")}`
+    );
 
     for (let page = 1; page <= maxPages; page++) {
       // Stop if we've already reached the limit
-      if (matches.length >= limit) break;
+      if (matches.length >= limit) {
+        console.log(`[KWIKBET FETCH] Reached match limit (${limit}), stopping pagination`);
+        break;
+      }
 
       const params = new URLSearchParams({
         sport_id: sportIds ? sportIds.join(",") : "1",
@@ -229,17 +287,47 @@ export const kwikbetAdapter: ScraperAdapter = {
         limit: String(limit),
         page: String(page),
       });
-      const payload = await fetchJsonWithRetry(`${BASE_URL}/matches?${params.toString()}`);
-      const pageMatches = asArray(payload);
-      if (pageMatches.length === 0) break;
-      matches.push(...pageMatches);
-      // Only keep up to the limit
-      if (matches.length >= limit) {
-        return matches.slice(0, limit);
+
+      try {
+        const url = `${BASE_URL}/matches?${params.toString()}`;
+        const payload = await fetchJsonWithRetry(url, page);
+        const pageMatches = asArray(payload);
+
+        console.log(`[KWIKBET FETCH] Page ${page}: Got ${pageMatches.length} matches`);
+
+        if (pageMatches.length === 0) {
+          console.log(`[KWIKBET FETCH] Page ${page} returned 0 matches, stopping pagination`);
+          break;
+        }
+
+        matches.push(...pageMatches);
+
+        // Only keep up to the limit
+        if (matches.length >= limit) {
+          console.log(`[KWIKBET FETCH] Collected enough matches (${matches.length}), returning`);
+          return matches.slice(0, limit);
+        }
+
+        if (pageMatches.length < limit) {
+          console.log(
+            `[KWIKBET FETCH] Page ${page} returned fewer than limit (${pageMatches.length} < ${limit}), stopping pagination`
+          );
+          break;
+        }
+      } catch (error) {
+        console.error(`[KWIKBET FETCH] Error on page ${page}:`, error);
+        // If it's a 5xx error, log and break to avoid hammering a down service
+        if (error instanceof Error && error.message.includes("5")) {
+          console.error(
+            `[KWIKBET FETCH] 5xx error detected, stopping pagination to avoid service strain`
+          );
+          break;
+        }
+        // For other errors, continue to next page
       }
-      if (pageMatches.length < limit) break;
     }
 
+    console.log(`[KWIKBET FETCH] Completed: ${matches.length} total matches collected`);
     return matches;
   },
   async fetchMatchDetails(sourceMatchId) {
