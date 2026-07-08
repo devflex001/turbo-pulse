@@ -113,6 +113,8 @@ export function AdminScraperPanel() {
   const noteMatchFailure = useMutation(api.scraper.noteMatchFailure)
   const upsertMatchDetail = useMutation(api.scraper.upsertMatchDetail)
   const updateRunStats = useMutation(api.scraper.updateRunStats)
+  const fetchSportsMatchPages = useMutation(api.scraper.fetchSportsMatchPages)
+  const fetchSportsMatchDetail = useMutation(api.scraper.fetchSportsMatchDetail)
 
   const settings = overview?.settings as any
   const runs = overview?.runs ?? []
@@ -157,20 +159,25 @@ export function AdminScraperPanel() {
       let totalFetched = 0
 
       for (const date of window.dates) {
-        const pageMatches = await kwikbetAdapter.fetchMatchPages({
-          date,
-          live: false,
-          limit: Number(config.matchLimit),
-          maxPages: DEFAULT_MAX_PAGES,
-          sportIds,
-        })
+        try {
+          const pageMatches = await fetchSportsMatchPages({
+            date,
+            live: false,
+            limit: Number(config.matchLimit),
+            maxPages: DEFAULT_MAX_PAGES,
+            sportIds,
+          })
 
-        totalFetched += pageMatches.length
-        addLog(`[INFO] ${date}: found ${pageMatches.length} matches`)
+          totalFetched += pageMatches.length
+          addLog(`[INFO] ${date}: found ${pageMatches.length} matches`)
 
-        for (const match of pageMatches) {
-          const normalized = kwikbetAdapter.normalizeMatch(match)
-          discovered.set(normalized.sourceMatchId, match)
+          for (const match of pageMatches) {
+            const normalized = kwikbetAdapter.normalizeMatch(match)
+            discovered.set(normalized.sourceMatchId, match)
+          }
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : "Unknown error"
+          addLog(`[ERROR] Failed to fetch ${date}: ${errorMsg}`)
         }
       }
 
@@ -189,7 +196,9 @@ export function AdminScraperPanel() {
 
       await mapConcurrent(sourceMatchIds, DETAIL_CONCURRENCY, async (sourceMatchId) => {
         try {
-          const detail = await kwikbetAdapter.fetchMatchDetails(sourceMatchId)
+          const detail = await fetchSportsMatchDetail({
+            sourceMatchId,
+          })
           const normalized = kwikbetAdapter.normalizeDetail(detail)
 
           const result = await upsertMatchDetail({

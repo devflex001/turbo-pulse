@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import {
   mutation,
   query,
+  action,
   type MutationCtx,
 } from "./_generated/server";
 import {
@@ -9,7 +10,7 @@ import {
   normalizedMatchValidator,
   normalizedOddValidator,
 } from "./scraperValidators";
-import { KWIKBET_SOURCE } from "./scrapers/kwikbet";
+import { KWIKBET_SOURCE, kwikbetAdapter } from "./scrapers/kwikbet";
 import { logAdminActionInternal } from "./audit/logs";
 import { getAdminSessionByTokenInternal } from "./admin/sessions";
 
@@ -363,5 +364,78 @@ export const updateRunStats = mutation({
         oddsUpserted: run.oddsUpserted + args.oddsUpserted,
       });
     }
+  },
+});
+
+// Helper function for concurrent operations
+async function mapConcurrent<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T) => Promise<R>
+) {
+  const results: R[] = [];
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex++;
+      results[index] = await mapper(items[index]);
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, () => worker())
+  );
+
+  return results;
+}
+
+// Server-side function to fetch match pages (runs on backend, no CORS issues)
+// Using action instead of mutation to allow async/await with delays
+export const fetchSportsMatchPages = action({
+  args: {
+    date: v.string(),
+    live: v.boolean(),
+    limit: v.number(),
+    maxPages: v.number(),
+    sportIds: v.array(v.number()),
+  },
+  handler: async (_, args) => {
+    const matches: unknown[] = [];
+
+    for (let page = 1; page <= args.maxPages; page++) {
+      if (matches.length >= args.limit) break;
+
+      try {
+        const pageMatches = await kwikbetAdapter.fetchMatchPages({
+          date: args.date,
+          live: args.live,
+          limit: args.limit,
+          maxPages: 1, // Fetch one page at a time
+          sportIds: args.sportIds,
+        });
+
+        matches.push(...pageMatches);
+
+        if (pageMatches.length < args.limit) break;
+      } catch (error) {
+        console.error(`Error fetching page ${page}:`, error);
+        // Continue trying other pages
+      }
+    }
+
+    return matches.slice(0, args.limit);
+  },
+});
+
+// Server-side function to fetch match details
+// Using action instead of mutation to allow async/await with delays
+export const fetchSportsMatchDetail = action({
+  args: {
+    sourceMatchId: v.string(),
+  },
+  handler: async (_, args) => {
+    return await kwikbetAdapter.fetchMatchDetails(args.sourceMatchId);
   },
 });
