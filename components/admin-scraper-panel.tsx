@@ -1,5 +1,4 @@
 "use client"
-
 import * as React from "react"
 import { useMutation, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
@@ -14,7 +13,7 @@ import { PlayCircle } from "lucide-react"
 import { ScraperConfigDrawer, type ScraperConfig } from "@/components/scraper-config-drawer"
 import { StatCard } from "@/components/stat-card"
 import { ScraperLiveLogs } from "@/components/scraper-live-logs"
-import { kwikbetAdapter } from "@/convex/scrapers/kwikbet"
+import { kwikbetAdapter } from "@/lib/scrapers/kwikbet"
 import type { Id } from "@/convex/_generated/dataModel"
 
 // 8 Most popular sports from KwikBet
@@ -157,20 +156,25 @@ export function AdminScraperPanel() {
       let totalFetched = 0
 
       for (const date of window.dates) {
-        const pageMatches = await kwikbetAdapter.fetchMatchPages({
-          date,
-          live: false,
-          limit: Number(config.matchLimit),
-          maxPages: DEFAULT_MAX_PAGES,
-          sportIds,
-        })
+        try {
+          const pageMatches = await kwikbetAdapter.fetchMatchPages({
+            date,
+            live: false,
+            limit: Number(config.matchLimit),
+            maxPages: DEFAULT_MAX_PAGES,
+            sportIds,
+          })
 
-        totalFetched += pageMatches.length
-        addLog(`[INFO] ${date}: found ${pageMatches.length} matches`)
+          totalFetched += pageMatches.length
+          addLog(`[INFO] ${date}: found ${pageMatches.length} matches`)
 
-        for (const match of pageMatches) {
-          const normalized = kwikbetAdapter.normalizeMatch(match)
-          discovered.set(normalized.sourceMatchId, match)
+          for (const match of pageMatches) {
+            const normalized = kwikbetAdapter.normalizeMatch(match)
+            discovered.set(normalized.sourceMatchId, match)
+          }
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : "Unknown error"
+          addLog(`[ERROR] Failed to fetch ${date}: ${errorMsg}`)
         }
       }
 

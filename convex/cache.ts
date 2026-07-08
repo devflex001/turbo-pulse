@@ -4,10 +4,32 @@ import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { Redis } from "@upstash/redis";
 
-// Initialize Redis with error handling
+// Validate Redis configuration at startup
+function validateRedisConfig() {
+  const url = process.env.UPSTASH_REDIS_REST_URL?.trim();
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+
+  if (!url) {
+    console.warn(
+      "[REDIS CONFIG] Missing or empty UPSTASH_REDIS_REST_URL environment variable"
+    );
+  }
+
+  if (!token) {
+    console.warn(
+      "[REDIS CONFIG] Missing or empty UPSTASH_REDIS_REST_TOKEN environment variable"
+    );
+  }
+
+  return { url, token, isValid: !!(url && token) };
+}
+
+const redisConfig = validateRedisConfig();
+
+// Initialize Redis with validated configuration
 const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL || "",
-  token: process.env.UPSTASH_REDIS_REST_TOKEN || "",
+  url: redisConfig.url || "",
+  token: redisConfig.token || "",
 });
 
 // Cache configuration
@@ -83,13 +105,31 @@ export const invalidateCachePatternAction = action({
 // Cache health check
 export const cacheHealthCheck = action({
   args: {},
-  handler: async (ctx): Promise<{ status: "healthy" | "unhealthy"; error?: string }> => {
+  handler: async (ctx): Promise<{ status: "healthy" | "unhealthy"; error?: string; details?: Record<string, unknown> }> => {
+    const details: Record<string, unknown> = {
+      configValid: redisConfig.isValid,
+      hasUrl: !!redisConfig.url,
+      hasToken: !!redisConfig.token,
+    };
+
+    if (!redisConfig.isValid) {
+      return {
+        status: "unhealthy",
+        error: "Redis configuration incomplete - missing URL or token",
+        details,
+      };
+    }
+
     try {
       await redis.ping();
-      return { status: "healthy" };
+      return { status: "healthy", details };
     } catch (error) {
       console.error("Redis health check failed:", error);
-      return { status: "unhealthy", error: String(error) };
+      return {
+        status: "unhealthy",
+        error: String(error),
+        details,
+      };
     }
   },
 });

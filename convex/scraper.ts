@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import {
   mutation,
   query,
+  action,
   type MutationCtx,
 } from "./_generated/server";
 import {
@@ -9,7 +10,7 @@ import {
   normalizedMatchValidator,
   normalizedOddValidator,
 } from "./scraperValidators";
-import { KWIKBET_SOURCE } from "./scrapers/kwikbet";
+import { KWIKBET_SOURCE, kwikbetAdapter } from "./scrapers/kwikbet";
 import { logAdminActionInternal } from "./audit/logs";
 import { getAdminSessionByTokenInternal } from "./admin/sessions";
 
@@ -365,3 +366,27 @@ export const updateRunStats = mutation({
     }
   },
 });
+
+// Helper function for concurrent operations
+async function mapConcurrent<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T) => Promise<R>
+) {
+  const results: R[] = [];
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex++;
+      results[index] = await mapper(items[index]);
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, () => worker())
+  );
+
+  return results;
+}

@@ -1,10 +1,14 @@
+/**
+ * KwikBet Scraper Adapter - Client-side implementation
+ * Handles fetching and normalizing data from the KwikBet API
+ */
+
 import type {
   NormalizedMarket,
   NormalizedMatch,
   NormalizedOdd,
   ScraperAdapter,
-} from "./types";
-import { circuitBreakers } from "../utils/circuitBreaker";
+} from "@/convex/scrapers/types";
 
 export const KWIKBET_SOURCE = "kwikbet";
 
@@ -73,18 +77,6 @@ async function sleep(ms: number) {
 async function fetchJsonWithRetry(url: string, page?: number): Promise<unknown> {
   let lastError: unknown = null;
   const pageNum = page ?? 1;
-  const breaker = circuitBreakers.kwikbet;
-
-  // Check if circuit is open
-  if (breaker.isOpen()) {
-    const state = breaker.getState();
-    console.error(
-      `[KWIKBET CIRCUIT] Circuit is ${state.state}, rejecting request for page ${pageNum}`
-    );
-    throw new Error(
-      `KwikBet circuit breaker is open (${state.failureCount}/3 failures) - service temporarily unavailable`
-    );
-  }
 
   for (let attempt = 0; attempt < 3; attempt++) {
     const controller = new AbortController();
@@ -117,19 +109,12 @@ async function fetchJsonWithRetry(url: string, page?: number): Promise<unknown> 
           }
           const bodyText = await response.text().catch(() => "(unable to read body)");
           console.error(`[KWIKBET 5XX] Response body: ${bodyText.substring(0, 200)}`);
-
-          // Record failure for circuit breaker on 5xx
-          breaker.recordFailure();
         }
 
         throw new Error(errorMsg);
       }
 
       console.log(`[KWIKBET SUCCESS] Page ${pageNum} fetched successfully`);
-
-      // Record success - resets failure count if in CLOSED, increments recovery if HALF_OPEN
-      breaker.recordSuccess();
-
       return await response.json();
     } catch (error) {
       lastError = error;
@@ -146,9 +131,7 @@ async function fetchJsonWithRetry(url: string, page?: number): Promise<unknown> 
     }
   }
 
-  // All retries exhausted - record failure for circuit breaker
-  breaker.recordFailure();
-
+  // All retries exhausted
   const finalError = lastError instanceof Error ? lastError.message : String(lastError);
   console.error(
     `[KWIKBET FAILED] Page ${pageNum} failed after 3 attempts. Last error: ${finalError}`
