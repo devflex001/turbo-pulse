@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useMutation, useQuery } from "convex/react"
+import { useMutation, useQuery, useAction } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useAuth } from "@/lib/auth/AuthContext"
 import { Button } from "@/components/ui/button"
@@ -113,8 +113,8 @@ export function AdminScraperPanel() {
   const noteMatchFailure = useMutation(api.scraper.noteMatchFailure)
   const upsertMatchDetail = useMutation(api.scraper.upsertMatchDetail)
   const updateRunStats = useMutation(api.scraper.updateRunStats)
-  const fetchSportsMatchPages = useMutation(api.scraper.fetchSportsMatchPages)
-  const fetchSportsMatchDetail = useMutation(api.scraper.fetchSportsMatchDetail)
+  const fetchSportsMatchPages = useAction(api.scraper.fetchSportsMatchPages)
+  const fetchSportsMatchDetail = useAction(api.scraper.fetchSportsMatchDetail)
 
   const settings = overview?.settings as any
   const runs = overview?.runs ?? []
