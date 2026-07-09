@@ -175,11 +175,11 @@ export function PaystackDepositSheet() {
   }, [])
 
   const handlePaystackSuccess = async (response: any) => {
-    console.log("[Paystack] Payment successful:", response)
+    console.log("[Paystack] onSuccess fired:", response)
     setStage("processing")
 
     try {
-      // Verify transaction with backend
+      // Verify transaction with backend immediately
       const verifyResponse = await fetch("/api/paystack/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -191,27 +191,23 @@ export function PaystackDepositSheet() {
 
       if (!verifyResponse.ok) {
         console.error("[Paystack] Verification failed:", verifyData)
-        const errorMsg =
-          verifyData.message ||
-          "Failed to verify payment"
-        setErrorMessage(errorMsg)
+        setErrorMessage(verifyData.message || "Failed to verify payment")
         setStage("failed")
-        setFeedbackMessage(errorMsg)
-        toast.error(errorMsg)
+        setFeedbackMessage(verifyData.message || "Payment verification failed")
+        toast.error(verifyData.message || "Verification failed")
         return
       }
 
-      if (verifyData.status === "failed") {
-        console.log("[Paystack] Verification returned failed status:", verifyData)
-        setErrorMessage(verifyData.message || "Payment was not successful")
+      // Update stage based on verification result
+      if (verifyData.status === "success") {
+        setStage("success")
+        setFeedbackMessage(verifyData.message || "Payment completed successfully")
+        toast.success("Payment completed successfully")
+      } else {
         setStage("failed")
-        setFeedbackMessage(verifyData.message || "Payment failed")
+        setFeedbackMessage(verifyData.message || "Payment was not successful")
         toast.error(verifyData.message || "Payment failed")
-        return
       }
-
-      console.log("[Paystack] Verification successful, transaction status updating...")
-      // The real-time query will update the transaction status
     } catch (error) {
       console.error("[Paystack] Verification error:", error)
       setErrorMessage("Failed to verify payment")
@@ -221,11 +217,52 @@ export function PaystackDepositSheet() {
     }
   }
 
-  const handlePaystackCancel = () => {
-    console.log("[Paystack] Payment cancelled by user")
-    setStage("cancelled")
-    setFeedbackMessage("You cancelled the payment")
-    setModalOpen(true)
+  const handlePaystackCancel = async () => {
+    console.log("[Paystack] onCancel fired - checking transaction status")
+
+    // Even on cancel, we need to verify the actual status with Paystack
+    // because the user might have actually completed payment but closed the modal
+    if (reference) {
+      try {
+        setStage("processing")
+
+        const verifyResponse = await fetch("/api/paystack/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reference }),
+        })
+
+        const verifyData = await verifyResponse.json()
+        console.log("[Paystack] Verify after cancel result:", verifyData)
+
+        if (verifyResponse.ok) {
+          // If verification shows success, it's a successful payment
+          if (verifyData.status === "success") {
+            setStage("success")
+            setFeedbackMessage("Payment completed successfully!")
+            toast.success("Payment completed!")
+            return
+          }
+        }
+
+        // Otherwise, it's cancelled
+        await fetch("/api/paystack/cancel", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reference }),
+        })
+
+        setStage("cancelled")
+        setFeedbackMessage("You cancelled the payment")
+      } catch (error) {
+        console.error("[Paystack] Error handling cancel:", error)
+        setStage("cancelled")
+        setFeedbackMessage("Payment cancelled")
+      }
+    } else {
+      setStage("cancelled")
+      setFeedbackMessage("Payment cancelled")
+    }
   }
 
   const openPaystackModal = (ref: string, userPhone: string, depositAmount: number) => {
@@ -264,10 +301,8 @@ export function PaystackDepositSheet() {
           handlePaystackSuccess(transaction)
         },
         onCancel: () => {
-          console.log("[Paystack] Modal closed")
-          if (stage === "pending_user_action") {
-            handlePaystackCancel()
-          }
+          console.log("[Paystack] User cancelled payment")
+          handlePaystackCancel()
         },
       })
 

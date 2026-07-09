@@ -326,7 +326,6 @@ export default function AdminDashboard() {
                   <th className="py-2.5 px-3">Amount</th>
                   <th className="py-2.5 px-3">Status</th>
                   <th className="py-2.5 px-3 hidden sm:table-cell">Time</th>
-                  <th className="py-2.5 px-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -351,9 +350,6 @@ export default function AdminDashboard() {
                         </td>
                         <td className="py-3 px-3 hidden sm:table-cell">
                           <Skeleton className="h-4 w-28" />
-                        </td>
-                        <td className="py-3 px-3 text-right">
-                          <Skeleton className="h-4 w-8 ml-auto" />
                         </td>
                       </tr>
                     ))}
@@ -401,71 +397,6 @@ export default function AdminDashboard() {
                       </td>
                       <td className="py-3 px-3 text-muted-foreground hidden sm:table-cell">
                         {tx.time}
-                      </td>
-                      <td className="py-3 px-3 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-7 hover:bg-muted"
-                            >
-                              <MoreHorizontal className="size-3.5" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            align="end"
-                            className="w-48 text-xs"
-                          >
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleUpdateStatus(tx.id, "success")
-                              }
-                            >
-                              Mark as Success
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleUpdateStatus(
-                                  tx.id,
-                                  "failed",
-                                  "Request Cancelled by user."
-                                )
-                              }
-                            >
-                              Mark as Failed: Cancelled
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleUpdateStatus(
-                                  tx.id,
-                                  "failed",
-                                  "The balance is insufficient."
-                                )
-                              }
-                            >
-                              Mark as Failed: Insufficient
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleUpdateStatus(
-                                  tx.id,
-                                  "failed",
-                                  "No response from user."
-                                )
-                              }
-                            >
-                              Mark as Failed: No Response
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() =>
-                                handleUpdateStatus(tx.id, "pending")
-                              }
-                            >
-                              Revert to Pending
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
                       </td>
                     </tr>
                   )

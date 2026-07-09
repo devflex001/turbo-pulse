@@ -147,6 +147,17 @@ export function PaymentModal({
   const Icon = config.icon
   const isComplete = ["success", "failed", "cancelled", "timeout", "error"].includes(safeStage)
 
+  // Handle Dialog close - prevent closing during pending_user_action for Paystack
+  const handleOpenChange = (newOpen: boolean) => {
+    // Allow closing at all times for Paystack (the X button should work)
+    // For M-Pesa, we might want to prevent closing during pending_user_action
+    if (provider === "mpesa" && safeStage === "pending_user_action" && !newOpen) {
+      // Prevent closing M-Pesa dialog during PIN entry
+      return
+    }
+    onOpenChange(newOpen)
+  }
+
   React.useEffect(() => {
     if (safeStage === "success" && onClose) {
       const timer = setTimeout(() => {
@@ -157,7 +168,7 @@ export function PaymentModal({
   }, [safeStage, onClose])
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogTitle className="sr-only">{config.title}</DialogTitle>
         <div className="space-y-6 py-4">
@@ -190,20 +201,10 @@ export function PaymentModal({
               {message && (
                 <p className="text-xs text-muted-foreground">{message}</p>
               )}
-
-              {/* Receipt Number */}
-              {/* {(mpesaReceiptNumber || paystackReference) && (
-                <div className="w-full space-y-1">
-                  <div className="text-xs text-muted-foreground">Reference:</div>
-                  <code className="block text-xs font-mono bg-muted/50 rounded p-2 break-all">
-                    {mpesaReceiptNumber || paystackReference}
-                  </code>
-                </div>
-              )} */}
             </div>
           </div>
 
-          {/* Action Buttons */}
+          {/* Action Buttons - Show for completed states */}
           {isComplete && (
             <div className="flex gap-2">
               {safeStage === "success" ? (
@@ -239,6 +240,15 @@ export function PaymentModal({
                   </Button>
                 </>
               )}
+            </div>
+          )}
+
+          {/* Info text for pending user action */}
+          {safeStage === "pending_user_action" && provider === "paystack" && (
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground">
+                Complete the payment in the Paystack popup or close it to cancel
+              </p>
             </div>
           )}
         </div>

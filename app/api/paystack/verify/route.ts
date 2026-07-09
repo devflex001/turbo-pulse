@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     } = data
 
     console.log(
-      `[Paystack Verify] Payment status: ${paymentStatus}, gateway_response: ${gateway_response}`
+      `[Paystack Verify] Payment status: ${paymentStatus}, gateway_response: ${gateway_response}, display_text: ${display_text}`
     )
 
     // Determine transaction status and capture error details
@@ -96,34 +96,40 @@ export async function POST(request: NextRequest) {
       transactionStatus = "success"
     } else {
       transactionStatus = "failed"
-      // Capture detailed error information
+      // Capture detailed error information - try all available fields
       errorMessage = gateway_response || display_text || "Payment failed"
-      errorCode = data.status || "unknown"
+      errorCode = data.status || paymentStatus || "unknown"
 
       // Map common Paystack error codes to user-friendly messages
       const errorMapping: Record<string, string> = {
-        // PIN-related errors
-        Declined: "Card declined. Please check your card details.",
-        "Approved by default":
-          "Transaction pending. Please check with your bank.",
+        // PIN/Timeout errors
+        "Failed": "Transaction could not be processed. Please try again.",
+        "Timeout": "Transaction timed out. User did not complete the payment.",
+        "Cancelled": "Payment was cancelled.",
+        "User cancelled": "Payment cancelled by user.",
+
+        // Card errors
+        "Declined": "Card declined. Please check your card details.",
+        "Approved by default": "Transaction pending. Please check with your bank.",
         "Do not honour": "Bank declined this transaction.",
         "No response from issuer": "No response from bank. Please try again.",
         "Expired card": "Your card has expired.",
         "Possible fraud": "Transaction flagged as possible fraud.",
         "Invalid transaction": "Invalid transaction details.",
-        "Transaction timeout": "Transaction timed out. Please try again.",
-        "User cancelled": "Payment cancelled by user.",
         "Insufficient funds": "Insufficient funds in your account.",
         "Restricted card": "Your card is restricted.",
         "Lost card": "Your card has been reported as lost.",
         "Stolen card": "Your card has been reported as stolen.",
-        "Not permitted":
-          "This transaction is not permitted on your card account.",
+        "Not permitted": "This transaction is not permitted on your card account.",
       }
 
       // Try to find more descriptive error message
       for (const [key, value] of Object.entries(errorMapping)) {
-        if (gateway_response?.toLowerCase().includes(key.toLowerCase())) {
+        const lowerGateway = gateway_response?.toLowerCase() || ""
+        const lowerDisplay = display_text?.toLowerCase() || ""
+        const lowerKey = key.toLowerCase()
+
+        if (lowerGateway.includes(lowerKey) || lowerDisplay.includes(lowerKey)) {
           errorMessage = value
           break
         }

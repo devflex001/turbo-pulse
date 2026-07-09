@@ -184,7 +184,8 @@ const schema = defineSchema({
     amount: v.number(),
     phone: v.optional(v.string()),
     status: v.string(), // "success" | "pending" | "failed" | "cancelled"
-    errorDetail: v.optional(v.string()),
+    errorDetail: v.optional(v.string()), // User-friendly error message
+    errorCode: v.optional(v.string()), // Technical error code from gateway
     time: v.number(),
     // M-Pesa specific fields
     checkoutRequestID: v.optional(v.string()),

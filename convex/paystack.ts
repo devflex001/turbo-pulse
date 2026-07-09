@@ -494,6 +494,74 @@ export const updateTransactionStatus = mutation({
 })
 
 /**
+ * Mark transaction as cancelled by user
+ */
+export const markTransactionCancelled = mutation({
+  args: {
+    reference: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Find transaction by reference
+    const transaction = await ctx.db
+      .query("transactions")
+      .withIndex("by_checkoutRequestID", (q) => q.eq("checkoutRequestID", args.reference))
+      .unique()
+
+    if (!transaction) {
+      console.error(`Transaction not found: ${args.reference}`)
+      throw new Error(`Transaction not found: ${args.reference}`)
+    }
+
+    // Only update if still pending
+    if (transaction.status !== "pending") {
+      console.log(`[Paystack] Transaction already ${transaction.status}, skipping cancellation update`)
+      return {
+        transactionId: transaction._id,
+        status: transaction.status,
+        message: "Transaction already processed",
+      }
+    }
+
+    // Update to cancelled
+    await ctx.db.patch(transaction._id, {
+      status: "cancelled",
+      feedback: "Payment cancelled by user",
+      feedbackType: "warning",
+      errorDetail: "User cancelled the payment",
+      errorCode: "user_cancelled",
+      updatedAt: Date.now(),
+    })
+
+    console.log(
+      `[Paystack Transaction] Marked as cancelled: ${transaction._id}`
+    )
+
+    // Notify admin of cancellation
+    if (transaction.type === "deposit") {
+      const adminMessage = `Payment cancelled by user (${transaction.phone || "unknown"}). Amount: KES ${transaction.amount}`
+
+      await notifyAdmins(ctx, {
+        type: "payment",
+        title: "Paystack deposit cancelled",
+        message: adminMessage,
+        href: "/admin/payments",
+        dedupeKey: `transaction-cancelled:${transaction._id}`,
+        metadata: {
+          transactionId: transaction._id,
+          amount: transaction.amount,
+        },
+      })
+    }
+
+    return {
+      transactionId: transaction._id,
+      status: "cancelled",
+      message: "Transaction marked as cancelled",
+    }
+  },
+})
+
+/**
  * Get latest transaction for real-time status updates
  */
 export const getLatestTransaction = query({
