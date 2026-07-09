@@ -1,6 +1,7 @@
 "use client"
 
-import * as React from "react"
+import React from "react"
+import * as React_types from "react"
 import { useMutation, useQuery, usePaginatedQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
@@ -410,14 +411,14 @@ export default function BetsPage() {
             </div>
           )}
 
-          {bets.map((bet: any) => {
+          {bets.map((bet: any): React.ReactElement => {
             const b = bet as unknown as Bet
             const isSingle = b.selections.length === 1
             const mainSel = b.selections[0]
 
             return (
               <div
-                key={b._id}
+                key={String(b._id)}
                 className="rounded-lg border border-border bg-card p-3 space-y-3 cursor-pointer hover:bg-muted/10 transition-colors"
                 onClick={() => handleViewDetails(b)}
               >
@@ -554,13 +555,13 @@ export default function BetsPage() {
                   </tr>
                 )}
 
-                {bets.map((bet) => {
+                {bets.map((bet: any): React.ReactElement => {
                   const b = bet as unknown as Bet
                   const isSingle = b.selections.length === 1
                   const mainSel = b.selections[0]
 
                   return (
-                    <tr key={b._id} className="hover:bg-muted/30 transition-colors">
+                    <tr key={String(b._id)} className="hover:bg-muted/30 transition-colors">
                       <td className="py-3.5 px-4 font-mono font-medium text-muted-foreground">
                         {b._id.slice(-8)}
                       </td>
