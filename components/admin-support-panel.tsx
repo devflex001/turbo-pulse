@@ -10,7 +10,6 @@ import { getSessionToken } from "@/lib/auth/session"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
 
 type Conversation = {
@@ -33,7 +32,6 @@ type SupportMessage = {
   senderRole: "user" | "admin"
   body: string
   createdAt: number
-}
 
 function useSupportAuthArgs() {
   const { user } = useAuth()
@@ -91,11 +89,11 @@ function ConversationList({
   if (!conversations || conversations.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center p-8 text-center animate-in fade-in">
-        <div className="rounded-full bg-muted/50 p-4 mb-4">
+        <div className="mb-4 rounded-full bg-muted/50 p-4">
           <MessageSquare className="size-6 text-muted-foreground/50" />
         </div>
         <p className="text-sm font-semibold text-foreground">No conversations yet</p>
-        <p className="mt-1 text-xs text-muted-foreground max-w-[200px]">
+        <p className="mt-1 max-w-[200px] text-xs text-muted-foreground">
           When users reach out for support, their messages will appear here.
         </p>
       </div>
@@ -103,8 +101,8 @@ function ConversationList({
   }
 
   return (
-    <ScrollArea className="flex-1">
-      <div className="flex flex-col gap-1 p-2">
+    <div className="flex-1 overflow-y-auto p-2">
+      <div className="flex flex-col gap-1">
         {conversations.map((conversation) => (
           <button
             key={conversation._id}
@@ -114,11 +112,11 @@ function ConversationList({
               "group relative flex w-full flex-col gap-1 rounded-lg px-3 py-3 text-left text-sm transition-all duration-200",
               selectedId === conversation._id
                 ? "bg-primary text-primary-foreground shadow-md"
-                : "hover:bg-muted/80 text-foreground"
+                : "text-foreground hover:bg-muted/80"
             )}
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="font-semibold truncate">
+              <span className="truncate font-semibold">
                 {conversation.displayName ?? conversation.userPhone}
               </span>
               <span
@@ -155,12 +153,12 @@ function ConversationList({
             </div>
 
             {conversation.status === "closed" && (
-              <Badge 
-                variant="outline" 
+              <Badge
+                variant="outline"
                 className={cn(
                   "absolute right-3 top-3 h-4 text-[9px] uppercase tracking-wider",
-                  selectedId === conversation._id 
-                    ? "border-primary-foreground/20 text-primary-foreground/80" 
+                  selectedId === conversation._id
+                    ? "border-primary-foreground/20 text-primary-foreground/80"
                     : "border-border text-muted-foreground"
                 )}
               >
@@ -170,7 +168,7 @@ function ConversationList({
           </button>
         ))}
       </div>
-    </ScrollArea>
+    </div>
   )
 }
 
@@ -254,7 +252,7 @@ function AdminChatThread({
             type="button"
             variant="ghost"
             size="icon"
-            className="md:hidden shrink-0 -ml-2"
+            className="-ml-2 shrink-0 md:hidden"
             onClick={onBack}
           >
             <ArrowLeft className="size-5" />
@@ -277,10 +275,10 @@ function AdminChatThread({
             </div>
           </div>
         </div>
-        <Button 
-          type="button" 
-          variant={conversation.status === "open" ? "outline" : "default"} 
-          size="sm" 
+        <Button
+          type="button"
+          variant={conversation.status === "open" ? "outline" : "default"}
+          size="sm"
           onClick={toggleStatus}
           className="h-8 shadow-sm"
         >
@@ -289,10 +287,10 @@ function AdminChatThread({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 px-4">
-        <div className="flex flex-col justify-end min-h-full space-y-4 py-6">
+      <div className="flex-1 overflow-y-auto px-4">
+        <div className="flex min-h-full flex-col justify-end space-y-4 py-6">
           {messages === undefined && (
-            <div className="flex justify-center py-8 flex-1 items-center">
+            <div className="flex flex-1 items-center justify-center py-8">
               <Loader2 className="size-6 animate-spin text-muted-foreground/30" />
             </div>
           )}
@@ -301,13 +299,13 @@ function AdminChatThread({
             <div
               key={message._id}
               className={cn(
-                "flex w-full animate-in slide-in-from-bottom-2 fade-in duration-300",
+                "flex w-full animate-in fade-in slide-in-from-bottom-2 duration-300",
                 message.senderRole === "admin" ? "justify-end" : "justify-start"
               )}
             >
               <div
                 className={cn(
-                  "group relative flex max-w-[85%] md:max-w-[75%] flex-col gap-1 rounded-2xl px-4 py-2.5 text-sm shadow-sm",
+                  "group relative flex max-w-[85%] flex-col gap-1 rounded-2xl px-4 py-2.5 text-sm shadow-sm md:max-w-[75%]",
                   message.senderRole === "admin"
                     ? "rounded-br-sm bg-primary text-primary-foreground"
                     : "rounded-bl-sm border border-border/50 bg-card text-card-foreground"
@@ -318,9 +316,9 @@ function AdminChatThread({
                 </p>
                 <span
                   className={cn(
-                    "text-[10px] font-medium select-none",
+                    "select-none text-[10px] font-medium",
                     message.senderRole === "admin"
-                      ? "text-primary-foreground/60 text-right"
+                      ? "text-right text-primary-foreground/60"
                       : "text-muted-foreground"
                   )}
                 >
@@ -329,9 +327,9 @@ function AdminChatThread({
               </div>
             </div>
           ))}
-          <div ref={messagesEndRef} className="h-1" />
+          <div ref={messagesEndRef} className="h-1 shrink-0" />
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Input Area */}
       <div className="shrink-0 border-t border-border/50 bg-background/80 p-4 backdrop-blur-xl">
@@ -421,7 +419,7 @@ export function AdminSupportPanel() {
         <div
           className={cn(
             "flex w-full flex-col border-r border-border/50 bg-muted/20 md:w-[320px] lg:w-[380px] shrink-0",
-            showThreadOnMobile && selectedConversation ? "hidden md:flex" : "flex"
+            showThreadOnMobile && selectedConversation ? "hidden md:flex" : "flex flex-1 md:flex-none"
           )}
         >
           <div className="flex h-14 shrink-0 items-center justify-between border-b border-border/50 px-4">
@@ -440,8 +438,8 @@ export function AdminSupportPanel() {
         {/* Thread Area */}
         <div
           className={cn(
-            "flex min-w-0 flex-1 flex-col bg-background",
-            !showThreadOnMobile && !selectedConversation ? "hidden md:flex" : "flex"
+            "flex min-w-0 flex-col bg-background",
+            !showThreadOnMobile && !selectedConversation ? "hidden md:flex flex-1" : "flex flex-1"
           )}
         >
           {selectedConversation ? (
@@ -451,14 +449,14 @@ export function AdminSupportPanel() {
               onBack={() => setShowThreadOnMobile(false)}
             />
           ) : (
-            <div className="flex flex-1 flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in-95">
-              <div className="rounded-full bg-muted/50 p-6 mb-6">
+            <div className="flex flex-1 flex-col items-center justify-center p-8 text-center animate-in zoom-in-95 fade-in">
+              <div className="mb-6 rounded-full bg-muted/50 p-6">
                 <MessageSquare className="size-10 text-muted-foreground/40" />
               </div>
               <h3 className="text-lg font-semibold tracking-tight text-foreground">
                 Select a conversation
               </h3>
-              <p className="mt-2 text-sm text-muted-foreground max-w-[250px]">
+              <p className="mt-2 max-w-[250px] text-sm text-muted-foreground">
                 Choose a support thread from the sidebar to view details and reply to the user.
               </p>
             </div>
