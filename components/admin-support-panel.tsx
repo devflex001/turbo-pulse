@@ -32,6 +32,7 @@ type SupportMessage = {
   senderRole: "user" | "admin"
   body: string
   createdAt: number
+}
 
 function useSupportAuthArgs() {
   const { user } = useAuth()
@@ -196,7 +197,7 @@ function AdminChatThread({
   }) as SupportMessage[] | undefined
 
   React.useEffect(() => {
-    markAsRead({ ...authArgs, conversationId: conversation._id }).catch(() => {})
+    markAsRead({ ...authArgs, conversationId: conversation._id }).catch(() => { })
   }, [authArgs, conversation._id, markAsRead, messages?.length])
 
   React.useEffect(() => {
@@ -414,7 +415,7 @@ export function AdminSupportPanel() {
 
       {/* Main Layout Container */}
       <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border border-border/60 bg-card shadow-sm">
-        
+
         {/* Sidebar */}
         <div
           className={cn(
@@ -443,8 +444,8 @@ export function AdminSupportPanel() {
           )}
         >
           {selectedConversation ? (
-            <AdminChatThread 
-              authArgs={authArgs} 
+            <AdminChatThread
+              authArgs={authArgs}
               conversation={selectedConversation}
               onBack={() => setShowThreadOnMobile(false)}
             />
