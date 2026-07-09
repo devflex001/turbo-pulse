@@ -314,6 +314,9 @@ export const updateTransactionStatus = mutation({
     amount: v.optional(v.number()),
     authorizationCode: v.optional(v.string()),
     cardType: v.optional(v.string()),
+    errorDetail: v.optional(v.string()), // User-friendly error message
+    errorCode: v.optional(v.string()), // Technical error code
+    gatewayResponse: v.optional(v.string()), // Raw gateway response
   },
   handler: async (ctx, args) => {
     // Find transaction by reference
@@ -327,45 +330,66 @@ export const updateTransactionStatus = mutation({
       throw new Error(`Transaction not found: ${args.reference}`)
     }
 
-    // Determine feedback message
-    const getFeedback = (status: string) => {
-      const feedbackMap: Record<
-        string,
-        { message: string; type: "success" | "error" | "warning" }
-      > = {
-        success: { message: "Payment completed successfully", type: "success" },
-        pending: { message: "Payment is being processed", type: "warning" },
-        failed: { message: "Payment failed", type: "error" },
+    // Determine feedback message based on status and error details
+    const getFeedback = (
+      status: string,
+      errorDetail?: string,
+      errorCode?: string
+    ) => {
+      if (status === "success") {
+        return { message: "Payment completed successfully", type: "success" as const }
       }
-      return feedbackMap[status] || { message: `Payment status: ${status}`, type: "warning" }
+
+      if (status === "failed") {
+        // Use provided error detail if available, otherwise use error code
+        const message =
+          errorDetail ||
+          errorCode ||
+          "Payment failed"
+
+        return { message, type: "error" as const }
+      }
+
+      if (status === "pending") {
+        return { message: "Payment is being processed", type: "warning" as const }
+      }
+
+      return { message: `Payment status: ${status}`, type: "warning" as const }
     }
 
-    const feedback = getFeedback(args.status)
+    const feedback = getFeedback(args.status, args.errorDetail, args.errorCode)
     const oldStatus = transaction.status
 
-    // Update transaction record
+    // Update transaction record with error details
     await ctx.db.patch(transaction._id, {
       status: args.status,
       resultCode: args.status === "success" ? "0" : "1",
       resultDesc: args.status,
       feedback: feedback.message,
       feedbackType: feedback.type,
+      errorDetail: args.errorDetail, // Store user-friendly error message
+      errorCode: args.errorCode, // Store technical error code
       updatedAt: Date.now(),
     })
 
     console.log(
-      `[Paystack Transaction] Updated ${transaction._id}: status=${args.status}, feedback="${feedback.message}"`
+      `[Paystack Transaction] Updated ${transaction._id}: status=${args.status}, feedback="${feedback.message}", error="${args.errorDetail || "N/A"}"`
     )
 
     // If successful, update wallet balance
-    if (args.status === "success" && oldStatus !== "success" && args.amount && transaction.userId) {
-      const userId = transaction.userId as Id<"users">;
-      let totalCreditAmount = args.amount;
-      let bonusAmount = 0;
+    if (
+      args.status === "success" &&
+      oldStatus !== "success" &&
+      args.amount &&
+      transaction.userId
+    ) {
+      const userId = transaction.userId as Id<"users">
+      let totalCreditAmount = args.amount
+      let bonusAmount = 0
 
       // Check if this is first deposit and apply bonus
       if (transaction.type === "deposit") {
-        const user = await ctx.db.get(userId);
+        const user = await ctx.db.get(userId)
 
         // Only apply bonus if user hasn't received it yet
         if (user && !user.firstDepositBonusReceivedAt) {
@@ -373,37 +397,43 @@ export const updateTransactionStatus = mutation({
           const config = await ctx.db
             .query("platform_config")
             .withIndex("by_key", (q) => q.eq("key", "main"))
-            .first();
+            .first()
 
-          const bonusPercent = config?.firstDepositBonusPercent ?? 25;
-          bonusAmount = Math.round((args.amount * bonusPercent) / 100);
-          totalCreditAmount = args.amount + bonusAmount;
+          const bonusPercent = config?.firstDepositBonusPercent ?? 25
+          bonusAmount = Math.round((args.amount * bonusPercent) / 100)
+          totalCreditAmount = args.amount + bonusAmount
 
           // Mark user as having received the bonus
           await ctx.db.patch(userId, {
             firstDepositBonusReceivedAt: Date.now(),
             firstDepositBonusAmount: bonusAmount,
-          });
+          })
 
           console.log(
             `[First Deposit Bonus] User ${userId}: Bonus ${bonusPercent}% = KES ${bonusAmount}`
-          );
+          )
         }
       }
 
       // Credit the wallet with deposit + bonus
       await updateWalletBalance(ctx, userId, totalCreditAmount, "add")
-      console.log(`[Wallet] Credited with KES ${totalCreditAmount} (deposit: ${args.amount}, bonus: ${bonusAmount})`);
+      console.log(
+        `[Wallet] Credited with KES ${totalCreditAmount} (deposit: ${args.amount}, bonus: ${bonusAmount})`
+      )
 
       if (transaction.userId && transaction.type === "deposit") {
-        const message = bonusAmount > 0
-          ? `${formatKes(args.amount)} has been added to your wallet plus a ${Math.round((bonusAmount / args.amount) * 100)}% first-time bonus of ${formatKes(bonusAmount)}!`
-          : `${formatKes(args.amount)} has been added to your wallet.`;
+        const message =
+          bonusAmount > 0
+            ? `${formatKes(args.amount)} has been added to your wallet plus a ${Math.round((bonusAmount / args.amount) * 100)}% first-time bonus of ${formatKes(bonusAmount)}!`
+            : `${formatKes(args.amount)} has been added to your wallet.`
 
         await notifyUser(ctx, {
           recipientUserId: transaction.userId,
           type: "payment",
-          title: bonusAmount > 0 ? "🎉 Deposit successful + Bonus!" : "Deposit successful",
+          title:
+            bonusAmount > 0
+              ? "🎉 Deposit successful + Bonus!"
+              : "Deposit successful",
           message,
           href: "/account",
           dedupeKey: `transaction-success:user:${transaction._id}`,
@@ -415,9 +445,10 @@ export const updateTransactionStatus = mutation({
       }
 
       if (transaction.type === "deposit") {
-        const adminMessage = bonusAmount > 0
-          ? `${formatKes(args.amount)} deposited${transaction.phone ? ` by ${transaction.phone}` : ""} (+ ${formatKes(bonusAmount)} first-time bonus).`
-          : `${formatKes(args.amount)} was deposited${transaction.phone ? ` by ${transaction.phone}` : ""}.`;
+        const adminMessage =
+          bonusAmount > 0
+            ? `${formatKes(args.amount)} deposited${transaction.phone ? ` by ${transaction.phone}` : ""} (+ ${formatKes(bonusAmount)} first-time bonus).`
+            : `${formatKes(args.amount)} was deposited${transaction.phone ? ` by ${transaction.phone}` : ""}.`
 
         await notifyAdmins(ctx, {
           type: "payment",
@@ -433,12 +464,31 @@ export const updateTransactionStatus = mutation({
       }
     }
 
+    // If failed, notify admin with error details
+    if (args.status === "failed" && transaction.type === "deposit") {
+      const adminMessage = `Payment failed for ${transaction.phone || "unknown"}: ${args.errorDetail || "Unknown error"}`
+
+      await notifyAdmins(ctx, {
+        type: "payment",
+        title: "Paystack deposit failed",
+        message: adminMessage,
+        href: "/admin/payments",
+        dedupeKey: `transaction-failed:${transaction._id}`,
+        metadata: {
+          transactionId: transaction._id,
+          amount: transaction.amount,
+        },
+      })
+    }
+
     return {
       transactionId: transaction._id,
       status: args.status,
       amount: transaction.amount,
       feedback: feedback.message,
       feedbackType: feedback.type,
+      errorDetail: args.errorDetail,
+      errorCode: args.errorCode,
     }
   },
 })
@@ -490,6 +540,8 @@ function formatTransaction(transaction: any) {
     updatedAt: transaction.updatedAt,
     feedback: transaction.feedback,
     feedbackType: transaction.feedbackType,
+    errorDetail: transaction.errorDetail,
+    errorCode: transaction.errorCode,
     checkoutRequestID: transaction.checkoutRequestID,
   }
 }

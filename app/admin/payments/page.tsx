@@ -41,6 +41,7 @@ export interface Transaction {
   phone?: string
   status: string
   errorDetail?: string
+  errorCode?: string
   time: number
   checkoutRequestID?: string
   merchantRequestID?: string
@@ -205,14 +206,30 @@ function TransactionDetailsModal({ tx, open, onClose }: DetailsModalProps) {
           </div>
         </div>
 
-        {(tx.feedback || tx.errorDetail) && (
+        {(tx.feedback || tx.errorDetail || tx.errorCode) && (
           <>
             <Separator />
             <div className="space-y-1.5">
-              <span className="font-semibold text-muted-foreground block">System Status Message</span>
-              <div className="p-2.5 rounded-lg border border-border bg-muted/40 font-medium">
-                {tx.feedback && <p className="text-foreground">{tx.feedback}</p>}
-                {tx.errorDetail && <p className="text-destructive font-mono text-[10px] mt-0.5">{tx.errorDetail}</p>}
+              <span className="font-semibold text-muted-foreground block">System Status & Error Details</span>
+              <div className="p-2.5 rounded-lg border border-border bg-muted/40 space-y-2">
+                {tx.feedback && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-0.5">Status:</p>
+                    <p className="text-foreground text-sm font-medium">{tx.feedback}</p>
+                  </div>
+                )}
+                {tx.errorDetail && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-0.5">Error Details:</p>
+                    <p className="text-destructive font-medium">{tx.errorDetail}</p>
+                  </div>
+                )}
+                {tx.errorCode && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-0.5">Error Code:</p>
+                    <p className="text-destructive font-mono text-xs">{tx.errorCode}</p>
+                  </div>
+                )}
               </div>
             </div>
           </>

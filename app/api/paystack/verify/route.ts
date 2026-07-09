@@ -1,26 +1,16 @@
-/**
- * Paystack Transaction Verification
- * POST /api/paystack/verify
- *
- * Redis integration:
- *  1. Rate limiting — max 20 verify requests per IP per minute
- *     (clients retry this on payment confirmation screens)
- */
-
 import { NextRequest, NextResponse } from "next/server"
-import { initializePaystackService } from "@/lib/paystack-service"
 import { ConvexHttpClient } from "convex/browser"
 import { api } from "@/convex/_generated/api"
-import {
-  rateLimit,
-  RATE_LIMITS,
-  applyRateLimitHeaders,
-  rateLimitResponse,
-  getClientIp,
-} from "@/lib/rate-limit"
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
 
+/**
+ * Paystack Verification Endpoint
+ * POST /api/paystack/verify
+ *
+ * Verifies a Paystack transaction and captures detailed error information
+ * This is called after the Paystack payment popup closes
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -28,92 +18,157 @@ export async function POST(request: NextRequest) {
 
     if (!reference) {
       return NextResponse.json(
-        { message: "Reference is required" },
+        { success: false, message: "No reference provided" },
         { status: 400 }
       )
     }
 
-    // ── Rate limiting — keyed by IP ──────────────────────────────────────────
-    const ip = getClientIp(request)
-    const rlResult = await rateLimit(
-      "paystack-verify",
-      ip,
-      RATE_LIMITS.PAYSTACK_VERIFY
-    )
-    if (!rlResult.allowed) {
-      return rateLimitResponse(rlResult) as NextResponse
-    }
+    console.log(`[Paystack Verify] Verifying reference: ${reference}`)
 
-    // ── Verify with Paystack ─────────────────────────────────────────────────
-    console.log(`[Paystack API] Verifying transaction: ${reference}`)
-
-    // Fetch credentials from DB first, fall back to env vars
+    // Get Paystack config
     const dbConfig = await convex.query(api.paystack.getConfig)
-    const paystack = await initializePaystackService(
-      dbConfig?.secretKey ? { secretKey: dbConfig.secretKey, publicKey: dbConfig.publicKey } : undefined
-    )
-    const verification = await paystack.verifyTransaction(reference)
+    const secretKey = dbConfig?.secretKey || process.env.PAYSTACK_SECRET_KEY
 
-    if (!verification.status) {
-      console.error(`[Paystack API] Verification failed: ${verification.message}`)
-      const response = NextResponse.json(
-        { message: "Failed to verify transaction", status: "failed" },
-        { status: 400 }
-      )
-      applyRateLimitHeaders(response.headers, rlResult)
-      return response
-    }
-
-    const paymentStatus = verification.data.status
-    console.log(`[Paystack API] Verification result: ${paymentStatus}`)
-
-    const transactionStatus =
-      paymentStatus === "success"
-        ? "success"
-        : paymentStatus === "failed"
-          ? "failed"
-          : "pending"
-
-    const amountInKES = verification.data.amount / 100
-
-    // Update Convex — failure here is non-fatal (webhook may have already done it)
-    try {
-      await convex.mutation(api.paystack.updateTransactionStatus, {
-        reference,
-        status: transactionStatus,
-        amount: amountInKES,
-        authorizationCode: verification.data.authorization?.authorization_code,
-        cardType: verification.data.authorization?.card_type,
-      })
-      console.log(`[Paystack API] Transaction status updated in database`)
-    } catch (dbError) {
-      console.warn(
-        `[Paystack API] Could not update transaction (webhook may have done it):`,
-        dbError
+    if (!secretKey) {
+      console.error("[Paystack Verify] Secret key not configured")
+      return NextResponse.json(
+        { success: false, message: "Payment gateway not configured" },
+        { status: 500 }
       )
     }
 
-    const response = NextResponse.json(
+    // Verify transaction with Paystack API
+    const verifyResponse = await fetch(
+      `https://api.paystack.co/transaction/verify/${reference}`,
       {
-        success: true,
-        status: transactionStatus,
-        reference,
-        amount: amountInKES,
-        message:
-          transactionStatus === "success"
-            ? "Payment verified successfully"
-            : transactionStatus === "failed"
-              ? "Payment verification failed"
-              : "Payment is being processed",
-      },
-      { status: 200 }
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${secretKey}`,
+        },
+      }
     )
-    applyRateLimitHeaders(response.headers, rlResult)
-    return response
+
+    if (!verifyResponse.ok) {
+      console.error(
+        `[Paystack Verify] API error: ${verifyResponse.status} ${verifyResponse.statusText}`
+      )
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Payment verification failed: ${verifyResponse.statusText}`,
+        },
+        { status: verifyResponse.status }
+      )
+    }
+
+    const verifyData = await verifyResponse.json()
+    console.log(`[Paystack Verify] Response from Paystack:`, verifyData)
+
+    if (!verifyData.status || !verifyData.data) {
+      console.error("[Paystack Verify] Invalid response format from Paystack")
+      return NextResponse.json(
+        { success: false, message: "Invalid response from payment gateway" },
+        { status: 500 }
+      )
+    }
+
+    const { data } = verifyData
+    const {
+      status: paymentStatus,
+      amount,
+      customer,
+      authorization,
+      gateway_response,
+      display_text,
+    } = data
+
+    console.log(
+      `[Paystack Verify] Payment status: ${paymentStatus}, gateway_response: ${gateway_response}`
+    )
+
+    // Determine transaction status and capture error details
+    let transactionStatus: "success" | "failed" | "pending"
+    let errorMessage = ""
+    let errorCode = ""
+
+    if (paymentStatus === "success") {
+      transactionStatus = "success"
+    } else {
+      transactionStatus = "failed"
+      // Capture detailed error information
+      errorMessage = gateway_response || display_text || "Payment failed"
+      errorCode = data.status || "unknown"
+
+      // Map common Paystack error codes to user-friendly messages
+      const errorMapping: Record<string, string> = {
+        // PIN-related errors
+        Declined: "Card declined. Please check your card details.",
+        "Approved by default":
+          "Transaction pending. Please check with your bank.",
+        "Do not honour": "Bank declined this transaction.",
+        "No response from issuer": "No response from bank. Please try again.",
+        "Expired card": "Your card has expired.",
+        "Possible fraud": "Transaction flagged as possible fraud.",
+        "Invalid transaction": "Invalid transaction details.",
+        "Transaction timeout": "Transaction timed out. Please try again.",
+        "User cancelled": "Payment cancelled by user.",
+        "Insufficient funds": "Insufficient funds in your account.",
+        "Restricted card": "Your card is restricted.",
+        "Lost card": "Your card has been reported as lost.",
+        "Stolen card": "Your card has been reported as stolen.",
+        "Not permitted":
+          "This transaction is not permitted on your card account.",
+      }
+
+      // Try to find more descriptive error message
+      for (const [key, value] of Object.entries(errorMapping)) {
+        if (gateway_response?.toLowerCase().includes(key.toLowerCase())) {
+          errorMessage = value
+          break
+        }
+      }
+    }
+
+    console.log(
+      `[Paystack Verify] Updating transaction: reference=${reference}, status=${transactionStatus}, error="${errorMessage}"`
+    )
+
+    try {
+      // Update transaction in database with detailed error information
+      const result = await convex.mutation(api.paystack.updateTransactionStatus, {
+        reference,
+        status: transactionStatus,
+        amount: amount ? amount / 100 : undefined,
+        authorizationCode: authorization?.authorization_code,
+        cardType: authorization?.card_type,
+        errorDetail: errorMessage, // Detailed error message for display
+        errorCode: errorCode, // Gateway response code
+        gatewayResponse: gateway_response, // Raw gateway response
+      })
+
+      console.log(`[Paystack Verify] Transaction updated successfully:`, result)
+
+      return NextResponse.json({
+        success: true,
+        message: transactionStatus === "success" ? "Payment verified" : errorMessage,
+        status: transactionStatus,
+        transactionId: result.transactionId,
+      })
+    } catch (dbError) {
+      console.error("[Paystack Verify] Error updating transaction:", dbError)
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Failed to update transaction: ${String(dbError)}`,
+        },
+        { status: 500 }
+      )
+    }
   } catch (error) {
-    console.error("[Paystack API] Verify error:", error)
+    console.error("[Paystack Verify] Error:", error)
     return NextResponse.json(
-      { message: `Error: ${String(error)}`, status: "failed" },
+      { success: false, message: `Error: ${String(error)}` },
       { status: 500 }
     )
   }

@@ -87,16 +87,58 @@ export async function POST(request: NextRequest) {
     // Handle charge.failed event
     if (event.event === "charge.failed") {
       const { data } = event
-      const { reference, amount, reason } = data
+      const { reference, amount, reason, gateway_response, display_text } = data
 
       console.log(`[Paystack Webhook] Processing failed charge: ${reference}`)
       console.log(`[Paystack Webhook] Reason: ${reason}`)
+      console.log(`[Paystack Webhook] Gateway response: ${gateway_response}`)
+      console.log(`[Paystack Webhook] Display text: ${display_text}`)
 
       try {
+        // Determine detailed error message
+        let errorDetail = reason || gateway_response || display_text || "Payment failed"
+
+        // Map common errors to user-friendly messages
+        const errorMapping: Record<string, string> = {
+          Declined: "Card declined. Please check your card details.",
+          "Approved by default": "Transaction pending. Please check with your bank.",
+          "Do not honour": "Bank declined this transaction.",
+          "No response from issuer": "No response from bank. Please try again.",
+          "Expired card": "Your card has expired.",
+          "Possible fraud": "Transaction flagged as possible fraud.",
+          "Invalid transaction": "Invalid transaction details.",
+          "Transaction timeout":
+            "Transaction timed out. User did not complete the payment.",
+          "User cancelled": "Payment cancelled by user.",
+          "Insufficient funds": "Insufficient funds in your account.",
+          "Restricted card": "Your card is restricted.",
+          "Lost card": "Your card has been reported as lost.",
+          "Stolen card": "Your card has been reported as stolen.",
+          "Not permitted": "This transaction is not permitted on your card account.",
+          "No Pin was entered": "No PIN entered. Payment cancelled.",
+          timeout: "Payment request timed out. User did not enter PIN.",
+        }
+
+        // Find matching error message
+        for (const [key, value] of Object.entries(errorMapping)) {
+          if (
+            (reason && reason.toLowerCase().includes(key.toLowerCase())) ||
+            (gateway_response &&
+              gateway_response.toLowerCase().includes(key.toLowerCase())) ||
+            (display_text && display_text.toLowerCase().includes(key.toLowerCase()))
+          ) {
+            errorDetail = value
+            break
+          }
+        }
+
         const result = await convex.mutation(api.paystack.updateTransactionStatus, {
           reference,
           status: "failed",
-          amount: amount / 100,
+          amount: amount ? amount / 100 : undefined,
+          errorDetail,
+          errorCode: reason || "unknown",
+          gatewayResponse: gateway_response,
         })
 
         console.log(`[Paystack Webhook] Failed transaction recorded:`, result)

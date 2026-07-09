@@ -186,19 +186,31 @@ export function PaystackDepositSheet() {
         body: JSON.stringify({ reference: response.reference }),
       })
 
-      if (!verifyResponse.ok) {
-        const error = await verifyResponse.json()
-        console.error("[Paystack] Verification failed:", error)
-        setErrorMessage(error.message || "Failed to verify payment")
-        setStage("failed")
-        setFeedbackMessage("Payment verification failed")
-        toast.error("Payment verification failed")
-        return
-      }
-
       const verifyData = await verifyResponse.json()
       console.log("[Paystack] Verification result:", verifyData)
 
+      if (!verifyResponse.ok) {
+        console.error("[Paystack] Verification failed:", verifyData)
+        const errorMsg =
+          verifyData.message ||
+          "Failed to verify payment"
+        setErrorMessage(errorMsg)
+        setStage("failed")
+        setFeedbackMessage(errorMsg)
+        toast.error(errorMsg)
+        return
+      }
+
+      if (verifyData.status === "failed") {
+        console.log("[Paystack] Verification returned failed status:", verifyData)
+        setErrorMessage(verifyData.message || "Payment was not successful")
+        setStage("failed")
+        setFeedbackMessage(verifyData.message || "Payment failed")
+        toast.error(verifyData.message || "Payment failed")
+        return
+      }
+
+      console.log("[Paystack] Verification successful, transaction status updating...")
       // The real-time query will update the transaction status
     } catch (error) {
       console.error("[Paystack] Verification error:", error)
@@ -478,7 +490,7 @@ export function PaystackDepositSheet() {
           ) : (
             <>
               <ArrowDownToLine className="h-4 w-4" />
-              Deposit 
+              Deposit
             </>
           )}
         </Button>
