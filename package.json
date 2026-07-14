@@ -24,7 +24,7 @@
     "@upstash/redis": "^1.38.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "convex": "^1.41.0",
+    "convex": "^1.42.1",
     "date-fns": "^4.4.0",
     "jose": "^6.2.3",
     "lucide-react": "^1.18.0",
