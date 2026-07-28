@@ -7,7 +7,7 @@ import { Id, Doc } from "../_generated/dataModel";
  * Returns the userId if valid, null otherwise
  */
 export async function getUserIdFromSessionToken(
-  ctx: QueryCtx | MutationCtx,
+  ctx: QueryCtx,
   sessionToken?: string
 ): Promise<Id<"users"> | null> {
   if (!sessionToken) {
@@ -52,7 +52,7 @@ export async function getUserIdFromSessionToken(
  * Only use this for database lookups after client has proven authentication.
  */
 export async function getCurrentAuthenticatedUser(
-  ctx: QueryCtx | MutationCtx,
+  ctx: QueryCtx,
   userId?: string
 ): Promise<Doc<"users"> | null> {
   if (!userId) {
@@ -73,7 +73,7 @@ export async function getCurrentAuthenticatedUser(
  * Require authentication - throws if user is not authenticated
  * Returns the authenticated user document
  */
-export async function requireAuth(ctx: QueryCtx | MutationCtx, userId?: string): Promise<Doc<"users">> {
+export async function requireAuth(ctx: QueryCtx, userId?: string): Promise<Doc<"users">> {
   const user = await getCurrentAuthenticatedUser(ctx, userId);
 
   if (!user) {
@@ -87,7 +87,7 @@ export async function requireAuth(ctx: QueryCtx | MutationCtx, userId?: string):
  * Require admin role - throws if user is not authenticated or not an admin
  * Returns the authenticated admin user document
  */
-export async function requireAdmin(ctx: QueryCtx | MutationCtx, userId?: string): Promise<Doc<"users">> {
+export async function requireAdmin(ctx: QueryCtx, userId?: string): Promise<Doc<"users">> {
   const user = await requireAuth(ctx, userId);
 
   if (user.role !== "admin") {
@@ -100,7 +100,7 @@ export async function requireAdmin(ctx: QueryCtx | MutationCtx, userId?: string)
 /**
  * Check if current user is authenticated
  */
-export async function isAuthenticated(ctx: QueryCtx | MutationCtx, userId?: string): Promise<boolean> {
+export async function isAuthenticated(ctx: QueryCtx, userId?: string): Promise<boolean> {
   const user = await getCurrentAuthenticatedUser(ctx, userId);
   return user !== null;
 }
@@ -108,7 +108,7 @@ export async function isAuthenticated(ctx: QueryCtx | MutationCtx, userId?: stri
 /**
  * Check if current user is an admin
  */
-export async function isAdmin(ctx: QueryCtx | MutationCtx, userId?: string): Promise<boolean> {
+export async function isAdmin(ctx: QueryCtx, userId?: string): Promise<boolean> {
   const user = await getCurrentAuthenticatedUser(ctx, userId);
   return user?.role === "admin";
 }
@@ -118,7 +118,7 @@ export async function isAdmin(ctx: QueryCtx | MutationCtx, userId?: string): Pro
  * Useful for checking if a user can modify their own data
  */
 export async function isOwner(
-  ctx: QueryCtx | MutationCtx,
+  ctx: QueryCtx,
   resourceUserId: Id<"users">,
   userId?: string
 ): Promise<boolean> {
@@ -135,7 +135,7 @@ export async function isOwner(
  * Require ownership or admin - throws if user doesn't own the resource and is not admin
  */
 export async function requireOwnershipOrAdmin(
-  ctx: QueryCtx | MutationCtx,
+  ctx: QueryCtx,
   resourceUserId: Id<"users">,
   userId?: string
 ): Promise<Doc<"users">> {

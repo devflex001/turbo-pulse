@@ -4,6 +4,8 @@ import {
   query,
   action,
   type MutationCtx,
+  type QueryCtx,
+  type ActionCtx,
 } from "./_generated/server";
 import {
   normalizedMarketValidator,
@@ -19,10 +21,10 @@ const DEFAULT_DATE_WINDOW_DAYS = 2;
 const DEFAULT_PAGE_LIMIT = 5;
 
 function hasSourceChanges<T extends Record<string, unknown>>(
-  existing: Record<string, unknown>,
+  existing: Record<string, any>,
   next: T
 ) {
-  return Object.entries(next).some(([key, value]) => existing[key] !== value);
+  return Object.entries(next).some(([key, value]) => (existing as Record<string, unknown>)[key] !== value);
 }
 
 async function getOrCreateSettings(ctx: MutationCtx, now: number) {
@@ -50,78 +52,66 @@ async function getOrCreateSettings(ctx: MutationCtx, now: number) {
   return created;
 }
 
-export const getAdminOverview = query({
-  args: {
-    limit: v.optional(v.number()),
-    offset: v.optional(v.number()),
-  },
-  handler: async (ctx, args) => {
+export const getStatus = query({
+  args: {},
+  handler: async (ctx: QueryCtx) => {
     const settings = await ctx.db
       .query("scraperSettings")
       .withIndex("by_source", (q) => q.eq("source", KWIKBET_SOURCE))
       .unique();
 
-    const pageSize = Math.max(1, Math.min(args.limit ?? 10, 50));
-    const offset = Math.max(0, args.offset ?? 0);
-    const fetchLimit = (Math.ceil(offset / pageSize) + 2) * pageSize;
-
-    const allRuns = await ctx.db
+    const lastRun = await ctx.db
       .query("scrapeRuns")
       .withIndex("by_source_and_startedAt", (q) => q.eq("source", KWIKBET_SOURCE))
       .order("desc")
-      .take(fetchLimit);
-
-    const runs = allRuns.slice(offset, offset + pageSize);
+      .first();
 
     return {
-      settings: settings ?? {
+      settings: settings || {
         source: KWIKBET_SOURCE,
-        enabled: true,
+        enabled: false,
         cadenceMinutes: DEFAULT_CADENCE_MINUTES,
         dateWindowDays: DEFAULT_DATE_WINDOW_DAYS,
+        selectedSports: ["1"],
+        matchLimit: DEFAULT_PAGE_LIMIT,
         lastRunAt: null,
-        nextRunAt: Date.now(),
-        updatedAt: Date.now(),
+        nextRunAt: 0,
+        updatedAt: 0,
       },
-      runs,
-      totalRuns: allRuns.length,
+      lastRun,
     };
   },
 });
 
 export const updateSettings = mutation({
   args: {
-    enabled: v.boolean(),
-    cadenceMinutes: v.number(),
-    dateWindowDays: v.number(),
-    selectedSports: v.array(v.string()),
-    matchLimit: v.number(),
+    enabled: v.optional(v.boolean()),
+    cadenceMinutes: v.optional(v.number()),
+    dateWindowDays: v.optional(v.number()),
+    selectedSports: v.optional(v.array(v.string())),
+    matchLimit: v.optional(v.number()),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const now = Date.now();
-    const cadenceMinutes = Math.max(1, Math.min(120, Math.floor(args.cadenceMinutes)));
-    const dateWindowDays = Math.max(1, Math.min(14, Math.floor(args.dateWindowDays)));
-    const matchLimit = Math.max(5, Math.min(20, Math.floor(args.matchLimit)));
-    const selectedSports = args.selectedSports.length > 0 ? args.selectedSports : ["1"];
     const settings = await getOrCreateSettings(ctx, now);
 
-    const changes: string[] = [];
-    if (settings.enabled !== args.enabled) changes.push(`enabled: ${args.enabled}`);
-    if (settings.cadenceMinutes !== cadenceMinutes) changes.push(`cadenceMinutes: ${cadenceMinutes} min`);
-    if (settings.dateWindowDays !== dateWindowDays) changes.push(`dateWindowDays: ${dateWindowDays} days`);
-    if (settings.matchLimit !== matchLimit) changes.push(`matchLimit: ${matchLimit}`);
-
-    await ctx.db.patch(settings._id, {
-      enabled: args.enabled,
-      cadenceMinutes,
-      dateWindowDays,
-      selectedSports,
-      matchLimit,
+    const updates: Partial<typeof settings> = {
       updatedAt: now,
-    });
+    };
 
-    // Log the action
+    if (args.enabled !== undefined) updates.enabled = args.enabled;
+    if (args.cadenceMinutes !== undefined) {
+      updates.cadenceMinutes = args.cadenceMinutes;
+      updates.nextRunAt = now + args.cadenceMinutes * 60 * 1000;
+    }
+    if (args.dateWindowDays !== undefined) updates.dateWindowDays = args.dateWindowDays;
+    if (args.selectedSports !== undefined) updates.selectedSports = args.selectedSports;
+    if (args.matchLimit !== undefined) updates.matchLimit = args.matchLimit;
+
+    await ctx.db.patch(settings._id, updates);
+
+    // Log admin action if sessionToken provided
     if (args.sessionToken) {
       const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
       if (adminSession) {
@@ -130,29 +120,34 @@ export const updateSettings = mutation({
           userId: adminSession.userId,
           actionType: "update_scraper_settings",
           resourceType: "scraper_settings",
-          resourceDescription: "Scraper configuration updated",
+          resourceDescription: "Updated scraper settings",
           details: {
-            newValue: changes.join("; "),
+            newValue: JSON.stringify(updates),
           },
         });
       }
     }
 
-    return { success: true };
+    return await ctx.db.get(settings._id);
   },
 });
 
 export const startRun = mutation({
   args: {
     triggeredBy: v.string(),
-    dateFrom: v.string(),
-    dateTo: v.string(),
-    selectedSports: v.array(v.string()),
+    selectedSports: v.optional(v.array(v.string())),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const now = Date.now();
-    await getOrCreateSettings(ctx, now);
+    const settings = await getOrCreateSettings(ctx, now);
+    const windowDays = settings.dateWindowDays || DEFAULT_DATE_WINDOW_DAYS;
+
+    const fromDate = new Date(now);
+    const toDate = new Date(now + windowDays * 24 * 60 * 60 * 1000);
+
+    const dateFrom = fromDate.toISOString().split("T")[0];
+    const dateTo = toDate.toISOString().split("T")[0];
 
     const runId = await ctx.db.insert("scrapeRuns", {
       source: KWIKBET_SOURCE,
@@ -161,9 +156,9 @@ export const startRun = mutation({
       startedAt: now,
       finishedAt: null,
       durationMs: null,
-      dateFrom: args.dateFrom,
-      dateTo: args.dateTo,
-      selectedSports: args.selectedSports,
+      dateFrom,
+      dateTo,
+      selectedSports: args.selectedSports || settings.selectedSports || ["1"],
       matchesDiscovered: 0,
       matchesUpserted: 0,
       marketsUpserted: 0,
@@ -171,8 +166,8 @@ export const startRun = mutation({
       failedMatches: 0,
     });
 
-    // Log the scraper run start
-    if (args.sessionToken) {
+    // Log admin action if manually triggered by admin
+    if (args.sessionToken && args.triggeredBy === "admin") {
       const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
       if (adminSession) {
         await logAdminActionInternal(ctx, {
@@ -180,15 +175,15 @@ export const startRun = mutation({
           userId: adminSession.userId,
           actionType: "run_scraper",
           resourceType: "scraper_run",
-          resourceDescription: `Scraper run started for ${args.selectedSports.length} sport(s) from ${args.dateFrom} to ${args.dateTo}`,
+          resourceDescription: "Started manual scraper run",
           details: {
-            newValue: `Sports: ${args.selectedSports.join(", ")}; Date range: ${args.dateFrom} to ${args.dateTo}`,
+            newValue: `Run ID: ${runId}; Sports: ${(args.selectedSports || settings.selectedSports || ["1"]).join(", ")}`,
           },
         });
       }
     }
 
-    return runId;
+    return { runId, settings };
   },
 });
 
@@ -199,7 +194,7 @@ export const upsertMatchDetail = mutation({
     markets: v.array(normalizedMarketValidator),
     odds: v.array(normalizedOddValidator),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const now = Date.now();
 
     const existingMatch = await ctx.db
@@ -217,7 +212,7 @@ export const upsertMatchDetail = mutation({
       .collect();
 
     const marketKeyMap = new Map(
-      existingMarkets.map(m => [m.marketKey, m])
+      existingMarkets.map((m) => [m.marketKey, m])
     );
 
     const existingOdds = await ctx.db
@@ -228,7 +223,7 @@ export const upsertMatchDetail = mutation({
       .collect();
 
     const oddIdMap = new Map(
-      existingOdds.map(o => [o.sourceOddId, o])
+      existingOdds.map((o) => [o.sourceOddId, o])
     );
 
     const matchDoc = { ...args.match, lastScrapedAt: now };
@@ -275,7 +270,7 @@ export const noteDiscovery = mutation({
     runId: v.id("scrapeRuns"),
     matchesDiscovered: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     await ctx.db.patch(args.runId, {
       matchesDiscovered: args.matchesDiscovered,
     });
@@ -286,7 +281,7 @@ export const noteMatchFailure = mutation({
   args: {
     runId: v.id("scrapeRuns"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const run = await ctx.db.get(args.runId);
     if (!run) return null;
 
@@ -303,7 +298,7 @@ export const finishRun = mutation({
     status: v.string(),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const now = Date.now();
     const run = await ctx.db.get(args.runId);
     if (!run) return null;
@@ -355,7 +350,7 @@ export const updateRunStats = mutation({
     marketsUpserted: v.number(),
     oddsUpserted: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const run = await ctx.db.get(args.runId);
     if (run) {
       await ctx.db.patch(args.runId, {
