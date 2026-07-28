@@ -1,6 +1,5 @@
 import { v } from "convex/values"
-import { mutation, query, action } from "./_generated/server"
-import type { MutationCtx } from "./_generated/server"
+import { mutation, query, action, MutationCtx, QueryCtx, ActionCtx } from "./_generated/server"
 import { Id } from "./_generated/dataModel"
 import { notifyAdmins, notifyUser } from "./notifications"
 import { requireAdmin } from "./auth/authorization"
@@ -18,10 +17,10 @@ function formatKes(amount: number) {
  * Get current Paystack configuration
  * Checks both database and environment variables
  */
-export const getConfig = query(async (ctx) => {
+export const getConfig = query(async (ctx: QueryCtx) => {
   // Try to get enabled config from database
   const allConfigs = await ctx.db.query("paystack_config").collect()
-  const dbConfig = allConfigs.find((config) => config.isEnabled === true)
+  const dbConfig = allConfigs.find((config: any) => config.isEnabled === true)
 
   if (dbConfig && !dbConfig.useEnvVariables) {
     return {
@@ -52,7 +51,7 @@ export const getConfig = query(async (ctx) => {
 /**
  * Get all saved Paystack configurations
  */
-export const getAllConfigs = query(async (ctx) => {
+export const getAllConfigs = query(async (ctx: QueryCtx) => {
   return await ctx.db.query("paystack_config").collect()
 })
 
@@ -67,7 +66,7 @@ export const saveConfig = mutation({
     userId: v.optional(v.id("users")),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const admin = await requireAdmin(ctx, args.userId)
 
     // Disable all other configs
@@ -116,7 +115,7 @@ export const switchToEnvVariables = mutation({
     userId: v.optional(v.id("users")),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const admin = await requireAdmin(ctx, args.userId)
 
     const existingConfigs = await ctx.db.query("paystack_config").collect()
@@ -154,7 +153,7 @@ export const activateConfig = mutation({
     userId: v.optional(v.id("users")),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const admin = await requireAdmin(ctx, args.userId)
 
     const configToActivate = await ctx.db.get(args.configId)
@@ -201,7 +200,7 @@ export const deleteConfig = mutation({
     userId: v.optional(v.id("users")),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const admin = await requireAdmin(ctx, args.userId)
 
     const configToDelete = await ctx.db.get(args.configId)
@@ -239,7 +238,7 @@ export const testConfig = action({
   args: {
     secretKey: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: ActionCtx, args: any) => {
     try {
       const response = await fetch("https://api.paystack.co/transaction", {
         method: "GET",
@@ -275,7 +274,7 @@ export const createTransaction = mutation({
     email: v.string(),
     reference: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     // Validate amount
     if (args.amount <= 0) {
       throw new Error("Amount must be greater than 0")
@@ -315,11 +314,11 @@ export const updateTransactionStatus = mutation({
     authorizationCode: v.optional(v.string()),
     cardType: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     // Find transaction by reference
     const transaction = await ctx.db
       .query("transactions")
-      .withIndex("by_checkoutRequestID", (q) => q.eq("checkoutRequestID", args.reference))
+      .withIndex("by_checkoutRequestID", (q: any) => q.eq("checkoutRequestID", args.reference))
       .unique()
 
     if (!transaction) {
@@ -372,7 +371,7 @@ export const updateTransactionStatus = mutation({
           // Get the bonus percentage from config
           const config = await ctx.db
             .query("platform_config")
-            .withIndex("by_key", (q) => q.eq("key", "main"))
+            .withIndex("by_key", (q: any) => q.eq("key", "main"))
             .first();
 
           const bonusPercent = config?.firstDepositBonusPercent ?? 25;
@@ -450,7 +449,7 @@ export const getLatestTransaction = query({
   args: {
     reference: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: any) => {
     if (!args.reference) {
       // Get the most recent transaction
       const transactions = await ctx.db
@@ -467,7 +466,7 @@ export const getLatestTransaction = query({
 
     const transaction = await ctx.db
       .query("transactions")
-      .withIndex("by_checkoutRequestID", (q) => q.eq("checkoutRequestID", args.reference))
+      .withIndex("by_checkoutRequestID", (q: any) => q.eq("checkoutRequestID", args.reference))
       .unique()
 
     if (!transaction) {
@@ -506,7 +505,7 @@ export async function updateWalletBalance(
 ): Promise<void> {
   const wallet = await ctx.db
     .query("wallets")
-    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .withIndex("by_userId", (q: any) => q.eq("userId", userId))
     .unique()
 
   if (!wallet) {
