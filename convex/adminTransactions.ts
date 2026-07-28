@@ -37,15 +37,15 @@ export const listTransactions = query({
       let baseQuery = ctx.db.query("transactions").order("desc");
 
       // Filter by type
-      baseQuery = baseQuery.filter((q) => q.eq(q.field("type"), typeFilter));
+      baseQuery = baseQuery.filter((q: any) => q.eq(q.field("type"), typeFilter));
 
       if (statusFilter !== "all") {
-        baseQuery = baseQuery.filter((q) => q.eq(q.field("status"), statusFilter));
+        baseQuery = baseQuery.filter((q: any) => q.eq(q.field("status"), statusFilter));
       }
 
       const allTxs = await baseQuery.take(1000);
 
-      const filtered = allTxs.filter((tx) => {
+      const filtered = allTxs.filter((tx: any) => {
         if (tx.txId.toLowerCase().includes(search)) return true;
         if (tx.phone && tx.phone.toLowerCase().includes(search)) return true;
         if (tx.checkoutRequestID && tx.checkoutRequestID.toLowerCase().includes(search)) return true;
@@ -78,10 +78,10 @@ export const listTransactions = query({
 
     // Default database pagination
     let baseQuery = ctx.db.query("transactions").order("desc");
-    baseQuery = baseQuery.filter((q) => q.eq(q.field("type"), typeFilter));
+    baseQuery = baseQuery.filter((q: any) => q.eq(q.field("type"), typeFilter));
 
     if (statusFilter !== "all") {
-      baseQuery = baseQuery.filter((q) => q.eq(q.field("status"), statusFilter));
+      baseQuery = baseQuery.filter((q: any) => q.eq(q.field("status"), statusFilter));
     }
 
     const paginated = await baseQuery.paginate(args.paginationOpts);
@@ -103,7 +103,7 @@ export const getAdminTransactionStats = query({
 
     const allTxs = await ctx.db
       .query("transactions")
-      .filter((q) => q.eq(q.field("type"), args.type))
+      .filter((q: any) => q.eq(q.field("type"), args.type))
       .collect();
 
     const stats = {
@@ -114,7 +114,7 @@ export const getAdminTransactionStats = query({
       totalVolume: 0,
     };
 
-    allTxs.forEach((tx) => {
+    allTxs.forEach((tx: any) => {
       if (tx.status === "success") {
         stats.successCount += 1;
         stats.totalVolume += tx.amount;

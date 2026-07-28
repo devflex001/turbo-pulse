@@ -148,7 +148,7 @@ export const getAdminPersonalLogs = query({
     const limit = args.limit ?? 30;
     return await ctx.db
       .query("admin_logs")
-      .withIndex("by_adminName_and_timestamp", (q) =>
+      .withIndex("by_adminName_and_timestamp", (q: any) =>
         q.eq("adminName", args.adminName)
       )
       .order("desc")
@@ -168,7 +168,7 @@ export const getLogsByActionType = query({
     const limit = args.limit ?? 30;
     return await ctx.db
       .query("admin_logs")
-      .withIndex("by_actionType_and_timestamp", (q) =>
+      .withIndex("by_actionType_and_timestamp", (q: any) =>
         q.eq("actionType", args.actionType as any)
       )
       .order("desc")
@@ -189,7 +189,7 @@ export const getAdminLogStats = query({
     if (args.adminName) {
       logs = await ctx.db
         .query("admin_logs")
-        .withIndex("by_adminName", (q) => q.eq("adminName", args.adminName!))
+        .withIndex("by_adminName", (q: any) => q.eq("adminName", args.adminName!))
         .collect();
     } else {
       logs = await ctx.db.query("admin_logs").collect();
@@ -199,7 +199,7 @@ export const getAdminLogStats = query({
     const actionCounts: Record<string, number> = {};
     const resourceCounts: Record<string, number> = {};
 
-    logs.forEach((log) => {
+    logs.forEach((log: any) => {
       actionCounts[log.actionType] = (actionCounts[log.actionType] ?? 0) + 1;
       resourceCounts[log.resourceType] = (resourceCounts[log.resourceType] ?? 0) + 1;
     });
