@@ -382,7 +382,7 @@ export default function PaymentsPage() {
             </div>
           )}
 
-          {transactions.map((tx) => {
+          {transactions.map((tx: unknown) => {
             const t = tx as unknown as Transaction
             const isPaystack = t.txId.includes("PAYSTACK")
             const gateway = isPaystack ? "Paystack" : "M-Pesa"
@@ -456,7 +456,7 @@ export default function PaymentsPage() {
                   </tr>
                 )}
 
-                {transactions.map((tx, idx) => {
+                {transactions.map((tx: unknown, idx: number) => {
                   const t = tx as unknown as Transaction
                   const isPaystack = t.txId.includes("PAYSTACK")
                   const gateway = isPaystack ? "Paystack" : "M-Pesa"

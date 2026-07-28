@@ -179,7 +179,7 @@ function ReferrerDetailsModal({
                         </td>
                       </tr>
                     ) : (
-                      referrerPerformance.referralDetails.map((referral) => (
+                      referrerPerformance.referralDetails.map((referral: any) => (
                         <tr
                           key={referral._id}
                           className="hover:bg-muted/30 transition-colors"
@@ -399,7 +399,7 @@ export default function AdminReferralsPage() {
               </div>
             )}
 
-            {filteredReferrals.map((referral) => (
+            {filteredReferrals.map((referral: any) => (
               <div
                 key={referral._id}
                 className="rounded-lg border border-border bg-card p-3 space-y-2.5 cursor-pointer hover:bg-muted/10 transition-colors"
@@ -468,7 +468,7 @@ export default function AdminReferralsPage() {
                     </tr>
                   )}
 
-                  {filteredReferrals.map((referral) => (
+                  {filteredReferrals.map((referral: any) => (
                     <tr key={referral._id} className="hover:bg-muted/30 transition-colors">
                       <td className="py-3 px-4 font-semibold font-mono text-foreground max-w-[140px] truncate">
                         {referral.referrerPhone}
@@ -502,7 +502,7 @@ export default function AdminReferralsPage() {
                                 // View referrer details
                                 if (referralSummary?.topReferrers) {
                                   const referrer = referralSummary.topReferrers.find(
-                                    (r) => r.phone === referral.referrerPhone
+                                    (r: any) => r.phone === referral.referrerPhone
                                   )
                                   if (referrer) {
                                     handleViewDetails(referrer)
@@ -572,7 +572,7 @@ export default function AdminReferralsPage() {
               <h2 className="text-sm font-bold tracking-tight">Top Referrers</h2>
 
               <div className="space-y-2">
-                {referralSummary.topReferrers.map((referrer, idx) => (
+                {referralSummary.topReferrers.map((referrer: any, idx: number) => (
                   <div
                     key={referrer.referrerId}
                     className="rounded-lg border border-border bg-card p-3 cursor-pointer hover:bg-muted/10 transition-colors"
