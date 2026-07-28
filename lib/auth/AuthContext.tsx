@@ -35,7 +35,7 @@ interface AuthContextType {
   setShowWelcomeModal: (show: boolean) => void;
   handleAdminNameSubmit: (name: string) => Promise<void>;
   login: (phone: string, password: string) => Promise<"user" | "admin" | undefined>;
-  register: (phone: string, password: string, referralCode?: string) => Promise<"user" | "admin" | undefined>;
+  register: (phone: string, password: string, referralCode?: string, username?: string) => Promise<"user" | "admin" | undefined>;
   logout: (isInactivityLogout?: boolean) => void;
 }
 

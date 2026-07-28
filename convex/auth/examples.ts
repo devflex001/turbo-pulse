@@ -5,6 +5,7 @@
 
 import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
+import type { QueryCtx, MutationCtx } from "../_generated/server";
 import {
   requireAuth,
   requireAdmin,
@@ -18,7 +19,7 @@ import {
 // ==========================================
 export const getMyProfile = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx: QueryCtx) => {
     // This will throw if user is not authenticated
     const user = await requireAuth(ctx);
 
@@ -39,7 +40,7 @@ export const updateMyProfile = mutation({
   args: {
     // Add fields you want users to update
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: Record<string, never>) => {
     // Require authentication
     const user = await requireAuth(ctx);
 
@@ -58,7 +59,7 @@ export const updateMyProfile = mutation({
 // ==========================================
 export const getAllUsers = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx: QueryCtx) => {
     // This will throw if user is not admin
     const admin = await requireAdmin(ctx);
 
@@ -66,7 +67,7 @@ export const getAllUsers = query({
     const users = await ctx.db.query("users").collect();
 
     // Don't return password hashes
-    return users.map((user) => ({
+    return users.map((user: { _id: string; phone?: string; role?: string; createdAt?: number }) => ({
       _id: user._id,
       phone: user.phone,
       role: user.role,
@@ -82,7 +83,7 @@ export const deleteUser = mutation({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: { userId: string }) => {
     // Require admin role
     const admin = await requireAdmin(ctx);
 
@@ -100,7 +101,7 @@ export const getUserBets = query({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { userId: string }) => {
     // User can view their own bets, or admin can view any user's bets
     await requireOwnershipOrAdmin(ctx, args.userId);
 
@@ -108,7 +109,7 @@ export const getUserBets = query({
     // Note: You'll need to update your bets table schema to have userId field
     const bets = await ctx.db
       .query("bets")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .filter((q: any) => q.eq(q.field("userId"), args.userId))
       .collect();
 
     return bets;
@@ -120,7 +121,7 @@ export const getUserBets = query({
 // ==========================================
 export const getPublicData = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx: QueryCtx) => {
     // Check if user is authenticated (doesn't throw)
     const isAuth = await isAuthenticated(ctx);
 
@@ -153,13 +154,13 @@ export const placeBet = mutation({
     ),
     stake: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: { selections: { matchId: string; marketKey: string; oddValue: number }[]; stake: number }) => {
     // Require authentication
     const user = await requireAuth(ctx);
 
     // Calculate total odds
     const totalOdds = args.selections.reduce(
-      (acc, sel) => acc * sel.oddValue,
+      (acc: number, sel: { matchId: string; marketKey: string; oddValue: number }) => acc * sel.oddValue,
       1
     );
     const potentialReturn = args.stake * totalOdds;
@@ -167,7 +168,7 @@ export const placeBet = mutation({
     // Create bet associated with the authenticated user
     const betId = await ctx.db.insert("bets", {
       userId: user._id, // Use authenticated user's ID
-      selections: args.selections.map((sel) => ({
+      selections: args.selections.map((sel: { matchId: string; marketKey: string; oddValue: number }) => ({
         id: crypto.randomUUID(),
         matchId: sel.matchId,
         matchName: "",
@@ -198,7 +199,7 @@ export const updateSystemSettings = mutation({
     setting: v.string(),
     value: v.any(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: { setting: string; value: unknown }) => {
     // Only admins can update system settings
     const admin = await requireAdmin(ctx);
 
