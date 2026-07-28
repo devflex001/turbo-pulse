@@ -419,7 +419,7 @@ export const cancelBet = mutation({
 
     const startTimes = bet.selections
       .map((selection: any) => selection.matchStartTime)
-      .filter((time): time is number => typeof time === "number" && time > 0);
+      .filter((time: any): time is number => typeof time === "number" && time > 0);
 
     if (startTimes.length === 0) {
       throw new Error("Match start times unavailable for cancellation");
