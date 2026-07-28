@@ -12,7 +12,7 @@ const REFERRAL_ACCESS_FEE = 500; // KES
 async function getReferralReward(ctx: QueryCtx): Promise<number> {
   const config = await ctx.db
     .query("platform_config")
-    .withIndex("by_key", (q) => q.eq("key", "main"))
+    .withIndex("by_key", (q: any) => q.eq("key", "main"))
     .first()
   return config?.referralReward ?? DEFAULT_REFERRAL_REWARD
 }
@@ -30,7 +30,7 @@ async function generateUniqueReferralCode(ctx: QueryCtx): Promise<string> {
 
     const existing = await ctx.db
       .query("users")
-      .withIndex("by_referralCode", (q) => q.eq("referralCode", referralCode))
+      .withIndex("by_referralCode", (q: any) => q.eq("referralCode", referralCode))
       .first();
 
     if (!existing) {
@@ -123,7 +123,7 @@ export const activateReferralAccess = mutation({
 
     const wallet = await ctx.db
       .query("wallets")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
       .unique();
 
     const balance = wallet?.balance ?? 0;
@@ -218,14 +218,14 @@ export const getReferralStats = query({
     // Return stats as-is. If no code, client should call ensureReferralCode mutation
     const completedReferrals = await ctx.db
       .query("referrals")
-      .withIndex("by_referrerId_and_status", (q) =>
+      .withIndex("by_referrerId_and_status", (q: any) =>
         q.eq("referrerId", args.userId).eq("status", "completed")
       )
       .collect();
 
     const pendingReferrals = await ctx.db
       .query("referrals")
-      .withIndex("by_referrerId_and_status", (q) =>
+      .withIndex("by_referrerId_and_status", (q: any) =>
         q.eq("referrerId", args.userId).eq("status", "pending")
       )
       .collect();
@@ -258,13 +258,13 @@ export const getReferralHistory = query({
 
     const referrals = await ctx.db
       .query("referrals")
-      .withIndex("by_referrerId", (q) => q.eq("referrerId", args.userId))
+      .withIndex("by_referrerId", (q: any) => q.eq("referrerId", args.userId))
       .order("desc")
       .take(limit);
 
     // Enrich with referred user info
     const enriched = await Promise.all(
-      referrals.map(async (referral) => {
+      referrals.map(async (referral: any) => {
         let referredUser = null;
         if (referral.referredUserId) {
           referredUser = await ctx.db.get(referral.referredUserId);
@@ -299,7 +299,7 @@ export const trackReferralSignup = mutation({
     // Find the referral code
     const referrer = await ctx.db
       .query("users")
-      .withIndex("by_referralCode", (q) => q.eq("referralCode", args.referralCode))
+      .withIndex("by_referralCode", (q: any) => q.eq("referralCode", args.referralCode))
       .first();
 
     if (!referrer) {
@@ -321,8 +321,8 @@ export const trackReferralSignup = mutation({
     // Find or create the referral record
     const referralRecord = await ctx.db
       .query("referrals")
-      .withIndex("by_referralCode", (q) => q.eq("referralCode", args.referralCode))
-      .filter((q) => q.eq(q.field("status"), "pending"))
+      .withIndex("by_referralCode", (q: any) => q.eq("referralCode", args.referralCode))
+      .filter((q: any) => q.eq(q.field("status"), "pending"))
       .first();
 
     const now = Date.now();
@@ -365,7 +365,7 @@ export const trackReferralSignup = mutation({
     // Award the referrer their bonus in the wallet
     const wallet = await ctx.db
       .query("wallets")
-      .withIndex("by_userId", (q) => q.eq("userId", referrer._id))
+      .withIndex("by_userId", (q: any) => q.eq("userId", referrer._id))
       .first();
 
     if (!wallet) {
@@ -403,7 +403,7 @@ export const createPendingReferral = mutation({
     // Find the referrer
     const referrer = await ctx.db
       .query("users")
-      .withIndex("by_referralCode", (q) => q.eq("referralCode", args.referralCode))
+      .withIndex("by_referralCode", (q: any) => q.eq("referralCode", args.referralCode))
       .first();
 
     if (!referrer) {
@@ -418,8 +418,8 @@ export const createPendingReferral = mutation({
     if (args.visitorPhone) {
       const existing = await ctx.db
         .query("referrals")
-        .withIndex("by_referralCode", (q) => q.eq("referralCode", args.referralCode))
-        .filter((q) =>
+        .withIndex("by_referralCode", (q: any) => q.eq("referralCode", args.referralCode))
+        .filter((q: any) =>
           q.and(
             q.eq(q.field("phone"), args.visitorPhone),
             q.eq(q.field("status"), "pending")
@@ -486,7 +486,7 @@ export const verifyReferralCode = query({
   handler: async (ctx: QueryCtx, args: { referralCode: string }) => {
     const referrer = await ctx.db
       .query("users")
-      .withIndex("by_referralCode", (q) => q.eq("referralCode", args.referralCode))
+      .withIndex("by_referralCode", (q: any) => q.eq("referralCode", args.referralCode))
       .first();
 
     if (!referrer) {
@@ -535,17 +535,17 @@ export const getAllReferrals = query({
     // Filter by status if needed
     let filtered = allReferrals;
     if (args.status && args.status !== "all") {
-      filtered = allReferrals.filter((r) => r.status === args.status);
+      filtered = allReferrals.filter((r: any) => r.status === args.status);
     }
 
     // Sort descending and apply pagination
     const referrals = filtered
-      .sort((a, b) => b.createdAt - a.createdAt)
+      .sort((a: any, b: any) => b.createdAt - a.createdAt)
       .slice(offset, offset + limit);
 
     // Enrich with referrer and referred user details
     const enriched = await Promise.all(
-      referrals.map(async (referral) => {
+      referrals.map(async (referral: any) => {
         const referrer = await ctx.db.get(referral.referrerId);
         const referredUser = referral.referredUserId
           ? await ctx.db.get(referral.referredUserId)
@@ -593,18 +593,18 @@ export const getReferralSummary = query({
     }
 
     const allReferrals = await ctx.db.query("referrals").collect();
-    const completedReferrals = allReferrals.filter((r) => r.status === "completed");
-    const pendingReferrals = allReferrals.filter((r) => r.status === "pending");
+    const completedReferrals = allReferrals.filter((r: any) => r.status === "completed");
+    const pendingReferrals = allReferrals.filter((r: any) => r.status === "pending");
 
     const totalEarnings = completedReferrals.reduce(
-      (sum, r) => sum + (r.amountEarned || 0),
+      (sum: any, r: any) => sum + (r.amountEarned || 0),
       0
     );
 
     // Get top referrers
     const referrerStats: Record<string, { count: number; earnings: number }> = {};
 
-    allReferrals.forEach((referral) => {
+    allReferrals.forEach((referral: any) => {
       const referrerId = referral.referrerId.toString();
       if (!referrerStats[referrerId]) {
         referrerStats[referrerId] = { count: 0, earnings: 0 };
@@ -666,7 +666,7 @@ export const getReferralTrends = query({
     const trends: Record<string, { created: number; completed: number }> = {};
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
 
-    allReferrals.forEach((referral) => {
+    allReferrals.forEach((referral: any) => {
       if (referral.createdAt >= thirtyDaysAgo) {
         const date = new Date(referral.createdAt).toLocaleDateString("en-KE");
         if (!trends[date]) {
@@ -720,11 +720,11 @@ export const getReferrerPerformance = query({
 
     const referrals = await ctx.db
       .query("referrals")
-      .withIndex("by_referrerId", (q) => q.eq("referrerId", args.referrerId))
+      .withIndex("by_referrerId", (q: any) => q.eq("referrerId", args.referrerId))
       .collect();
 
-    const completed = referrals.filter((r) => r.status === "completed");
-    const pending = referrals.filter((r) => r.status === "pending");
+    const completed = referrals.filter((r: any) => r.status === "completed");
+    const pending = referrals.filter((r: any) => r.status === "pending");
 
     // Calculate conversion rate
     const conversionRate =
@@ -732,7 +732,7 @@ export const getReferrerPerformance = query({
 
     // Get referral details
     const referralDetails = await Promise.all(
-      referrals.map(async (referral) => {
+      referrals.map(async (referral: any) => {
         const referredUser = referral.referredUserId
           ? await ctx.db.get(referral.referredUserId)
           : null;
@@ -754,9 +754,9 @@ export const getReferrerPerformance = query({
       totalReferrals: referrals.length,
       completedCount: completed.length,
       pendingCount: pending.length,
-      totalEarnings: completed.reduce((sum, r) => sum + (r.amountEarned || 0), 0),
+      totalEarnings: completed.reduce((sum: any, r: any) => sum + (r.amountEarned || 0), 0),
       conversionRate: parseFloat(conversionRate.toFixed(2)),
-      referralDetails: referralDetails.sort((a, b) => b.createdAt - a.createdAt),
+      referralDetails: referralDetails.sort((a: any, b: any) => b.createdAt - a.createdAt),
     };
   },
 });

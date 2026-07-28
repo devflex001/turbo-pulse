@@ -30,7 +30,7 @@ function hasSourceChanges<T extends Record<string, unknown>>(
 async function getOrCreateSettings(ctx: MutationCtx, now: number) {
   const existing = await ctx.db
     .query("scraperSettings")
-    .withIndex("by_source", (q) => q.eq("source", KWIKBET_SOURCE))
+    .withIndex("by_source", (q: any) => q.eq("source", KWIKBET_SOURCE))
     .unique();
 
   if (existing) return existing;
@@ -57,12 +57,12 @@ export const getStatus = query({
   handler: async (ctx: QueryCtx) => {
     const settings = await ctx.db
       .query("scraperSettings")
-      .withIndex("by_source", (q) => q.eq("source", KWIKBET_SOURCE))
+      .withIndex("by_source", (q: any) => q.eq("source", KWIKBET_SOURCE))
       .unique();
 
     const lastRun = await ctx.db
       .query("scrapeRuns")
-      .withIndex("by_source_and_startedAt", (q) => q.eq("source", KWIKBET_SOURCE))
+      .withIndex("by_source_and_startedAt", (q: any) => q.eq("source", KWIKBET_SOURCE))
       .order("desc")
       .first();
 
@@ -92,7 +92,7 @@ export const updateSettings = mutation({
     matchLimit: v.optional(v.number()),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const now = Date.now();
     const settings = await getOrCreateSettings(ctx, now);
 
@@ -138,7 +138,7 @@ export const startRun = mutation({
     selectedSports: v.optional(v.array(v.string())),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const now = Date.now();
     const settings = await getOrCreateSettings(ctx, now);
     const windowDays = settings.dateWindowDays || DEFAULT_DATE_WINDOW_DAYS;
@@ -194,36 +194,36 @@ export const upsertMatchDetail = mutation({
     markets: v.array(normalizedMarketValidator),
     odds: v.array(normalizedOddValidator),
   },
-  handler: async (ctx: MutationCtx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const now = Date.now();
 
     const existingMatch = await ctx.db
       .query("sportsMatches")
-      .withIndex("by_source_and_sourceMatchId", (q) =>
+      .withIndex("by_source_and_sourceMatchId", (q: any) =>
         q.eq("source", args.match.source).eq("sourceMatchId", args.match.sourceMatchId)
       )
       .unique();
 
     const existingMarkets = await ctx.db
       .query("sportsMarkets")
-      .withIndex("by_sourceMatchId_and_marketKey", (q) =>
+      .withIndex("by_sourceMatchId_and_marketKey", (q: any) =>
         q.eq("sourceMatchId", args.match.sourceMatchId)
       )
       .collect();
 
-    const marketKeyMap = new Map(
-      existingMarkets.map((m) => [m.marketKey, m])
+    const marketKeyMap = new Map<string, any>(
+      existingMarkets.map((m: any) => [m.marketKey, m])
     );
 
     const existingOdds = await ctx.db
       .query("sportsOdds")
-      .withIndex("by_sourceMatchId", (q) =>
+      .withIndex("by_sourceMatchId", (q: any) =>
         q.eq("sourceMatchId", args.match.sourceMatchId)
       )
       .collect();
 
-    const oddIdMap = new Map(
-      existingOdds.map((o) => [o.sourceOddId, o])
+    const oddIdMap = new Map<string, any>(
+      existingOdds.map((o: any) => [o.sourceOddId, o])
     );
 
     const matchDoc = { ...args.match, lastScrapedAt: now };
@@ -270,7 +270,7 @@ export const noteDiscovery = mutation({
     runId: v.id("scrapeRuns"),
     matchesDiscovered: v.number(),
   },
-  handler: async (ctx: MutationCtx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     await ctx.db.patch(args.runId, {
       matchesDiscovered: args.matchesDiscovered,
     });
@@ -281,7 +281,7 @@ export const noteMatchFailure = mutation({
   args: {
     runId: v.id("scrapeRuns"),
   },
-  handler: async (ctx: MutationCtx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const run = await ctx.db.get(args.runId);
     if (!run) return null;
 
@@ -298,7 +298,7 @@ export const finishRun = mutation({
     status: v.string(),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const now = Date.now();
     const run = await ctx.db.get(args.runId);
     if (!run) return null;
@@ -311,7 +311,7 @@ export const finishRun = mutation({
 
     const settings = await ctx.db
       .query("scraperSettings")
-      .withIndex("by_source", (q) => q.eq("source", KWIKBET_SOURCE))
+      .withIndex("by_source", (q: any) => q.eq("source", KWIKBET_SOURCE))
       .unique();
 
     if (settings) {
@@ -350,7 +350,7 @@ export const updateRunStats = mutation({
     marketsUpserted: v.number(),
     oddsUpserted: v.number(),
   },
-  handler: async (ctx: MutationCtx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const run = await ctx.db.get(args.runId);
     if (run) {
       await ctx.db.patch(args.runId, {

@@ -57,12 +57,12 @@ function validateDisplayName(displayName: string) {
 
 export const getMyConversation = query({
   args: authArgs,
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: any) => {
     const user = await resolveAuthenticatedUser(ctx, args);
 
     return await ctx.db
       .query("support_conversations")
-      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .withIndex("by_userId", (q: any) => q.eq("userId", user._id))
       .first();
   },
 });
@@ -72,7 +72,7 @@ export const getMessages = query({
     ...authArgs,
     conversationId: v.id("support_conversations"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: any) => {
     const user = await resolveAuthenticatedUser(ctx, args);
     const conversation = await ctx.db.get(args.conversationId);
 
@@ -89,7 +89,7 @@ export const getMessages = query({
 
     return await ctx.db
       .query("support_messages")
-      .withIndex("by_conversationId_and_createdAt", (q) =>
+      .withIndex("by_conversationId_and_createdAt", (q: any) =>
         q.eq("conversationId", args.conversationId)
       )
       .order("asc")
@@ -99,7 +99,7 @@ export const getMessages = query({
 
 export const listConversations = query({
   args: authArgs,
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: any) => {
     const user = await resolveAuthenticatedUser(ctx, args);
 
     if (user.role !== "admin") {
@@ -113,7 +113,7 @@ export const listConversations = query({
       .take(100);
 
     const enriched = await Promise.all(
-      conversations.map(async (conversation) => {
+      conversations.map(async (conversation: any) => {
         const user = await ctx.db.get(conversation.userId);
         return {
           ...conversation,
@@ -132,7 +132,7 @@ export const initSupportChat = mutation({
     ...authArgs,
     displayName: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const user = await resolveAuthenticatedUser(ctx, args);
 
     if (user.role === "admin") {
@@ -143,7 +143,7 @@ export const initSupportChat = mutation({
 
     const existing = await ctx.db
       .query("support_conversations")
-      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .withIndex("by_userId", (q: any) => q.eq("userId", user._id))
       .first();
 
     if (existing) {
@@ -175,7 +175,7 @@ export const sendMessage = mutation({
     conversationId: v.optional(v.id("support_conversations")),
     body: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const user = await resolveAuthenticatedUser(ctx, args);
     const body = args.body.trim();
 
@@ -202,7 +202,7 @@ export const sendMessage = mutation({
       } else {
         conversation = await ctx.db
           .query("support_conversations")
-          .withIndex("by_userId", (q) => q.eq("userId", user._id))
+          .withIndex("by_userId", (q: any) => q.eq("userId", user._id))
           .first();
         if (conversation) {
           conversationId = conversation._id;
@@ -284,7 +284,7 @@ export const markAsRead = mutation({
     ...authArgs,
     conversationId: v.id("support_conversations"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const user = await resolveAuthenticatedUser(ctx, args);
     const conversation = await ctx.db.get(args.conversationId);
 
@@ -306,7 +306,7 @@ export const markAsRead = mutation({
 
 export const getUnreadCount = query({
   args: authArgs,
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: any) => {
     const user = await resolveAuthenticatedUser(ctx, args);
 
     if (user.role === "admin") {
@@ -317,14 +317,14 @@ export const getUnreadCount = query({
         .take(100);
 
       return conversations.reduce(
-        (sum, conversation) => sum + conversation.unreadByAdmin,
+        (sum: any, conversation: any) => sum + conversation.unreadByAdmin,
         0
       );
     }
 
     const conversation = await ctx.db
       .query("support_conversations")
-      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .withIndex("by_userId", (q: any) => q.eq("userId", user._id))
       .first();
 
     return conversation?.unreadByUser ?? 0;
@@ -336,7 +336,7 @@ export const closeConversation = mutation({
     ...authArgs,
     conversationId: v.id("support_conversations"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const user = await resolveAuthenticatedUser(ctx, args);
 
     if (user.role !== "admin") {
@@ -358,7 +358,7 @@ export const reopenConversation = mutation({
     ...authArgs,
     conversationId: v.id("support_conversations"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const user = await resolveAuthenticatedUser(ctx, args);
 
     if (user.role !== "admin") {

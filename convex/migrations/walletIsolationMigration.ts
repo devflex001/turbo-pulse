@@ -1,4 +1,4 @@
-import { mutation } from "../_generated/server";
+import { mutation, MutationCtx } from "../_generated/server";
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel";
 
@@ -12,7 +12,7 @@ import type { Id } from "../_generated/dataModel";
  */
 export const migrateWalletsToPerUser = mutation({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx: MutationCtx) => {
     // Get all users
     const allUsers = await ctx.db.query("users").collect();
 
@@ -22,7 +22,7 @@ export const migrateWalletsToPerUser = mutation({
     const migratedCount = { created: 0, existing: 0, updated: 0 };
 
     // First, handle wallets without userId (legacy shared wallet)
-    const walletsWithoutUserId = allWallets.filter((w) => !w.userId);
+    const walletsWithoutUserId = allWallets.filter((w: any) => !w.userId);
     if (walletsWithoutUserId.length > 0 && allUsers.length > 0) {
       // Assign the shared wallet balance to the first user
       const firstUser = allUsers[0];
@@ -38,7 +38,7 @@ export const migrateWalletsToPerUser = mutation({
     for (const user of allUsers) {
       const userWallet = await ctx.db
         .query("wallets")
-        .withIndex("by_userId", (q) => q.eq("userId", user._id))
+        .withIndex("by_userId", (q: any) => q.eq("userId", user._id))
         .unique();
 
       if (!userWallet) {
@@ -73,10 +73,10 @@ export const migrateWalletsToPerUser = mutation({
  */
 export const cleanupOrphanedWallets = mutation({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx: MutationCtx) => {
     const allWallets = await ctx.db.query("wallets").collect();
     const allUsers = await ctx.db.query("users").collect();
-    const userIds = new Set(allUsers.map((u) => u._id));
+    const userIds = new Set(allUsers.map((u: any) => u._id));
 
     let deletedCount = 0;
 
@@ -107,17 +107,17 @@ export const cleanupOrphanedWallets = mutation({
  */
 export const validateWalletIsolation = mutation({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx: MutationCtx) => {
     const issues: string[] = [];
 
     // Get all users and wallets
     const allUsers = await ctx.db.query("users").collect();
     const allWallets = await ctx.db.query("wallets").collect();
-    const userIds = new Set(allUsers.map((u) => u._id));
+    const userIds = new Set(allUsers.map((u: any) => u._id));
 
     // Check 1: Each user should have exactly one wallet
     for (const user of allUsers) {
-      const userWallets = allWallets.filter((w) => w.userId === user._id);
+      const userWallets = allWallets.filter((w: any) => w.userId === user._id);
       if (userWallets.length === 0) {
         issues.push(`User ${user._id} (${user.phone}) has no wallet`);
       } else if (userWallets.length > 1) {
@@ -137,14 +137,14 @@ export const validateWalletIsolation = mutation({
 
     // Check 3: All bets have userId
     const allBets = await ctx.db.query("bets").collect();
-    const betsWithoutUserId = allBets.filter((b) => !b.userId);
+    const betsWithoutUserId = allBets.filter((b: any) => !b.userId);
     if (betsWithoutUserId.length > 0) {
       issues.push(`${betsWithoutUserId.length} bets without userId`);
     }
 
     // Check 4: All transactions have userId
     const allTransactions = await ctx.db.query("transactions").collect();
-    const txsWithoutUserId = allTransactions.filter((t) => !t.userId);
+    const txsWithoutUserId = allTransactions.filter((t: any) => !t.userId);
     if (txsWithoutUserId.length > 0) {
       issues.push(`${txsWithoutUserId.length} transactions without userId`);
     }
