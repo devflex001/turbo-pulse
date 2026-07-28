@@ -12,8 +12,8 @@ import { getSessionToken } from "@/lib/auth/session"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
+import { MessageWithLinks } from "@/components/support/message-with-links"
 
 type Conversation = {
   _id: Id<"support_conversations">
@@ -104,7 +104,7 @@ function ConversationList({
   }
 
   return (
-    <ScrollArea className="flex-1">
+    <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="divide-y divide-border">
         {conversations.map((conversation) => (
           <button
@@ -149,7 +149,7 @@ function ConversationList({
           </button>
         ))}
       </div>
-    </ScrollArea>
+    </div>
   )
 }
 
@@ -223,8 +223,8 @@ function AdminChatThread({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
+    <div className="flex h-full min-h-0 flex-1 flex-col justify-between">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3 shrink-0">
         <div>
           <p className="text-sm font-semibold">
             {conversation.displayName ?? conversation.userPhone}
@@ -239,7 +239,7 @@ function AdminChatThread({
         </Button>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1 px-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4">
         <div className="space-y-3 py-4">
           {messages === undefined && (
             <div className="flex justify-center py-8">
@@ -263,7 +263,10 @@ function AdminChatThread({
                     : "rounded-bl-md border border-border bg-muted/60 text-foreground"
                 )}
               >
-                <p className="whitespace-pre-wrap break-words">{message.body}</p>
+                <MessageWithLinks
+                  text={message.body}
+                  isPrimary={message.senderRole === "admin"}
+                />
                 <p
                   className={cn(
                     "mt-1 text-[10px]",
@@ -279,9 +282,9 @@ function AdminChatThread({
           ))}
           <div ref={messagesEndRef} />
         </div>
-      </ScrollArea>
+      </div>
 
-      <div className="border-t border-border p-3">
+      <div className="shrink-0 border-t border-border bg-card p-3">
         <div className="flex items-end gap-2">
           <Textarea
             value={draft}
@@ -357,10 +360,10 @@ export function AdminSupportPanel() {
       </div>
       
 
-      <div className="flex min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-card">
+      <div className="flex h-full min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-card">
         <div
           className={cn(
-            "flex w-full flex-col border-r border-border md:w-80 lg:w-96",
+            "flex h-full min-h-0 w-full flex-col border-r border-border md:w-80 lg:w-96",
             showThreadOnMobile && selectedConversation ? "hidden md:flex" : "flex"
           )}
         >
@@ -379,7 +382,7 @@ export function AdminSupportPanel() {
 
         <div
           className={cn(
-            "flex min-w-0 flex-1 flex-col",
+            "flex h-full min-h-0 min-w-0 flex-1 flex-col",
             !showThreadOnMobile && !selectedConversation ? "hidden md:flex" : "flex"
           )}
         >
