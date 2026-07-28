@@ -43,12 +43,12 @@ function useSupportAuthArgs() {
 
 function WhatsAppHeader({ onBack }: { onBack: () => void }) {
   return (
-    <header className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-2 py-2.5">
+    <header className="flex shrink-0 items-center gap-2.5 border-b border-border bg-card px-3 py-2.5 shadow-xs md:px-4">
       <Button
         type="button"
         variant="ghost"
         size="icon"
-        className="size-9 shrink-0 hover:bg-accent"
+        className="size-9 shrink-0 -ml-1 rounded-full hover:bg-accent"
         onClick={onBack}
         aria-label="Close chat"
       >
@@ -60,7 +60,7 @@ function WhatsAppHeader({ onBack }: { onBack: () => void }) {
         </AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-base font-medium leading-tight text-foreground">BetFlexx Support</p>
+        <p className="truncate text-base font-bold leading-tight text-foreground">BetFlexx Support</p>
         <p className="text-xs text-muted-foreground">online</p>
       </div>
     </header>
@@ -412,8 +412,8 @@ export function WhatsAppChat({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-stretch justify-center bg-black/40 md:items-center">
-      <div className="flex h-[100dvh] w-full flex-col bg-background shadow-xl md:h-[calc(100dvh-2rem)] md:max-w-md md:max-h-[820px] md:rounded-lg md:overflow-hidden">
+    <div className="fixed inset-0 z-[100] flex items-stretch justify-center bg-background md:bg-black/40 md:items-center md:p-4">
+      <div className="flex h-[100dvh] w-full flex-col bg-background md:h-[calc(100dvh-2rem)] md:max-w-md md:max-h-[820px] md:rounded-2xl md:border md:border-border md:shadow-2xl md:overflow-hidden">
         {content}
       </div>
     </div>
