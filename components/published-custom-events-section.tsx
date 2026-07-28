@@ -93,7 +93,7 @@ export function PublishedCustomEventsSection() {
       notifyCustomEventStarted({
         userId: user._id,
         eventId: event._id as Id<"customEvents">,
-      }).catch((error) => {
+      }).catch((error: unknown) => {
         notifiedEventIdsRef.current.delete(eventId)
         console.error("Failed to create match-start notification", error)
       })

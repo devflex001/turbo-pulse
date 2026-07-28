@@ -554,7 +554,7 @@ export default function BetsPage() {
                   </tr>
                 )}
 
-                {bets.map((bet) => {
+                {bets.map((bet: unknown) => {
                   const b = bet as unknown as Bet
                   const isSingle = b.selections.length === 1
                   const mainSel = b.selections[0]

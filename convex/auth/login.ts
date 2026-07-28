@@ -17,7 +17,7 @@ export const loginUser = mutation({
     // Find user by phone
     const user = await ctx.db
       .query("users")
-      .withIndex("by_phone", (q) => q.eq("phone", normalizedPhone))
+      .withIndex("by_phone", (q: any) => q.eq("phone", normalizedPhone))
       .unique();
 
     if (!user) {

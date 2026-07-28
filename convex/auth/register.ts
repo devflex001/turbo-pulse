@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation } from "../_generated/server";
+import { mutation, MutationCtx } from "../_generated/server";
 import {
   hashPassword,
   normalizePhoneNumber,
@@ -24,7 +24,7 @@ export const registerUser = mutation({
     password: v.string(),
     referralCode: v.optional(v.string()), // referral code from signup link
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const { phone, username, password, referralCode } = args;
 
     // Validate phone number format
@@ -46,7 +46,7 @@ export const registerUser = mutation({
     // Check if phone number already exists
     const existingUser = await ctx.db
       .query("users")
-      .withIndex("by_phone", (q) => q.eq("phone", normalizedPhone))
+      .withIndex("by_phone", (q: any) => q.eq("phone", normalizedPhone))
       .unique();
 
     if (existingUser) {
@@ -58,7 +58,7 @@ export const registerUser = mutation({
     if (referralCode) {
       const referrer = await ctx.db
         .query("users")
-        .withIndex("by_referralCode", (q) => q.eq("referralCode", referralCode))
+        .withIndex("by_referralCode", (q: any) => q.eq("referralCode", referralCode))
         .first();
 
       if (!referrer) {
@@ -84,7 +84,7 @@ export const registerUser = mutation({
       newUserReferralCode = generateReferralCode();
       const existing = await ctx.db
         .query("users")
-        .withIndex("by_referralCode", (q) => q.eq("referralCode", newUserReferralCode))
+        .withIndex("by_referralCode", (q: any) => q.eq("referralCode", newUserReferralCode))
         .first();
 
       if (!existing) {
@@ -116,7 +116,7 @@ export const registerUser = mutation({
       // Get dynamic referral reward from config
       const config = await ctx.db
         .query("platform_config")
-        .withIndex("by_key", (q) => q.eq("key", "main"))
+        .withIndex("by_key", (q: any) => q.eq("key", "main"))
         .first();
       const REFERRAL_REWARD = config?.referralReward ?? 1000; // KES, default to 1000
       const now = Date.now();
@@ -124,8 +124,8 @@ export const registerUser = mutation({
       // Find or create referral record
       const referralRecord = await ctx.db
         .query("referrals")
-        .withIndex("by_referralCode", (q) => q.eq("referralCode", referralCode))
-        .filter((q) => q.eq(q.field("status"), "pending"))
+        .withIndex("by_referralCode", (q: any) => q.eq("referralCode", referralCode))
+        .filter((q: any) => q.eq(q.field("status"), "pending"))
         .first();
 
       if (referralRecord) {
@@ -163,7 +163,7 @@ export const registerUser = mutation({
         // Award the referrer in the wallet
         const wallet = await ctx.db
           .query("wallets")
-          .withIndex("by_userId", (q) => q.eq("userId", referrerId))
+          .withIndex("by_userId", (q: any) => q.eq("userId", referrerId))
           .first();
 
         if (!wallet) {

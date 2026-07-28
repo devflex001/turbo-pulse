@@ -38,7 +38,7 @@ export function AdminIndicator() {
 
   // Filter out current admin from the list
   const otherActiveAdmins =
-    activeAdmins?.filter((admin) => admin.adminName !== adminName) || []
+    activeAdmins?.filter((admin: { adminName: string; loginAt: number; lastActivityAt: number; userId: string }) => admin.adminName !== adminName) || []
 
   return (
     <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
@@ -74,7 +74,7 @@ export function AdminIndicator() {
               Other active admins
             </p>
             <div className="space-y-1.5">
-              {otherActiveAdmins.map((admin) => (
+              {otherActiveAdmins.map((admin: { adminName: string; loginAt: number; lastActivityAt: number; userId: string }) => (
                 <TooltipProvider key={admin.adminName}>
                   <Tooltip>
                     <TooltipTrigger asChild>

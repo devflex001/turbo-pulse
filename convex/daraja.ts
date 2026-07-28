@@ -1,4 +1,4 @@
-import { mutation, query, action } from "./_generated/server"
+import { mutation, query, action, MutationCtx, QueryCtx, ActionCtx } from "./_generated/server"
 import { v } from "convex/values"
 import { requireAdmin } from "./auth/authorization"
 import { logAdminActionInternal } from "./audit/logs"
@@ -8,10 +8,10 @@ import { getAdminSessionByTokenInternal } from "./admin/sessions"
  * Get current Daraja configuration
  * Checks both database and environment variables
  */
-export const getConfig = query(async (ctx) => {
+export const getConfig = query(async (ctx: QueryCtx) => {
   // Try to get enabled config from database
   const allConfigs = await ctx.db.query("daraja_config").collect()
-  const dbConfig = allConfigs.find((config) => config.isEnabled === true)
+  const dbConfig = allConfigs.find((config: any) => config.isEnabled === true)
 
   if (dbConfig && !dbConfig.useEnvVariables) {
     return {
@@ -49,7 +49,7 @@ export const getConfig = query(async (ctx) => {
 /**
  * Get all saved configurations
  */
-export const getAllConfigs = query(async (ctx) => {
+export const getAllConfigs = query(async (ctx: QueryCtx) => {
   return await ctx.db.query("daraja_config").collect()
 })
 
@@ -72,7 +72,7 @@ export const saveConfig = mutation({
     userId: v.optional(v.id("users")),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const admin = await requireAdmin(ctx, args.userId)
 
     // Disable all other configs
@@ -128,7 +128,7 @@ export const switchToEnvVariables = mutation({
     userId: v.optional(v.id("users")),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const admin = await requireAdmin(ctx, args.userId)
 
     const existingConfigs = await ctx.db.query("daraja_config").collect()
@@ -166,7 +166,7 @@ export const activateConfig = mutation({
     userId: v.optional(v.id("users")),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const admin = await requireAdmin(ctx, args.userId)
 
     const configToActivate = await ctx.db.get(args.configId)
@@ -213,7 +213,7 @@ export const deleteConfig = mutation({
     userId: v.optional(v.id("users")),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const admin = await requireAdmin(ctx, args.userId)
 
     const configToDelete = await ctx.db.get(args.configId)
@@ -252,7 +252,7 @@ export const testConfig = action({
     consumerKey: v.string(),
     consumerSecret: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: ActionCtx, args) => {
     try {
       const baseUrl = "https://sandbox.safaricom.co.ke"
       const auth = Buffer.from(

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, type QueryCtx, type MutationCtx, type ActionCtx } from "./_generated/server";
 import { Doc } from "./_generated/dataModel";
 import { requireAdmin, requireAuth } from "./auth/authorization";
 import { updateWalletBalance } from "./mpesa";
@@ -32,12 +32,12 @@ export const getMyWithdrawals = query({
   args: {
     userId: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     const user = await requireAuth(ctx, args.userId);
 
     const requests = await ctx.db
       .query("withdrawal_requests")
-      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .withIndex("by_userId", (q: any) => q.eq("userId", user._id))
       .order("desc")
       .take(50);
 
@@ -65,7 +65,7 @@ export const listWithdrawalRequests = query({
     ),
     userId: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     await requireAdmin(ctx, args.userId);
 
     const statusFilter = args.statusFilter ?? "all";
@@ -75,7 +75,7 @@ export const listWithdrawalRequests = query({
     if (statusFilter !== "all") {
       baseQuery = ctx.db
         .query("withdrawal_requests")
-        .withIndex("by_status", (q) => q.eq("status", statusFilter))
+        .withIndex("by_status", (q: any) => q.eq("status", statusFilter))
         .order("desc");
     } else {
       baseQuery = ctx.db
@@ -111,22 +111,22 @@ export const getWithdrawalStats = query({
   args: {
     userId: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     await requireAdmin(ctx, args.userId);
 
     const pending = await ctx.db
       .query("withdrawal_requests")
-      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .withIndex("by_status", (q: any) => q.eq("status", "pending"))
       .collect();
 
     const approved = await ctx.db
       .query("withdrawal_requests")
-      .withIndex("by_status", (q) => q.eq("status", "approved"))
+      .withIndex("by_status", (q: any) => q.eq("status", "approved"))
       .collect();
 
     const rejected = await ctx.db
       .query("withdrawal_requests")
-      .withIndex("by_status", (q) => q.eq("status", "rejected"))
+      .withIndex("by_status", (q: any) => q.eq("status", "rejected"))
       .collect();
 
     const totalApprovedVolume = approved.reduce((sum, r) => sum + r.amount, 0);
@@ -157,13 +157,13 @@ export const submitWithdrawalRequest = mutation({
     feeTxReference: v.string(),
     phone: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const user = await requireAuth(ctx, args.userId);
 
     // Load platform config
     const config = await ctx.db
       .query("platform_config")
-      .withIndex("by_key", (q) => q.eq("key", CONFIG_KEY))
+      .withIndex("by_key", (q: any) => q.eq("key", CONFIG_KEY))
       .unique();
 
     const minWithdrawal =
@@ -182,7 +182,7 @@ export const submitWithdrawalRequest = mutation({
     // Check wallet balance
     const wallet = await ctx.db
       .query("wallets")
-      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .withIndex("by_userId", (q: any) => q.eq("userId", user._id))
       .unique();
     if (!wallet || wallet.balance < args.amount) {
       throw new Error("Insufficient wallet balance");
@@ -242,7 +242,7 @@ export const payInstantFee = mutation({
     requestId: v.id("withdrawal_requests"),
     instantFeeTxReference: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const user = await requireAuth(ctx, args.userId);
 
     const request = await ctx.db.get(args.requestId);
@@ -288,7 +288,7 @@ export const approveWithdrawal = mutation({
     sessionToken: v.optional(v.string()), // For logging
     requestId: v.id("withdrawal_requests"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const admin = await requireAdmin(ctx, args.userId);
 
     const request = await ctx.db.get(args.requestId);
@@ -366,7 +366,7 @@ export const rejectWithdrawal = mutation({
     requestId: v.id("withdrawal_requests"),
     rejectionReason: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const admin = await requireAdmin(ctx, args.userId);
 
     const request = await ctx.db.get(args.requestId);

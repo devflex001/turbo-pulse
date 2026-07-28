@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query } from "../_generated/server";
+import { query, QueryCtx } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
 
 /**
@@ -10,11 +10,11 @@ export const getCurrentUser = query({
   args: {
     sessionToken: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     // Find session
     const session = await ctx.db
       .query("sessions")
-      .withIndex("by_sessionToken", (q) =>
+      .withIndex("by_sessionToken", (q: any) =>
         q.eq("sessionToken", args.sessionToken)
       )
       .unique();
@@ -54,7 +54,7 @@ export const getUserById = query({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     const user = await ctx.db.get(args.userId);
 
     if (!user) {

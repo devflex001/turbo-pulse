@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { requireAdmin } from "./auth/authorization";
 import { notifyAdmins, notifyUser } from "./notifications";
@@ -40,7 +41,7 @@ export const listBets = query({
     statusFilter: v.optional(v.string()),
     userId: v.optional(v.id("users")), // Admin ID checking
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { paginationOpts: { numItems: number; cursor: string | null; id?: number }; search?: string; statusFilter?: string; userId?: Id<"users"> }) => {
     // Require admin authentication
     await requireAdmin(ctx, args.userId);
 
@@ -52,12 +53,12 @@ export const listBets = query({
     if (search && search.length > 0) {
       let baseQuery = ctx.db.query("bets").order("desc");
       if (statusFilter !== "all") {
-        baseQuery = baseQuery.filter((q) => q.eq(q.field("status"), statusFilter));
+        baseQuery = baseQuery.filter((q: any) => q.eq(q.field("status"), statusFilter));
       }
 
       const allBets = await baseQuery.take(1000);
 
-      const filteredBets = allBets.filter((bet) => {
+      const filteredBets = allBets.filter((bet: any) => {
         // Match bet ID
         if (bet._id.toString().toLowerCase().includes(search)) return true;
 
@@ -95,7 +96,7 @@ export const listBets = query({
     // Default pagination using Convex's database pagination
     let baseQuery = ctx.db.query("bets").order("desc");
     if (statusFilter !== "all") {
-      baseQuery = baseQuery.filter((q) => q.eq(q.field("status"), statusFilter));
+      baseQuery = baseQuery.filter((q: any) => q.eq(q.field("status"), statusFilter));
     }
 
     const paginated = await baseQuery.paginate(args.paginationOpts);
@@ -111,7 +112,7 @@ export const getAdminBetStats = query({
   args: {
     userId: v.optional(v.id("users")), // Admin ID checking
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { userId?: Id<"users"> }) => {
     await requireAdmin(ctx, args.userId);
 
     const allBets = await ctx.db.query("bets").collect();
@@ -126,7 +127,7 @@ export const getAdminBetStats = query({
       voidBets: 0,
     };
 
-    allBets.forEach((bet) => {
+    allBets.forEach((bet: any) => {
       stats.totalStake += bet.stake;
       if (bet.status === "active") {
         stats.activeBets += 1;
@@ -166,7 +167,7 @@ export const updateBetStatus = mutation({
     userId: v.optional(v.id("users")), // Admin ID checking
     sessionToken: v.optional(v.string()), // For logging
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: { betId: Id<"bets">; status: "active" | "won" | "lost" | "void" | "cancelled"; userId?: Id<"users">; sessionToken?: string }) => {
     // Require admin authentication
     const admin = await requireAdmin(ctx, args.userId);
 
@@ -209,7 +210,7 @@ export const updateBetStatus = mutation({
       const userId = bet.userId as Id<"users">;
       const wallet = await ctx.db
         .query("wallets")
-        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .withIndex("by_userId", (q: any) => q.eq("userId", userId))
         .first();
       if (wallet) {
         await ctx.db.patch(wallet._id, {

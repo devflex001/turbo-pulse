@@ -66,7 +66,7 @@ export default function ReferralsPage() {
 
   React.useEffect(() => {
     if (user?._id && hasReferralAccess) {
-      ensureReferralCodeMutation({ userId: user._id }).catch((error) => {
+      ensureReferralCodeMutation({ userId: user._id }).catch((error: unknown) => {
         console.error("Failed to ensure referral code:", error)
       })
     }
@@ -431,7 +431,7 @@ export default function ReferralsPage() {
                 </div>
               ) : (
                 <div className="divide-y divide-border">
-                  {referralHistory.map((referral) => {
+                  {referralHistory.map((referral: any) => {
                     const isCompleted = referral.status === "completed"
                     const date = new Date(referral.createdAt).toLocaleDateString("en-KE", {
                       day: "numeric",

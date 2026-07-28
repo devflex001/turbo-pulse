@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "../_generated/server";
 import type { Id, Doc } from "../_generated/dataModel";
-import type { QueryCtx, MutationCtx } from "../_generated/server";
+import type { QueryCtx, MutationCtx, DatabaseReader } from "../_generated/server";
 import { requireAdmin } from "../auth/authorization";
 import { logAdminActionInternal } from "../audit/logs";
 
@@ -22,7 +22,7 @@ const VALID_ADMIN_NAMES = ["dikie", "hellen", "mwalimu"];
  * Can be called from both queries and mutations
  */
 export async function getAdminSessionByTokenInternal(
-  ctx: QueryCtx | MutationCtx,
+  ctx: QueryCtx,
   sessionToken: string
 ): Promise<{
   _id: Id<"admin_sessions">;
@@ -33,7 +33,7 @@ export async function getAdminSessionByTokenInternal(
 } | null> {
   const session = await ctx.db
     .query("admin_sessions")
-    .withIndex("by_sessionToken", (q) => q.eq("sessionToken", sessionToken))
+    .withIndex("by_sessionToken", (q: any) => q.eq("sessionToken", sessionToken))
     .first();
 
   if (!session) {
@@ -66,7 +66,7 @@ export const getCurrentAdminSession = query({
   args: {
     sessionToken: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { sessionToken: string }) => {
     return await getAdminSessionByTokenInternal(ctx, args.sessionToken);
   },
 });
@@ -82,17 +82,17 @@ const SESSION_STALE_THRESHOLD_MS = 15 * 60 * 1000; // 15 minutes
  */
 export const getActiveAdmins = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx: QueryCtx) => {
     const activeSessions = await ctx.db
       .query("admin_sessions")
-      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .withIndex("by_isActive", (q: any) => q.eq("isActive", true))
       .collect();
 
     const cutoff = Date.now() - SESSION_STALE_THRESHOLD_MS;
 
     return activeSessions
-      .filter((session) => session.lastActivityAt >= cutoff)
-      .map((session) => ({
+      .filter((session: any) => session.lastActivityAt >= cutoff)
+      .map((session: any) => ({
         adminName: session.adminName,
         loginAt: session.loginAt,
         lastActivityAt: session.lastActivityAt,
@@ -115,7 +115,7 @@ export const startAdminSession = mutation({
     adminName: v.string(),
     sessionToken: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: { userId: Id<"users">; adminName: string; sessionToken: string }) => {
     // Validate admin exists and is actually an admin
     const admin = await ctx.db.get(args.userId);
     if (!admin || admin.role !== "admin") {
@@ -133,7 +133,7 @@ export const startAdminSession = mutation({
     // Check if there's already an active session for this admin user
     const existingSession = await ctx.db
       .query("admin_sessions")
-      .withIndex("by_sessionToken", (q) => q.eq("sessionToken", args.sessionToken))
+      .withIndex("by_sessionToken", (q: any) => q.eq("sessionToken", args.sessionToken))
       .first();
 
     if (existingSession) {
@@ -186,10 +186,10 @@ export const updateAdminSessionActivity = mutation({
   args: {
     sessionToken: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: { sessionToken: string }) => {
     const session = await ctx.db
       .query("admin_sessions")
-      .withIndex("by_sessionToken", (q) => q.eq("sessionToken", args.sessionToken))
+      .withIndex("by_sessionToken", (q: any) => q.eq("sessionToken", args.sessionToken))
       .first();
 
     if (!session || !session.isActive) {
@@ -214,10 +214,10 @@ export const logInactivityLogout = mutation({
   args: {
     sessionToken: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: { sessionToken: string }) => {
     const session = await ctx.db
       .query("admin_sessions")
-      .withIndex("by_sessionToken", (q) => q.eq("sessionToken", args.sessionToken))
+      .withIndex("by_sessionToken", (q: any) => q.eq("sessionToken", args.sessionToken))
       .first();
 
     if (!session) {
@@ -249,10 +249,10 @@ export const endAdminSession = mutation({
     sessionToken: v.string(),
     isInactivityLogout: v.optional(v.boolean()), // true if already logged by logInactivityLogout
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: { sessionToken: string; isInactivityLogout?: boolean }) => {
     const session = await ctx.db
       .query("admin_sessions")
-      .withIndex("by_sessionToken", (q) => q.eq("sessionToken", args.sessionToken))
+      .withIndex("by_sessionToken", (q: any) => q.eq("sessionToken", args.sessionToken))
       .first();
 
     if (!session) {

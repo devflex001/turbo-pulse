@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type QueryCtx, type MutationCtx } from "./_generated/server";
 import { getAdminSessionByTokenInternal } from "./admin/sessions";
 import { logAdminActionInternal } from "./audit/logs";
 
@@ -20,7 +20,7 @@ export const listMatches = query({
     offset: v.optional(v.number()),
     includeFirstMarket: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     const pageSize = Math.max(1, Math.min(args.limit ?? 10, 50));
     const offset = Math.max(0, args.offset ?? 0);
 
@@ -42,14 +42,14 @@ export const listMatches = query({
       args.status === "live"
         ? await ctx.db
           .query("sportsMatches")
-          .withIndex("by_source_and_status_and_startTime", (q) =>
+          .withIndex("by_source_and_status_and_startTime", (q: any) =>
             q.eq("source", SOURCE).eq("status", 1).gte("startTime", lowerBound)
           )
           .take(fetchLimit)
         : isSportFiltered
           ? await ctx.db
             .query("sportsMatches")
-            .withIndex("by_source_and_sportSlug_and_startTime", (q) =>
+            .withIndex("by_source_and_sportSlug_and_startTime", (q: any) =>
               q
                 .eq("source", SOURCE)
                 .eq("sportSlug", args.sport as string)
@@ -58,7 +58,7 @@ export const listMatches = query({
             .take(fetchLimit)
           : await ctx.db
             .query("sportsMatches")
-            .withIndex("by_source_and_startTime", (q) =>
+            .withIndex("by_source_and_startTime", (q: any) =>
               q.eq("source", SOURCE).gte("startTime", lowerBound)
             )
             .take(fetchLimit);
@@ -69,7 +69,7 @@ export const listMatches = query({
       args.competition && args.competition !== "All Leagues" ? args.competition : null;
 
     const filtered = base
-      .filter((match) => {
+      .filter((match: any) => {
         if (args.status === "upcoming" && match.status === 1) return false;
         // When using the sport-specific index the sport is already filtered at the
         // DB level; only apply the in-memory sport check for the all-sports query.
@@ -92,10 +92,10 @@ export const listMatches = query({
     // If includeFirstMarket is true, add the first market data for homepage display
     if (args.includeFirstMarket) {
       const page = await Promise.all(
-        paged.map(async (match) => {
+        paged.map(async (match: any) => {
           const firstMarket = await ctx.db
             .query("sportsMarkets")
-            .withIndex("by_sourceMatchId_and_marketPriority", (q) =>
+            .withIndex("by_sourceMatchId_and_marketPriority", (q: any) =>
               q.eq("sourceMatchId", match.sourceMatchId)
             )
             .first();
@@ -104,7 +104,7 @@ export const listMatches = query({
           const firstMarketOdds = firstMarket
             ? await ctx.db
               .query("sportsOdds")
-              .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
+              .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q: any) =>
                 q
                   .eq("sourceMatchId", match.sourceMatchId)
                   .eq("marketKey", firstMarket.marketKey)
@@ -138,10 +138,10 @@ export const getMatchMainOdds = query({
   args: {
     sourceMatchId: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     const mainMarket = await ctx.db
       .query("sportsMarkets")
-      .withIndex("by_sourceMatchId_and_marketKey", (q) =>
+      .withIndex("by_sourceMatchId_and_marketKey", (q: any) =>
         q
           .eq("sourceMatchId", args.sourceMatchId)
           .eq(
@@ -155,7 +155,7 @@ export const getMatchMainOdds = query({
 
     return await ctx.db
       .query("sportsOdds")
-      .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
+      .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q: any) =>
         q
           .eq("sourceMatchId", args.sourceMatchId)
           .eq("marketKey", mainMarket.marketKey)
@@ -168,21 +168,21 @@ export const listCompetitions = query({
   args: {
     sport: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     // Only fetch upcoming fixtures - don't waste resources on ended matches
     const lowerBound = Date.now(); // Start from now
     const upperBound = Date.now() + 30 * 24 * 60 * 60 * 1000;
 
     const matches = await ctx.db
       .query("sportsMatches")
-      .withIndex("by_source_and_startTime", (q) =>
+      .withIndex("by_source_and_startTime", (q: any) =>
         q.eq("source", SOURCE).gte("startTime", lowerBound)
       )
       .take(300);
 
     const sport = args.sport && args.sport !== "all" ? args.sport : null;
     const names = matches
-      .filter((match) => {
+      .filter((match: any) => {
         if (!sport || match.sportSlug === sport) {
           // Filter out matches too far in the future and ended matches
           if (match.status === 2) return false; // Skip ended
@@ -190,7 +190,7 @@ export const listCompetitions = query({
         }
         return false;
       })
-      .map((match) => match.competitionName)
+      .map((match: any) => match.competitionName)
       .filter(Boolean);
 
     return ["All Leagues", ...Array.from(new Set(names)).sort()];
@@ -201,10 +201,10 @@ export const getMatchBySourceId = query({
   args: {
     sourceMatchId: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     return await ctx.db
       .query("sportsMatches")
-      .withIndex("by_source_and_sourceMatchId", (q) =>
+      .withIndex("by_source_and_sourceMatchId", (q: any) =>
         q.eq("source", SOURCE).eq("sourceMatchId", args.sourceMatchId)
       )
       .unique();
@@ -215,10 +215,10 @@ export const getMatchWithMainOdds = query({
   args: {
     sourceMatchId: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     const match = await ctx.db
       .query("sportsMatches")
-      .withIndex("by_source_and_sourceMatchId", (q) =>
+      .withIndex("by_source_and_sourceMatchId", (q: any) =>
         q.eq("source", SOURCE).eq("sourceMatchId", args.sourceMatchId)
       )
       .unique();
@@ -227,7 +227,7 @@ export const getMatchWithMainOdds = query({
 
     const mainMarket = await ctx.db
       .query("sportsMarkets")
-      .withIndex("by_sourceMatchId_and_marketKey", (q) =>
+      .withIndex("by_sourceMatchId_and_marketKey", (q: any) =>
         q
           .eq("sourceMatchId", args.sourceMatchId)
           .eq("marketKey", `${args.sourceMatchId}:1:1x2:main`)
@@ -237,7 +237,7 @@ export const getMatchWithMainOdds = query({
     const mainOdds = mainMarket
       ? await ctx.db
         .query("sportsOdds")
-        .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
+        .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q: any) =>
           q
             .eq("sourceMatchId", args.sourceMatchId)
             .eq("marketKey", mainMarket.marketKey)
@@ -253,10 +253,10 @@ export const listMarkets = query({
   args: {
     sourceMatchId: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     return await ctx.db
       .query("sportsMarkets")
-      .withIndex("by_sourceMatchId_and_marketPriority", (q) =>
+      .withIndex("by_sourceMatchId_and_marketPriority", (q: any) =>
         q.eq("sourceMatchId", args.sourceMatchId)
       )
       .take(1000);
@@ -266,14 +266,14 @@ export const listMarkets = query({
 // New optimized query to get sport counts without fetching full match data - only upcoming matches
 export const getSportCounts = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx: QueryCtx) => {
     // Only fetch upcoming fixtures - don't waste resources on ended matches
     const lowerBound = Date.now(); // Start from now
     const upperBound = Date.now() + 30 * 24 * 60 * 60 * 1000;
 
     const matches = await ctx.db
       .query("sportsMatches")
-      .withIndex("by_source_and_startTime", (q) =>
+      .withIndex("by_source_and_startTime", (q: any) =>
         q.eq("source", SOURCE).gte("startTime", lowerBound)
       )
       .take(500);
@@ -304,10 +304,10 @@ export const listOdds = query({
     sourceMatchId: v.string(),
     marketKey: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     return await ctx.db
       .query("sportsOdds")
-      .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
+      .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q: any) =>
         q.eq("sourceMatchId", args.sourceMatchId).eq("marketKey", args.marketKey)
       )
       .take(1000);
@@ -318,10 +318,10 @@ export const listOddsByMatch = query({
   args: {
     sourceMatchId: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     return await ctx.db
       .query("sportsOdds")
-      .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
+      .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q: any) =>
         q.eq("sourceMatchId", args.sourceMatchId)
       )
       .take(8000);
@@ -333,13 +333,13 @@ export const clearJunkEvents = mutation({
   args: {
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const cutoffTime = Date.now() - 24 * 60 * 60 * 1000; // 24 hours ago
 
     // Get old matches using index (ONLY 10 at a time to stay under read limits)
     const oldMatches = await ctx.db
       .query("sportsMatches")
-      .withIndex("by_source_and_startTime", (q) =>
+      .withIndex("by_source_and_startTime", (q: any) =>
         q.eq("source", SOURCE).lt("startTime", cutoffTime)
       )
       .take(10);
@@ -358,7 +358,7 @@ export const clearJunkEvents = mutation({
       // Delete markets using index (small batch)
       const markets = await ctx.db
         .query("sportsMarkets")
-        .withIndex("by_sourceMatchId_and_marketPriority", (q) =>
+        .withIndex("by_sourceMatchId_and_marketPriority", (q: any) =>
           q.eq("sourceMatchId", match.sourceMatchId)
         )
         .take(50);
@@ -371,7 +371,7 @@ export const clearJunkEvents = mutation({
       // Delete odds using index (small batch)
       const odds = await ctx.db
         .query("sportsOdds")
-        .withIndex("by_sourceMatchId", (q) => q.eq("sourceMatchId", match.sourceMatchId))
+        .withIndex("by_sourceMatchId", (q: any) => q.eq("sourceMatchId", match.sourceMatchId))
         .take(50);
 
       for (const odd of odds) {
@@ -415,7 +415,7 @@ export const toggleFeaturedMatch = mutation({
     matchId: v.id("sportsMatches"),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const match = await ctx.db.get(args.matchId);
     if (!match) throw new Error("Match not found");
 
@@ -448,7 +448,7 @@ export const listFeaturedMatches = query({
     offset: v.optional(v.number()),
     includeFirstMarket: v.optional(v.boolean()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     const pageSize = Math.max(1, Math.min(args.limit ?? 50, 100));
     const offset = Math.max(0, args.offset ?? 0);
     const fetchLimit = (Math.ceil(offset / pageSize) + 2) * pageSize;
@@ -456,12 +456,12 @@ export const listFeaturedMatches = query({
 
     const results = await ctx.db
       .query("sportsMatches")
-      .withIndex("by_featured", (q) => q.eq("featured", true))
+      .withIndex("by_featured", (q: any) => q.eq("featured", true))
       .take(fetchLimit);
 
     const paged = results
       .sort(
-        (a, b) => (b.featuredAt ?? b.lastScrapedAt) - (a.featuredAt ?? a.lastScrapedAt)
+        (a: any, b: any) => (b.featuredAt ?? b.lastScrapedAt) - (a.featuredAt ?? a.lastScrapedAt)
       )
       .slice(offset, offset + pageSize);
 
@@ -469,10 +469,10 @@ export const listFeaturedMatches = query({
 
     // For each match, fetch the first market + its top 3 odds so MatchCard renders correctly
     const withOdds = await Promise.all(
-      paged.map(async (match) => {
+      paged.map(async (match: any) => {
         const firstMarket = await ctx.db
           .query("sportsMarkets")
-          .withIndex("by_sourceMatchId_and_marketPriority", (q) =>
+          .withIndex("by_sourceMatchId_and_marketPriority", (q: any) =>
             q.eq("sourceMatchId", match.sourceMatchId)
           )
           .first();
@@ -480,7 +480,7 @@ export const listFeaturedMatches = query({
         const firstMarketOdds = firstMarket
           ? await ctx.db
             .query("sportsOdds")
-            .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q) =>
+            .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q: any) =>
               q
                 .eq("sourceMatchId", match.sourceMatchId)
                 .eq("marketKey", firstMarket.marketKey)
@@ -506,7 +506,7 @@ export const deleteSportsMatch = mutation({
     matchId: v.id("sportsMatches"),
     sessionToken: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
     if (!adminSession) throw new Error("Admin session required");
 
@@ -523,7 +523,7 @@ export const deleteSportsMatch = mutation({
     let oddsDeleted = 0;
     const odds = await ctx.db
       .query("sportsOdds")
-      .withIndex("by_sourceMatchId", (q) => q.eq("sourceMatchId", match.sourceMatchId))
+      .withIndex("by_sourceMatchId", (q: any) => q.eq("sourceMatchId", match.sourceMatchId))
       .take(300);
 
     for (const odd of odds) {
@@ -543,7 +543,7 @@ export const deleteSportsMatch = mutation({
     let marketsDeleted = 0;
     const markets = await ctx.db
       .query("sportsMarkets")
-      .withIndex("by_sourceMatchId_and_marketPriority", (q) =>
+      .withIndex("by_sourceMatchId_and_marketPriority", (q: any) =>
         q.eq("sourceMatchId", match.sourceMatchId)
       )
       .take(200);

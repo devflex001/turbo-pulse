@@ -9,14 +9,14 @@ const DEFAULT_REFERRAL_REWARD = 1000; // KES
 const REFERRAL_ACCESS_FEE = 500; // KES
 
 // Helper to get referral reward from config
-async function getReferralReward(ctx: QueryCtx | MutationCtx): Promise<number> {
+async function getReferralReward(ctx: QueryCtx): Promise<number> {
   const config = await ctx.db
     .query("platform_config")
-    .withIndex("by_key", (q) => q.eq("key", "main"))
+    .withIndex("by_key", (q: any) => q.eq("key", "main"))
     .first()
   return config?.referralReward ?? DEFAULT_REFERRAL_REWARD
 }
-async function generateUniqueReferralCode(ctx: QueryCtx | MutationCtx): Promise<string> {
+async function generateUniqueReferralCode(ctx: QueryCtx): Promise<string> {
   let referralCode: string;
   let attempts = 0;
   const maxAttempts = 10;
@@ -30,7 +30,7 @@ async function generateUniqueReferralCode(ctx: QueryCtx | MutationCtx): Promise<
 
     const existing = await ctx.db
       .query("users")
-      .withIndex("by_referralCode", (q) => q.eq("referralCode", referralCode))
+      .withIndex("by_referralCode", (q: any) => q.eq("referralCode", referralCode))
       .first();
 
     if (!existing) {
@@ -55,7 +55,7 @@ export const ensureReferralCode = mutation({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: { userId: Id<"users"> }) => {
     await requireAuth(ctx, args.userId.toString());
 
     const user = await ctx.db.get(args.userId);
@@ -99,7 +99,7 @@ export const activateReferralAccess = mutation({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: { userId: Id<"users"> }) => {
     await requireAuth(ctx, args.userId.toString());
 
     const user = await ctx.db.get(args.userId);
@@ -123,7 +123,7 @@ export const activateReferralAccess = mutation({
 
     const wallet = await ctx.db
       .query("wallets")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
       .unique();
 
     const balance = wallet?.balance ?? 0;
@@ -176,7 +176,7 @@ export const generateUserReferralCode = mutation({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: { userId: Id<"users"> }) => {
     const user = await ctx.db.get(args.userId);
     if (!user) {
       throw new Error("User not found");
@@ -207,7 +207,7 @@ export const getReferralStats = query({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { userId: Id<"users"> }) => {
     await requireAuth(ctx, args.userId.toString());
 
     const user = await ctx.db.get(args.userId);
@@ -218,14 +218,14 @@ export const getReferralStats = query({
     // Return stats as-is. If no code, client should call ensureReferralCode mutation
     const completedReferrals = await ctx.db
       .query("referrals")
-      .withIndex("by_referrerId_and_status", (q) =>
+      .withIndex("by_referrerId_and_status", (q: any) =>
         q.eq("referrerId", args.userId).eq("status", "completed")
       )
       .collect();
 
     const pendingReferrals = await ctx.db
       .query("referrals")
-      .withIndex("by_referrerId_and_status", (q) =>
+      .withIndex("by_referrerId_and_status", (q: any) =>
         q.eq("referrerId", args.userId).eq("status", "pending")
       )
       .collect();
@@ -251,14 +251,14 @@ export const getReferralHistory = query({
     userId: v.id("users"),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { userId: Id<"users">; limit?: number }) => {
     await requireAuth(ctx, args.userId.toString());
 
     const limit = Math.min(args.limit ?? 50, 100);
 
     const referrals = await ctx.db
       .query("referrals")
-      .withIndex("by_referrerId", (q) => q.eq("referrerId", args.userId))
+      .withIndex("by_referrerId", (q: any) => q.eq("referrerId", args.userId))
       .order("desc")
       .take(limit);
 
@@ -290,7 +290,7 @@ export const trackReferralSignup = mutation({
     referralCode: v.string(),
     newUserId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: { referralCode: string; newUserId: Id<"users"> }) => {
     const newUser = await ctx.db.get(args.newUserId);
     if (!newUser) {
       throw new Error("New user not found");
@@ -299,7 +299,7 @@ export const trackReferralSignup = mutation({
     // Find the referral code
     const referrer = await ctx.db
       .query("users")
-      .withIndex("by_referralCode", (q) => q.eq("referralCode", args.referralCode))
+      .withIndex("by_referralCode", (q: any) => q.eq("referralCode", args.referralCode))
       .first();
 
     if (!referrer) {
@@ -321,8 +321,8 @@ export const trackReferralSignup = mutation({
     // Find or create the referral record
     const referralRecord = await ctx.db
       .query("referrals")
-      .withIndex("by_referralCode", (q) => q.eq("referralCode", args.referralCode))
-      .filter((q) => q.eq(q.field("status"), "pending"))
+      .withIndex("by_referralCode", (q: any) => q.eq("referralCode", args.referralCode))
+      .filter((q: any) => q.eq(q.field("status"), "pending"))
       .first();
 
     const now = Date.now();
@@ -365,7 +365,7 @@ export const trackReferralSignup = mutation({
     // Award the referrer their bonus in the wallet
     const wallet = await ctx.db
       .query("wallets")
-      .withIndex("by_userId", (q) => q.eq("userId", referrer._id))
+      .withIndex("by_userId", (q: any) => q.eq("userId", referrer._id))
       .first();
 
     if (!wallet) {
@@ -399,11 +399,11 @@ export const createPendingReferral = mutation({
     referralCode: v.string(),
     visitorPhone: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: { referralCode: string; visitorPhone?: string }) => {
     // Find the referrer
     const referrer = await ctx.db
       .query("users")
-      .withIndex("by_referralCode", (q) => q.eq("referralCode", args.referralCode))
+      .withIndex("by_referralCode", (q: any) => q.eq("referralCode", args.referralCode))
       .first();
 
     if (!referrer) {
@@ -418,8 +418,8 @@ export const createPendingReferral = mutation({
     if (args.visitorPhone) {
       const existing = await ctx.db
         .query("referrals")
-        .withIndex("by_referralCode", (q) => q.eq("referralCode", args.referralCode))
-        .filter((q) =>
+        .withIndex("by_referralCode", (q: any) => q.eq("referralCode", args.referralCode))
+        .filter((q: any) =>
           q.and(
             q.eq(q.field("phone"), args.visitorPhone),
             q.eq(q.field("status"), "pending")
@@ -453,7 +453,7 @@ export const getReferralLink = query({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { userId: Id<"users"> }) => {
     await requireAuth(ctx, args.userId.toString());
 
     const user = await ctx.db.get(args.userId);
@@ -483,10 +483,10 @@ export const verifyReferralCode = query({
   args: {
     referralCode: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { referralCode: string }) => {
     const referrer = await ctx.db
       .query("users")
-      .withIndex("by_referralCode", (q) => q.eq("referralCode", args.referralCode))
+      .withIndex("by_referralCode", (q: any) => q.eq("referralCode", args.referralCode))
       .first();
 
     if (!referrer) {
@@ -518,7 +518,7 @@ export const getAllReferrals = query({
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { userId: Id<"users">; status?: "pending" | "completed" | "all"; limit?: number; offset?: number }) => {
     // Verify admin access
     const user = await ctx.db.get(args.userId);
     if (!user || user.role !== "admin") {
@@ -586,7 +586,7 @@ export const getReferralSummary = query({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { userId: Id<"users"> }) => {
     const user = await ctx.db.get(args.userId);
     if (!user || user.role !== "admin") {
       throw new Error("Admin access required");
@@ -654,7 +654,7 @@ export const getReferralTrends = query({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { userId: Id<"users"> }) => {
     const user = await ctx.db.get(args.userId);
     if (!user || user.role !== "admin") {
       throw new Error("Admin access required");
@@ -707,7 +707,7 @@ export const getReferrerPerformance = query({
     userId: v.id("users"),
     referrerId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { userId: Id<"users">; referrerId: Id<"users"> }) => {
     const user = await ctx.db.get(args.userId);
     if (!user || user.role !== "admin") {
       throw new Error("Admin access required");
@@ -720,7 +720,7 @@ export const getReferrerPerformance = query({
 
     const referrals = await ctx.db
       .query("referrals")
-      .withIndex("by_referrerId", (q) => q.eq("referrerId", args.referrerId))
+      .withIndex("by_referrerId", (q: any) => q.eq("referrerId", args.referrerId))
       .collect();
 
     const completed = referrals.filter((r) => r.status === "completed");
@@ -760,4 +760,3 @@ export const getReferrerPerformance = query({
     };
   },
 });
-

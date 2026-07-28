@@ -1,5 +1,5 @@
 import { v } from "convex/values"
-import { mutation, query } from "./_generated/server"
+import { mutation, query, MutationCtx, QueryCtx } from "./_generated/server"
 import { requireAdmin } from "./auth/authorization"
 import { logAdminActionInternal } from "./audit/logs"
 import { getAdminSessionByTokenInternal } from "./admin/sessions"
@@ -7,7 +7,7 @@ import { getAdminSessionByTokenInternal } from "./admin/sessions"
 /**
  * Get current active payment mode
  */
-export const getActiveMode = query(async (ctx) => {
+export const getActiveMode = query(async (ctx: QueryCtx) => {
   // Get the active payment mode
   const config = await ctx.db.query("payment_mode").first()
 
@@ -34,7 +34,7 @@ export const setMode = mutation({
     userId: v.optional(v.id("users")),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const admin = await requireAdmin(ctx, args.userId)
 
     const existing = await ctx.db.query("payment_mode").first()
@@ -84,7 +84,7 @@ export const setMode = mutation({
 /**
  * Get payment mode history/audit
  */
-export const getHistory = query(async (ctx) => {
+export const getHistory = query(async (ctx: QueryCtx) => {
   // For now, just return current mode
   // In future, could store full history in a separate table
   const config = await ctx.db.query("payment_mode").first()

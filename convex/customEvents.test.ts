@@ -37,7 +37,7 @@ describe("custom event preconfiguration", () => {
     expect(event?.awayScore).toBe(0)
     expect(markets).toHaveLength(14)
     expect(odds).toHaveLength(93)
-    expect(markets.map((market) => market.name)).toEqual([
+    expect(markets.map((market: any) => market.name)).toEqual([
       "1X2",
       "1ST GOAL",
       "DOUBLE CHANCE",
@@ -54,9 +54,9 @@ describe("custom event preconfiguration", () => {
       "CORRECT SCORE",
     ])
 
-    const oneXTwo = markets.find((market) => market.name === "1X2")
+    const oneXTwo = markets.find((market: any) => market.name === "1X2")
     const correctScore = markets.find(
-      (market) => market.name === "CORRECT SCORE"
+      (market: any) => market.name === "CORRECT SCORE"
     )
 
     expect(oneXTwo).toBeDefined()
@@ -70,7 +70,7 @@ describe("custom event preconfiguration", () => {
     })
 
     expect(
-      oneXTwoOdds.map((odd) => ({
+      oneXTwoOdds.map((odd: any) => ({
         outcomeName: odd.outcomeName,
         oddValue: odd.oddValue,
       }))

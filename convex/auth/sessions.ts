@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "../_generated/server";
+import { mutation, query, MutationCtx, QueryCtx } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
 
 /**
@@ -21,7 +21,7 @@ export const createSession = mutation({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const sessionToken = generateSessionToken();
     const now = Date.now();
     const expiresAt = now + 7 * 24 * 60 * 60 * 1000; // 7 days from now
@@ -49,11 +49,11 @@ export const getUserFromSession = query({
   args: {
     sessionToken: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: any) => {
     // Find session
     const session = await ctx.db
       .query("sessions")
-      .withIndex("by_sessionToken", (q) =>
+      .withIndex("by_sessionToken", (q: any) =>
         q.eq("sessionToken", args.sessionToken)
       )
       .unique();
@@ -93,10 +93,10 @@ export const deleteSession = mutation({
   args: {
     sessionToken: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const session = await ctx.db
       .query("sessions")
-      .withIndex("by_sessionToken", (q) =>
+      .withIndex("by_sessionToken", (q: any) =>
         q.eq("sessionToken", args.sessionToken)
       )
       .unique();
@@ -114,12 +114,12 @@ export const deleteSession = mutation({
  */
 export const cleanupExpiredSessions = mutation({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx: MutationCtx) => {
     const now = Date.now();
     const expiredSessions = await ctx.db
       .query("sessions")
       .withIndex("by_expiresAt")
-      .filter((q) => q.lt(q.field("expiresAt"), now))
+      .filter((q: any) => q.lt(q.field("expiresAt"), now))
       .take(100); // Process in batches
 
     for (const session of expiredSessions) {

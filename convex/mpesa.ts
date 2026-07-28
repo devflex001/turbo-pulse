@@ -1,6 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import type { MutationCtx } from "./_generated/server";
+import { mutation, query, MutationCtx, QueryCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { notifyAdmins, notifyUser } from "./notifications";
 
@@ -23,7 +22,7 @@ export const createTransaction = mutation({
     checkoutRequestID: v.string(),
     merchantRequestID: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     // Validate amount
     if (args.amount <= 0) {
       throw new Error("Amount must be greater than 0");
@@ -66,11 +65,11 @@ export const updateTransactionStatus = mutation({
     mpesaReceiptNumber: v.optional(v.string()),
     amount: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     // Find transaction by checkoutRequestID
     const transaction = await ctx.db
       .query("transactions")
-      .withIndex("by_checkoutRequestID", (q) =>
+      .withIndex("by_checkoutRequestID", (q: any) =>
         q.eq("checkoutRequestID", args.checkoutRequestID)
       )
       .unique();
@@ -202,10 +201,10 @@ export const getWallet = query({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: any) => {
     const wallet = await ctx.db
       .query("wallets")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
       .unique();
 
     if (!wallet) {
@@ -227,10 +226,10 @@ export const getLatestTransaction = query({
   args: {
     checkoutRequestID: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: any) => {
     const transaction = await ctx.db
       .query("transactions")
-      .withIndex("by_checkoutRequestID", (q) =>
+      .withIndex("by_checkoutRequestID", (q: any) =>
         q.eq("checkoutRequestID", args.checkoutRequestID)
       )
       .unique();
@@ -263,12 +262,12 @@ export const getTransactionHistory = query({
     userId: v.id("users"),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: any) => {
     const limit = args.limit ?? 20;
 
     const transactions = await ctx.db
       .query("transactions")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
       .order("desc")
       .take(limit);
 
@@ -286,10 +285,10 @@ export const getMyWallet = query({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: any) => {
     const wallet = await ctx.db
       .query("wallets")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
       .unique();
 
     if (!wallet) {
@@ -316,16 +315,16 @@ export const getMyTransactions = query({
     userId: v.id("users"),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: any) => {
     const limit = args.limit ?? 20;
 
     const transactions = await ctx.db
       .query("transactions")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
       .order("desc")
       .take(limit);
 
-    return transactions.map((t) => ({
+    return transactions.map((t: any) => ({
       ...t,
       id: t.txId,
       time:
@@ -349,7 +348,7 @@ export const getTransaction = query({
   args: {
     transactionId: v.id("transactions"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: any) => {
     const transaction = await ctx.db.get(args.transactionId);
 
     if (!transaction) {
@@ -372,7 +371,7 @@ export async function updateWalletBalance(
 ): Promise<void> {
   const wallet = await ctx.db
     .query("wallets")
-    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .withIndex("by_userId", (q: any) => q.eq("userId", userId))
     .unique();
 
   if (!wallet) {
@@ -402,14 +401,14 @@ export const withdrawFromWallet = mutation({
     userId: v.id("users"),
     amount: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     if (args.amount <= 0) {
       throw new Error("Amount must be greater than 0");
     }
 
     const wallet = await ctx.db
       .query("wallets")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
       .unique();
 
     if (!wallet) {

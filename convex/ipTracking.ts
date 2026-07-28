@@ -1,5 +1,5 @@
 import { v } from "convex/values"
-import { query, mutation, action } from "./_generated/server"
+import { query, mutation, action, MutationCtx, QueryCtx, ActionCtx } from "./_generated/server"
 import { Id } from "./_generated/dataModel"
 import { requireAdmin } from "./auth/authorization"
 
@@ -40,7 +40,7 @@ export const getIPLocationAndDevice = action({
     ip: v.string(),
     userAgent: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: ActionCtx, args: any) => {
     try {
       // Get IP geolocation
       const geoResponse = await fetch(`https://ipapi.co/${args.ip}/json/`)
@@ -158,7 +158,7 @@ export const trackVisitor = mutation({
     }),
     isBot: v.boolean(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     // Skip bot tracking
     if (args.isBot) {
       return { success: false, reason: "bot_skipped" }
@@ -168,7 +168,7 @@ export const trackVisitor = mutation({
       // Check if this IP already exists
       const existingVisitor = await ctx.db
         .query("visitors")
-        .withIndex("by_ip", (q) => q.eq("ip", args.ip))
+        .withIndex("by_ip", (q: any) => q.eq("ip", args.ip))
         .first()
 
       const now = Date.now()
@@ -237,10 +237,10 @@ export const updateUserIPTracking = mutation({
       deviceType: v.optional(v.string()),
     }),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const existing = await ctx.db
       .query("ip_tracking")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
       .first()
 
     if (existing) {
@@ -279,13 +279,13 @@ export const getUserIPInfo = query({
     userId: v.id("users"),
     adminUserId: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: any) => {
     // Require admin
     await requireAdmin(ctx, args.adminUserId)
 
     const tracking = await ctx.db
       .query("ip_tracking")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
       .first()
 
     return tracking || null
@@ -305,13 +305,13 @@ export const listVisitors = query({
     }),
     adminUserId: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: any) => {
     // Require admin
     await requireAdmin(ctx, args.adminUserId)
 
     const paginatedVisitors = await ctx.db
       .query("visitors")
-      .withIndex("by_lastVisitedAt", (q) => q.gte("lastVisitedAt", 0))
+      .withIndex("by_lastVisitedAt", (q: any) => q.gte("lastVisitedAt", 0))
       .order("desc")
       .paginate(args.paginationOpts)
 
@@ -333,13 +333,13 @@ export const getVisitorsByDateRange = query({
     endTime: v.number(),
     adminUserId: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: any) => {
     // Require admin
     await requireAdmin(ctx, args.adminUserId)
 
     const visitors = await ctx.db
       .query("visitors")
-      .withIndex("by_lastVisitedAt", (q) =>
+      .withIndex("by_lastVisitedAt", (q: any) =>
         q.gte("lastVisitedAt", args.startTime).lte("lastVisitedAt", args.endTime)
       )
       .order("desc")
@@ -362,7 +362,7 @@ export const getTrackedUsers = query({
     }),
     adminUserId: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: any) => {
     // Require admin
     await requireAdmin(ctx, args.adminUserId)
 
@@ -386,7 +386,7 @@ export const getTodayVisitorCount = query({
   args: {
     adminUserId: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: any) => {
     // Require admin
     await requireAdmin(ctx, args.adminUserId)
 
@@ -396,14 +396,14 @@ export const getTodayVisitorCount = query({
 
     const visitors = await ctx.db
       .query("visitors")
-      .withIndex("by_lastVisitedAt", (q) =>
+      .withIndex("by_lastVisitedAt", (q: any) =>
         q.gte("lastVisitedAt", todayStart.getTime())
       )
       .take(1000) // This is approximate, real implementation would use a counter table
 
     return {
       count: visitors.length,
-      totalVisits: visitors.reduce((sum, v) => sum + (v.visitCount || 1), 0),
+      totalVisits: visitors.reduce((sum: any, v: any) => sum + (v.visitCount || 1), 0),
       timestamp: now,
     }
   },
@@ -417,7 +417,7 @@ export const getVisitorStats = query({
     daysBack: v.optional(v.number()),
     adminUserId: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: any) => {
     // Require admin
     await requireAdmin(ctx, args.adminUserId)
 
@@ -427,7 +427,7 @@ export const getVisitorStats = query({
 
     const visitors = await ctx.db
       .query("visitors")
-      .withIndex("by_lastVisitedAt", (q) => q.gte("lastVisitedAt", startTime))
+      .withIndex("by_lastVisitedAt", (q: any) => q.gte("lastVisitedAt", startTime))
       .take(10000)
 
     // Group by country
@@ -437,7 +437,7 @@ export const getVisitorStats = query({
 
     let totalVisits = 0
 
-    visitors.forEach((v) => {
+    visitors.forEach((v: any) => {
       totalVisits += v.visitCount || 1
       byCountry[v.location.country] = (byCountry[v.location.country] || 0) + 1
       const device = v.device.deviceType || "unknown"

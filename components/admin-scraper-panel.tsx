@@ -140,10 +140,8 @@ export function AdminScraperPanel() {
     const sportNames = AVAILABLE_SPORTS.find(s => s.id === sportIds[0])?.label || String(sportIds[0])
 
     try {
-      const runId = await startRun({
+      const { runId } = await startRun({
         triggeredBy: "admin",
-        dateFrom: window.dateFrom,
-        dateTo: window.dateTo,
         selectedSports: [config.selectedSport],
         sessionToken: sessionToken || undefined,
       })

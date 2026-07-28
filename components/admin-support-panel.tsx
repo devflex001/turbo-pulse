@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useMutation, useQuery } from "convex/react"
-import { Loader2, MessageSquare, Send } from "lucide-react"
+import { ArrowLeft, Loader2, MessageSquare, Send } from "lucide-react"
 import { toast } from "sonner"
 
 import { api } from "@/convex/_generated/api"
@@ -12,8 +12,8 @@ import { getSessionToken } from "@/lib/auth/session"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
+import { MessageWithLinks } from "@/components/support/message-with-links"
 
 type Conversation = {
   _id: Id<"support_conversations">
@@ -104,7 +104,7 @@ function ConversationList({
   }
 
   return (
-    <ScrollArea className="flex-1">
+    <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="divide-y divide-border">
         {conversations.map((conversation) => (
           <button
@@ -149,16 +149,18 @@ function ConversationList({
           </button>
         ))}
       </div>
-    </ScrollArea>
+    </div>
   )
 }
 
 function AdminChatThread({
   authArgs,
   conversation,
+  onBack,
 }: {
   authArgs: { sessionToken: string; userId: Id<"users"> }
   conversation: Conversation
+  onBack?: () => void
 }) {
   const [draft, setDraft] = React.useState("")
   const [isSending, setIsSending] = React.useState(false)
@@ -223,23 +225,43 @@ function AdminChatThread({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center justify-between border-b border-border px-4 py-3">
-        <div>
-          <p className="text-sm font-semibold">
-            {conversation.displayName ?? conversation.userPhone}
-          </p>
-          <p className="text-xs text-muted-foreground">{conversation.userPhone}</p>
-          <p className="text-xs text-muted-foreground">
-            {conversation.status === "open" ? "Active conversation" : "Closed conversation"}
-          </p>
+    <div className="flex h-full min-h-0 flex-1 flex-col justify-between bg-background">
+      <div className="flex items-center justify-between border-b border-border bg-card px-3 py-2.5 shrink-0 shadow-xs md:px-4 md:py-3">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          {onBack && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-9 shrink-0 md:hidden -ml-1 hover:bg-accent rounded-full"
+              onClick={onBack}
+              aria-label="Back to conversations"
+            >
+              <ArrowLeft className="size-5" />
+            </Button>
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <p className="truncate text-sm font-bold text-foreground">
+                {conversation.displayName ?? conversation.userPhone}
+              </p>
+              {conversation.status === "closed" && (
+                <Badge variant="outline" className="h-5 text-[10px] shrink-0">
+                  Closed
+                </Badge>
+              )}
+            </div>
+            <p className="truncate text-xs text-muted-foreground">
+              {conversation.userPhone} • {conversation.status === "open" ? "Active" : "Closed"}
+            </p>
+          </div>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={toggleStatus}>
+        <Button type="button" variant="outline" size="sm" onClick={toggleStatus} className="shrink-0 ml-2">
           {conversation.status === "open" ? "Close" : "Reopen"}
         </Button>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1 px-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4">
         <div className="space-y-3 py-4">
           {messages === undefined && (
             <div className="flex justify-center py-8">
@@ -263,7 +285,10 @@ function AdminChatThread({
                     : "rounded-bl-md border border-border bg-muted/60 text-foreground"
                 )}
               >
-                <p className="whitespace-pre-wrap break-words">{message.body}</p>
+                <MessageWithLinks
+                  text={message.body}
+                  isPrimary={message.senderRole === "admin"}
+                />
                 <p
                   className={cn(
                     "mt-1 text-[10px]",
@@ -279,31 +304,31 @@ function AdminChatThread({
           ))}
           <div ref={messagesEndRef} />
         </div>
-      </ScrollArea>
+      </div>
 
-      <div className="border-t border-border p-3">
+      <div className="shrink-0 border-t border-border bg-card px-2.5 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:p-3">
         <div className="flex items-end gap-2">
           <Textarea
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Reply to user..."
-            rows={2}
+            rows={1}
             disabled={isSending || conversation.status === "closed"}
-            className="min-h-[44px] resize-none focus-visible:ring-primary"
+            className="min-h-[44px] max-h-32 flex-1 resize-none rounded-xl bg-background px-3.5 py-2.5 text-sm shadow-xs focus-visible:ring-primary"
           />
           <Button
             type="button"
             size="icon"
-            className="size-10 shrink-0"
+            className="size-11 shrink-0 rounded-full shadow-sm"
             disabled={!draft.trim() || isSending || conversation.status === "closed"}
             onClick={handleSend}
             aria-label="Send reply"
           >
             {isSending ? (
-              <Loader2 className="size-4 animate-spin" />
+              <Loader2 className="size-5 animate-spin" />
             ) : (
-              <Send className="size-4" />
+              <Send className="size-5" />
             )}
           </Button>
         </div>
@@ -345,23 +370,42 @@ export function AdminSupportPanel() {
     conversations?.reduce((sum, conversation) => sum + conversation.unreadByAdmin, 0) ?? 0
 
   return (
-    <div className="flex h-[calc(100vh-7rem)] min-h-[520px] flex-col gap-4">
-      <div className="flex items-center justify-between">
+    <div
+      className={cn(
+        "flex flex-col gap-4",
+        showThreadOnMobile && selectedConversation
+          ? "h-full min-h-0 flex-1 max-md:fixed max-md:inset-0 max-md:z-50 max-md:h-[100dvh] max-md:w-full max-md:gap-0 max-md:bg-background"
+          : "h-[calc(100vh-7rem)] min-h-[520px]"
+      )}
+    >
+      <div
+        className={cn(
+          "flex items-center justify-between",
+          showThreadOnMobile && selectedConversation && "max-md:hidden"
+        )}
+      >
         <div>
           <h1 className="text-lg font-bold tracking-tight">Support Chat</h1>
-        
         </div>
         {unreadTotal > 0 && (
           <Badge variant="secondary">{unreadTotal} unread</Badge>
         )}
       </div>
-      
 
-      <div className="flex min-h-0 flex-1 overflow-hidden rounded-lg border border-border bg-card">
+      <div
+        className={cn(
+          "flex h-full min-h-0 flex-1 overflow-hidden md:rounded-lg md:border md:border-border md:bg-card",
+          showThreadOnMobile && selectedConversation
+            ? "max-md:h-full max-md:w-full max-md:border-0 max-md:rounded-none max-md:bg-background"
+            : "max-md:border-0 max-md:rounded-none max-md:bg-transparent"
+        )}
+      >
         <div
           className={cn(
-            "flex w-full flex-col border-r border-border md:w-80 lg:w-96",
-            showThreadOnMobile && selectedConversation ? "hidden md:flex" : "flex"
+            "flex h-full min-h-0 w-full flex-col border-r border-border md:w-80 lg:w-96",
+            showThreadOnMobile && selectedConversation
+              ? "hidden md:flex"
+              : "flex max-md:border-r-0 max-md:rounded-lg max-md:border max-md:border-border max-md:bg-card max-md:shadow-sm"
           )}
         >
           <div className="border-b border-border px-4 py-3">
@@ -379,24 +423,16 @@ export function AdminSupportPanel() {
 
         <div
           className={cn(
-            "flex min-w-0 flex-1 flex-col",
+            "flex h-full min-h-0 min-w-0 flex-1 flex-col",
             !showThreadOnMobile && !selectedConversation ? "hidden md:flex" : "flex"
           )}
         >
           {selectedConversation ? (
-            <>
-              <div className="flex items-center border-b border-border px-4 py-2 md:hidden">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowThreadOnMobile(false)}
-                >
-                  Back
-                </Button>
-              </div>
-              <AdminChatThread authArgs={authArgs} conversation={selectedConversation} />
-            </>
+            <AdminChatThread
+              authArgs={authArgs}
+              conversation={selectedConversation}
+              onBack={() => setShowThreadOnMobile(false)}
+            />
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
               <MessageSquare className="mb-3 size-8 text-muted-foreground" />

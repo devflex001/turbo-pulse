@@ -76,7 +76,7 @@ export function CustomEventCard({
     notifyCustomEventStarted({
       userId: user._id,
       eventId: eventId as Id<"customEvents">,
-    }).catch((error) => {
+    }).catch((error: unknown) => {
       notifiedRef.current = false
       console.error("Failed to create match-start notification", error)
     })

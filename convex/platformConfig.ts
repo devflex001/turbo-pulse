@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, QueryCtx, MutationCtx } from "./_generated/server";
 import { requireAdmin } from "./auth/authorization";
 
 const CONFIG_KEY = "main";
@@ -24,7 +24,7 @@ export const getConfig = query({
   args: {
     userId: v.optional(v.id("users")),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: any) => {
     // For non-admin users, skip the admin check
     if (args.userId) {
       await requireAdmin(ctx, args.userId);
@@ -32,7 +32,7 @@ export const getConfig = query({
 
     const config = await ctx.db
       .query("platform_config")
-      .withIndex("by_key", (q) => q.eq("key", CONFIG_KEY))
+      .withIndex("by_key", (q: any) => q.eq("key", CONFIG_KEY))
       .unique();
 
     if (!config) {
@@ -54,10 +54,10 @@ export const getConfig = query({
  */
 export const getUserFacingConfig = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx: QueryCtx) => {
     const config = await ctx.db
       .query("platform_config")
-      .withIndex("by_key", (q) => q.eq("key", CONFIG_KEY))
+      .withIndex("by_key", (q: any) => q.eq("key", CONFIG_KEY))
       .unique();
 
     return {
@@ -92,12 +92,12 @@ export const saveConfig = mutation({
     referralReward: v.optional(v.number()),
     firstDepositBonusPercent: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const admin = await requireAdmin(ctx, args.userId);
 
     const existing = await ctx.db
       .query("platform_config")
-      .withIndex("by_key", (q) => q.eq("key", CONFIG_KEY))
+      .withIndex("by_key", (q: any) => q.eq("key", CONFIG_KEY))
       .unique();
 
     const now = Date.now();

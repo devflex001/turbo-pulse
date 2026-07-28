@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, QueryCtx, MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { notifyAdmins, notifyUser } from "./notifications";
 
@@ -22,11 +22,11 @@ export const getWalletBalance = query({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     // Get wallet for this specific user
     const wallet = await ctx.db
       .query("wallets")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
       .unique();
     return wallet ? wallet.balance : 0;
   },
@@ -36,14 +36,14 @@ export const getMyBets = query({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     const bets = await ctx.db
       .query("bets")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
       .order("desc")
       .take(100);
 
-    return bets.map((b) => ({
+    return bets.map((b: any) => ({
       ...b,
       id: b._id,
       placedAt: b.placedAt,
@@ -65,14 +65,14 @@ export const getTransactions = query({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     const txs = await ctx.db
       .query("transactions")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
       .order("desc")
       .take(100);
 
-    return txs.map((t) => ({
+    return txs.map((t: any) => ({
       ...t,
       id: t.txId,
       time:
@@ -115,10 +115,10 @@ export const placeBet = mutation({
     stake: v.number(),
     potentialReturn: v.number(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     let wallet = await ctx.db
       .query("wallets")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
       .unique();
 
     const balance = wallet ? wallet.balance : 0;
@@ -185,7 +185,7 @@ export const createTransaction = mutation({
     ),
     errorDetail: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const txId =
       "TX-" + Math.random().toString(36).substring(2, 8).toUpperCase();
 
@@ -203,7 +203,7 @@ export const createTransaction = mutation({
     if (args.status === "success") {
       let wallet = await ctx.db
         .query("wallets")
-        .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+        .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
         .unique();
       const currentBalance = wallet ? wallet.balance : 0;
       const change = args.type === "deposit" ? args.amount : -args.amount;
@@ -258,10 +258,10 @@ export const updateTransactionStatus = mutation({
     ),
     errorDetail: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const transaction = await ctx.db
       .query("transactions")
-      .withIndex("by_txId", (q) => q.eq("txId", args.txId))
+      .withIndex("by_txId", (q: any) => q.eq("txId", args.txId))
       .unique();
     if (!transaction) throw new Error("Transaction not found");
 
@@ -277,7 +277,7 @@ export const updateTransactionStatus = mutation({
       const userId = transaction.userId as Id<"users">;
       let wallet = await ctx.db
         .query("wallets")
-        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .withIndex("by_userId", (q: any) => q.eq("userId", userId))
         .unique();
       const currentBalance = wallet ? wallet.balance : 0;
       const change =
@@ -326,7 +326,7 @@ export const updateTransactionStatus = mutation({
       const userId = transaction.userId as Id<"users">;
       let wallet = await ctx.db
         .query("wallets")
-        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .withIndex("by_userId", (q: any) => q.eq("userId", userId))
         .unique();
       if (wallet) {
         const change =
@@ -346,7 +346,7 @@ export const settleSingleBet = mutation({
     betId: v.id("bets"),
     status: v.union(v.literal("won"), v.literal("lost")),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const bet = await ctx.db.get(args.betId);
     if (!bet) throw new Error("Bet not found");
     if (bet.status !== "active") return { success: true };
@@ -357,7 +357,7 @@ export const settleSingleBet = mutation({
       const userId = bet.userId as Id<"users">;
       let wallet = await ctx.db
         .query("wallets")
-        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .withIndex("by_userId", (q: any) => q.eq("userId", userId))
         .unique();
       const currentBalance = wallet ? wallet.balance : 0;
       if (wallet) {
@@ -412,14 +412,14 @@ export const cancelBet = mutation({
   args: {
     betId: v.id("bets"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const bet = await ctx.db.get(args.betId);
     if (!bet) throw new Error("Bet not found");
     if (bet.status !== "active") throw new Error("Bet is not active");
 
     const startTimes = bet.selections
-      .map((selection) => selection.matchStartTime)
-      .filter((time): time is number => typeof time === "number" && time > 0);
+      .map((selection: any) => selection.matchStartTime)
+      .filter((time: any): time is number => typeof time === "number" && time > 0);
 
     if (startTimes.length === 0) {
       throw new Error("Match start times unavailable for cancellation");
@@ -436,7 +436,7 @@ export const cancelBet = mutation({
       const userId = bet.userId as Id<"users">;
       let wallet = await ctx.db
         .query("wallets")
-        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .withIndex("by_userId", (q: any) => q.eq("userId", userId))
         .unique();
       const currentBalance = wallet ? wallet.balance : 0;
 
@@ -478,12 +478,12 @@ export const cancelBet = mutation({
 
 export const settleAllBets = mutation({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx: MutationCtx) => {
     const bets = await ctx.db
       .query("bets")
       .collect();
 
-    const activeBets = bets.filter((b) => b.status === "active");
+    const activeBets = bets.filter((b: any) => b.status === "active");
 
     for (const bet of activeBets) {
       const won = Math.random() > 0.4;
@@ -494,7 +494,7 @@ export const settleAllBets = mutation({
         const userId = bet.userId as Id<"users">;
         let wallet = await ctx.db
           .query("wallets")
-          .withIndex("by_userId", (q) => q.eq("userId", userId))
+          .withIndex("by_userId", (q: any) => q.eq("userId", userId))
           .unique();
         const currentBalance = wallet ? wallet.balance : 0;
         if (wallet) {
@@ -547,7 +547,7 @@ export const settleAllBets = mutation({
 
 export const getAdminStats = query({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx: QueryCtx) => {
     // Total users
     const allUsers = await ctx.db
       .query("users")
@@ -559,14 +559,14 @@ export const getAdminStats = query({
       .query("transactions")
       .collect();
     const totalDeposits = allTransactions
-      .filter((t) => t.type === "deposit" && t.status === "success")
-      .reduce((sum, t) => sum + t.amount, 0);
+      .filter((t: any) => t.type === "deposit" && t.status === "success")
+      .reduce((sum: any, t: any) => sum + t.amount, 0);
 
     // Active bets
     const allBets = await ctx.db
       .query("bets")
       .collect();
-    const activeBets = allBets.filter((b) => b.status === "active").length;
+    const activeBets = allBets.filter((b: any) => b.status === "active").length;
 
     return {
       totalUsers,
@@ -580,7 +580,7 @@ export const getDepositTrend = query({
   args: {
     daysBack: v.optional(v.number()), // defaults to 7 days
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     const daysBack = args.daysBack ?? 7;
     const now = Date.now();
     const startOfToday = new Date();
@@ -606,7 +606,7 @@ export const getDepositTrend = query({
     }
 
     // Accumulate deposits
-    allTransactions.forEach((tx) => {
+    allTransactions.forEach((tx: any) => {
       if (tx.type === "deposit" && tx.status === "success") {
         const txDate = new Date(tx.time);
         const txStartOfDay = new Date(txDate);
@@ -626,7 +626,7 @@ export const getDepositTrend = query({
       }
     });
 
-    return Object.entries(depositsByDay).map(([day, amount]) => ({
+    return Object.entries(depositsByDay).map(([day, amount]: any) => ({
       day,
       amount,
     }));
@@ -637,7 +637,7 @@ export const getUserRegistrationTrend = query({
   args: {
     daysBack: v.optional(v.number()), // defaults to 7 days
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     const daysBack = args.daysBack ?? 7;
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
@@ -661,7 +661,7 @@ export const getUserRegistrationTrend = query({
     }
 
     // Count users by registration date
-    allUsers.forEach((user) => {
+    allUsers.forEach((user: any) => {
       const userDate = new Date(user.createdAt);
       const userStartOfDay = new Date(userDate);
       userStartOfDay.setHours(0, 0, 0, 0);
@@ -678,7 +678,7 @@ export const getUserRegistrationTrend = query({
       }
     });
 
-    return Object.entries(usersByDay).map(([day, count]) => ({
+    return Object.entries(usersByDay).map(([day, count]: any) => ({
       day,
       count,
     }));

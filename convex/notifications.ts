@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, QueryCtx } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { requireAdmin, requireAuth } from "./auth/authorization";
@@ -40,7 +40,7 @@ export async function createNotification(
   if (args.dedupeKey) {
     const existing = await ctx.db
       .query("notifications")
-      .withIndex("by_dedupeKey", (q) => q.eq("dedupeKey", args.dedupeKey))
+      .withIndex("by_dedupeKey", (q: any) => q.eq("dedupeKey", args.dedupeKey))
       .first();
 
     if (existing) {
@@ -78,7 +78,7 @@ export async function notifyAdmins(
 ) {
   const admins = await ctx.db
     .query("users")
-    .withIndex("by_role", (q) => q.eq("role", "admin"))
+    .withIndex("by_role", (q: any) => q.eq("role", "admin"))
     .take(100);
 
   for (const admin of admins) {
@@ -98,13 +98,13 @@ export const listMine = query({
     userId: v.id("users"),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     await requireAuth(ctx, args.userId);
 
     const limit = Math.min(args.limit ?? 30, 50);
     return await ctx.db
       .query("notifications")
-      .withIndex("by_recipientUserId_and_createdAt", (q) =>
+      .withIndex("by_recipientUserId_and_createdAt", (q: any) =>
         q.eq("recipientUserId", args.userId)
       )
       .order("desc")
@@ -116,12 +116,12 @@ export const getUnreadCount = query({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     await requireAuth(ctx, args.userId);
 
     const unread = await ctx.db
       .query("notifications")
-      .withIndex("by_recipientUserId_and_readAt", (q) =>
+      .withIndex("by_recipientUserId_and_readAt", (q: any) =>
         q.eq("recipientUserId", args.userId).eq("readAt", null)
       )
       .take(100);
@@ -135,7 +135,7 @@ export const markRead = mutation({
     userId: v.id("users"),
     notificationId: v.id("notifications"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const user = await requireAuth(ctx, args.userId);
     const notification = await ctx.db.get(args.notificationId);
 
@@ -155,12 +155,12 @@ export const markAllRead = mutation({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     await requireAuth(ctx, args.userId);
 
     const unread = await ctx.db
       .query("notifications")
-      .withIndex("by_recipientUserId_and_readAt", (q) =>
+      .withIndex("by_recipientUserId_and_readAt", (q: any) =>
         q.eq("recipientUserId", args.userId).eq("readAt", null)
       )
       .take(100);
@@ -179,7 +179,7 @@ export const remove = mutation({
     userId: v.id("users"),
     notificationId: v.id("notifications"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const user = await requireAuth(ctx, args.userId);
     const notification = await ctx.db.get(args.notificationId);
 
@@ -200,7 +200,7 @@ export const createAdminSystemNotification = mutation({
     type: v.optional(notificationTypeValidator),
     href: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     await requireAdmin(ctx, args.adminUserId);
 
     await notifyAdmins(ctx, {
@@ -219,7 +219,7 @@ export const notifyCustomEventStarted = mutation({
     userId: v.id("users"),
     eventId: v.id("customEvents"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const user = await requireAuth(ctx, args.userId);
     const event = await ctx.db.get(args.eventId);
     if (!event || event.status !== "published") {
@@ -233,7 +233,7 @@ export const notifyCustomEventStarted = mutation({
 
     const activeBets = await ctx.db
       .query("bets")
-      .withIndex("by_userId", (q) => q.eq("userId", user._id.toString()))
+      .withIndex("by_userId", (q: any) => q.eq("userId", user._id.toString()))
       .take(100);
 
     let created = 0;
@@ -244,7 +244,7 @@ export const notifyCustomEventStarted = mutation({
       }
 
       const matchingSelection = bet.selections.find(
-        (selection) => selection.matchId === args.eventId
+        (selection: any) => selection.matchId === args.eventId
       );
 
       if (!matchingSelection) {

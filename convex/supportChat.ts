@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { action, mutation, query } from "./_generated/server";
+import type { ActionCtx, MutationCtx, QueryCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import {
   getUserIdFromSessionToken,
@@ -57,12 +57,12 @@ function validateDisplayName(displayName: string) {
 
 export const getMyConversation = query({
   args: authArgs,
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     const user = await resolveAuthenticatedUser(ctx, args);
 
     return await ctx.db
       .query("support_conversations")
-      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .withIndex("by_userId", (q: any) => q.eq("userId", user._id))
       .first();
   },
 });
@@ -72,7 +72,7 @@ export const getMessages = query({
     ...authArgs,
     conversationId: v.id("support_conversations"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     const user = await resolveAuthenticatedUser(ctx, args);
     const conversation = await ctx.db.get(args.conversationId);
 
@@ -89,7 +89,7 @@ export const getMessages = query({
 
     return await ctx.db
       .query("support_messages")
-      .withIndex("by_conversationId_and_createdAt", (q) =>
+      .withIndex("by_conversationId_and_createdAt", (q: any) =>
         q.eq("conversationId", args.conversationId)
       )
       .order("asc")
@@ -99,7 +99,7 @@ export const getMessages = query({
 
 export const listConversations = query({
   args: authArgs,
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     const user = await resolveAuthenticatedUser(ctx, args);
 
     if (user.role !== "admin") {
@@ -132,7 +132,7 @@ export const initSupportChat = mutation({
     ...authArgs,
     displayName: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const user = await resolveAuthenticatedUser(ctx, args);
 
     if (user.role === "admin") {
@@ -143,7 +143,7 @@ export const initSupportChat = mutation({
 
     const existing = await ctx.db
       .query("support_conversations")
-      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .withIndex("by_userId", (q: any) => q.eq("userId", user._id))
       .first();
 
     if (existing) {
@@ -175,7 +175,7 @@ export const sendMessage = mutation({
     conversationId: v.optional(v.id("support_conversations")),
     body: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const user = await resolveAuthenticatedUser(ctx, args);
     const body = args.body.trim();
 
@@ -202,7 +202,7 @@ export const sendMessage = mutation({
       } else {
         conversation = await ctx.db
           .query("support_conversations")
-          .withIndex("by_userId", (q) => q.eq("userId", user._id))
+          .withIndex("by_userId", (q: any) => q.eq("userId", user._id))
           .first();
         if (conversation) {
           conversationId = conversation._id;
@@ -284,7 +284,7 @@ export const markAsRead = mutation({
     ...authArgs,
     conversationId: v.id("support_conversations"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const user = await resolveAuthenticatedUser(ctx, args);
     const conversation = await ctx.db.get(args.conversationId);
 
@@ -306,16 +306,11 @@ export const markAsRead = mutation({
 
 export const getUnreadCount = query({
   args: authArgs,
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args) => {
     const user = await resolveAuthenticatedUser(ctx, args);
 
     if (user.role === "admin") {
-      const conversations = await ctx.db
-        .query("support_conversations")
-        .withIndex("by_lastMessageAt")
-        .order("desc")
-        .take(100);
-
+      const conversations = await ctx.db.query("support_conversations").collect();
       return conversations.reduce(
         (sum, conversation) => sum + conversation.unreadByAdmin,
         0
@@ -324,7 +319,7 @@ export const getUnreadCount = query({
 
     const conversation = await ctx.db
       .query("support_conversations")
-      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .withIndex("by_userId", (q: any) => q.eq("userId", user._id))
       .first();
 
     return conversation?.unreadByUser ?? 0;
@@ -336,7 +331,7 @@ export const closeConversation = mutation({
     ...authArgs,
     conversationId: v.id("support_conversations"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const user = await resolveAuthenticatedUser(ctx, args);
 
     if (user.role !== "admin") {
@@ -358,7 +353,7 @@ export const reopenConversation = mutation({
     ...authArgs,
     conversationId: v.id("support_conversations"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args) => {
     const user = await resolveAuthenticatedUser(ctx, args);
 
     if (user.role !== "admin") {
@@ -374,3 +369,90 @@ export const reopenConversation = mutation({
     return { success: true };
   },
 });
+
+export const fetchOgMetadata = action({
+  args: {
+    url: v.string(),
+  },
+  handler: async (ctx: ActionCtx, { url }) => {
+    try {
+      let targetUrl = url.trim();
+      if (!targetUrl.startsWith("http://") && !targetUrl.startsWith("https://")) {
+        targetUrl = "https://" + targetUrl;
+      }
+      const parsedUrl = new URL(targetUrl);
+      const res = await fetch(parsedUrl.toString(), {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        },
+        signal: AbortSignal.timeout(6000),
+      });
+
+      if (!res.ok) {
+        return {
+          title: parsedUrl.hostname,
+          domain: parsedUrl.hostname,
+          url: parsedUrl.toString(),
+        };
+      }
+
+      const html = await res.text();
+
+      const getMeta = (property: string) => {
+        const regex = new RegExp(
+          `<meta[^>]+(?:property|name)=["']${property}["'][^>]+content=["']([^"']+)["']`,
+          "i"
+        );
+        const match = html.match(regex);
+        if (match) return match[1];
+        const regex2 = new RegExp(
+          `<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${property}["']`,
+          "i"
+        );
+        const match2 = html.match(regex2);
+        return match2 ? match2[1] : undefined;
+      };
+
+      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+      const title =
+        getMeta("og:title") ||
+        (titleMatch ? titleMatch[1].trim() : parsedUrl.hostname);
+      const description = getMeta("og:description") || getMeta("description");
+      let image = getMeta("og:image");
+
+      if (image && !image.startsWith("http://") && !image.startsWith("https://")) {
+        if (image.startsWith("//")) {
+          image = "https:" + image;
+        } else if (image.startsWith("/")) {
+          image = `${parsedUrl.protocol}//${parsedUrl.host}${image}`;
+        } else {
+          image = `${parsedUrl.protocol}//${parsedUrl.host}/${image}`;
+        }
+      }
+
+      const siteName = getMeta("og:site_name") || parsedUrl.hostname;
+
+      return {
+        title: title || parsedUrl.hostname,
+        description,
+        image,
+        domain: siteName || parsedUrl.hostname,
+        url: parsedUrl.toString(),
+      };
+    } catch (error) {
+      try {
+        const parsedUrl = new URL(url.startsWith("http") ? url : "https://" + url);
+        return {
+          title: parsedUrl.hostname,
+          domain: parsedUrl.hostname,
+          url: parsedUrl.toString(),
+        };
+      } catch {
+        return null;
+      }
+    }
+  },
+});
+

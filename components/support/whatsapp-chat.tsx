@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { MessageWithLinks } from "@/components/support/message-with-links"
 
 type SupportMessage = {
   _id: Id<"support_messages"> | string
@@ -42,12 +43,12 @@ function useSupportAuthArgs() {
 
 function WhatsAppHeader({ onBack }: { onBack: () => void }) {
   return (
-    <header className="flex shrink-0 items-center gap-3 border-b border-border bg-card px-2 py-2.5">
+    <header className="flex shrink-0 items-center gap-2.5 border-b border-border bg-card px-3 py-2.5 shadow-xs md:px-4">
       <Button
         type="button"
         variant="ghost"
         size="icon"
-        className="size-9 shrink-0 hover:bg-accent"
+        className="size-9 shrink-0 -ml-1 rounded-full hover:bg-accent"
         onClick={onBack}
         aria-label="Close chat"
       >
@@ -59,7 +60,7 @@ function WhatsAppHeader({ onBack }: { onBack: () => void }) {
         </AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-base font-medium leading-tight text-foreground">BetFlexx Support</p>
+        <p className="truncate text-base font-bold leading-tight text-foreground">BetFlexx Support</p>
         <p className="text-xs text-muted-foreground">online</p>
       </div>
     </header>
@@ -68,7 +69,7 @@ function WhatsAppHeader({ onBack }: { onBack: () => void }) {
 
 function GuestPrompt({ onBack }: { onBack: () => void }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-background">
+    <div className="flex h-full min-h-0 flex-1 flex-col justify-between bg-background">
       <WhatsAppHeader onBack={onBack} />
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-10 text-center">
         <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-primary/15">
@@ -125,7 +126,7 @@ function NameEntryScreen({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-background">
+    <div className="flex h-full min-h-0 flex-1 flex-col justify-between bg-background">
       <WhatsAppHeader onBack={onBack} />
       <div className="flex flex-1 flex-col items-center justify-center px-6">
         <div className="w-full max-w-sm space-y-6">
@@ -173,20 +174,20 @@ function MessageBubble({ message }: { message: SupportMessage }) {
     <div className={cn("flex px-3", isOwn ? "justify-end" : "justify-start")}>
       <div
         className={cn(
-          "relative max-w-[78%] px-2.5 py-1.5 pb-1 shadow-sm",
+          "relative max-w-[85%] px-3 py-2 pb-5 shadow-sm",
           isOwn
             ? "rounded-lg rounded-tr-none bg-primary text-primary-foreground"
-            : "rounded-lg rounded-tl-none bg-muted text-foreground",
+            : "rounded-lg rounded-tl-none border border-border bg-muted/80 text-foreground",
           message.pending && "opacity-70"
         )}
       >
-        <p className="whitespace-pre-wrap break-words pr-12 text-[15px] leading-snug">
-          {message.body}
-        </p>
-        <span className={cn(
-          "absolute bottom-1 right-2 text-[11px]",
-          isOwn ? "text-primary-foreground/70" : "text-muted-foreground"
-        )}>
+        <MessageWithLinks text={message.body} isPrimary={isOwn} />
+        <span
+          className={cn(
+            "absolute bottom-1 right-2 text-[10px]",
+            isOwn ? "text-primary-foreground/70" : "text-muted-foreground"
+          )}
+        >
           {formatMessageTime(message.createdAt)}
         </span>
       </div>
@@ -290,7 +291,7 @@ function ChatThread({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-background">
+    <div className="flex h-full min-h-0 flex-1 flex-col justify-between bg-background">
       <WhatsAppHeader onBack={onBack} />
 
       <div className="min-h-0 flex-1 overflow-y-auto bg-muted/30 py-3">
@@ -411,8 +412,8 @@ export function WhatsAppChat({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-stretch justify-center bg-black/40 md:items-center">
-      <div className="flex h-[100dvh] w-full flex-col bg-background shadow-xl md:h-[calc(100dvh-2rem)] md:max-w-md md:max-h-[820px] md:rounded-lg md:overflow-hidden">
+    <div className="fixed inset-0 z-[100] flex items-stretch justify-center bg-background md:bg-black/40 md:items-center md:p-4">
+      <div className="flex h-[100dvh] w-full flex-col bg-background md:h-[calc(100dvh-2rem)] md:max-w-md md:max-h-[820px] md:rounded-2xl md:border md:border-border md:shadow-2xl md:overflow-hidden">
         {content}
       </div>
     </div>

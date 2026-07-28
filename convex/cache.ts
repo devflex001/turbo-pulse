@@ -1,6 +1,6 @@
 "use node";
 
-import { action } from "./_generated/server";
+import { action, ActionCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { Redis } from "@upstash/redis";
 
@@ -54,7 +54,7 @@ export const getFromCacheAction = action({
   args: {
     key: v.string(),
   },
-  handler: async (ctx, args): Promise<unknown> => {
+  handler: async (ctx: ActionCtx, args: any): Promise<unknown> => {
     try {
       const cached = await redis.get(args.key);
       return cached ? JSON.parse(cached as string) : null;
@@ -72,7 +72,7 @@ export const setInCacheAction = action({
     value: v.any(),
     ttl: v.number(),
   },
-  handler: async (ctx, args): Promise<{ success: boolean; error?: string }> => {
+  handler: async (ctx: ActionCtx, args: any): Promise<{ success: boolean; error?: string }> => {
     try {
       await redis.setex(args.key, args.ttl, JSON.stringify(args.value));
       return { success: true };
@@ -88,7 +88,7 @@ export const invalidateCachePatternAction = action({
   args: {
     pattern: v.string(),
   },
-  handler: async (ctx, args): Promise<{ success: boolean; invalidatedCount: number; error?: string }> => {
+  handler: async (ctx: ActionCtx, args: any): Promise<{ success: boolean; invalidatedCount: number; error?: string }> => {
     try {
       const keys = await redis.keys(`cache:${args.pattern}:*`);
       if (keys.length > 0) {
@@ -105,7 +105,7 @@ export const invalidateCachePatternAction = action({
 // Cache health check
 export const cacheHealthCheck = action({
   args: {},
-  handler: async (ctx): Promise<{ status: "healthy" | "unhealthy"; error?: string; details?: Record<string, unknown> }> => {
+  handler: async (ctx: ActionCtx): Promise<{ status: "healthy" | "unhealthy"; error?: string; details?: Record<string, unknown> }> => {
     const details: Record<string, unknown> = {
       configValid: redisConfig.isValid,
       hasUrl: !!redisConfig.url,
