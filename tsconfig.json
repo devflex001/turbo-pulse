@@ -1,7 +1,12 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "lib": ["dom", "dom.iterable", "esnext", "ES2023"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext",
+      "ES2023"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -21,7 +26,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "./*"
+      ]
     }
   },
   "include": [
@@ -31,7 +38,11 @@
     "**/*.tsx",
     "**/*.mts",
     ".next/types/**/*.ts",
-    "types/**/*.d.ts"
+    "types/**/*.d.ts",
+    ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "convex"]
+  "exclude": [
+    "node_modules",
+    "convex"
+  ]
 }
