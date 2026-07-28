@@ -98,7 +98,7 @@ export const listMine = query({
     userId: v.id("users"),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     await requireAuth(ctx, args.userId);
 
     const limit = Math.min(args.limit ?? 30, 50);
@@ -116,7 +116,7 @@ export const getUnreadCount = query({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     await requireAuth(ctx, args.userId);
 
     const unread = await ctx.db
@@ -135,7 +135,7 @@ export const markRead = mutation({
     userId: v.id("users"),
     notificationId: v.id("notifications"),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const user = await requireAuth(ctx, args.userId);
     const notification = await ctx.db.get(args.notificationId);
 
@@ -155,7 +155,7 @@ export const markAllRead = mutation({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     await requireAuth(ctx, args.userId);
 
     const unread = await ctx.db
@@ -179,7 +179,7 @@ export const remove = mutation({
     userId: v.id("users"),
     notificationId: v.id("notifications"),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const user = await requireAuth(ctx, args.userId);
     const notification = await ctx.db.get(args.notificationId);
 
@@ -200,7 +200,7 @@ export const createAdminSystemNotification = mutation({
     type: v.optional(notificationTypeValidator),
     href: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     await requireAdmin(ctx, args.adminUserId);
 
     await notifyAdmins(ctx, {
@@ -219,7 +219,7 @@ export const notifyCustomEventStarted = mutation({
     userId: v.id("users"),
     eventId: v.id("customEvents"),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const user = await requireAuth(ctx, args.userId);
     const event = await ctx.db.get(args.eventId);
     if (!event || event.status !== "published") {

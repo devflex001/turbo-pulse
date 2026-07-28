@@ -83,7 +83,7 @@ export const deleteUser = mutation({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx: MutationCtx, args: { userId: string }) => {
+  handler: async (ctx: MutationCtx, args) => {
     // Require admin role
     const admin = await requireAdmin(ctx);
 
@@ -101,7 +101,7 @@ export const getUserBets = query({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx: QueryCtx, args: { userId: string }) => {
+  handler: async (ctx: QueryCtx, args) => {
     // User can view their own bets, or admin can view any user's bets
     await requireOwnershipOrAdmin(ctx, args.userId);
 

@@ -32,7 +32,7 @@ export const getMyWithdrawals = query({
   args: {
     userId: v.optional(v.id("users")),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     const user = await requireAuth(ctx, args.userId);
 
     const requests = await ctx.db
@@ -65,7 +65,7 @@ export const listWithdrawalRequests = query({
     ),
     userId: v.optional(v.id("users")),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     await requireAdmin(ctx, args.userId);
 
     const statusFilter = args.statusFilter ?? "all";
@@ -87,7 +87,7 @@ export const listWithdrawalRequests = query({
 
     // Enrich each request with the user's phone
     const enriched = await Promise.all(
-      paginated.page.map(async (req: any) => {
+      paginated.page.map(async (req) => {
         const user = await ctx.db.get(req.userId);
         return {
           ...req,
@@ -111,7 +111,7 @@ export const getWithdrawalStats = query({
   args: {
     userId: v.optional(v.id("users")),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     await requireAdmin(ctx, args.userId);
 
     const pending = await ctx.db
@@ -129,7 +129,7 @@ export const getWithdrawalStats = query({
       .withIndex("by_status", (q: any) => q.eq("status", "rejected"))
       .collect();
 
-    const totalApprovedVolume = approved.reduce((sum: any, r: any) => sum + r.amount, 0);
+    const totalApprovedVolume = approved.reduce((sum, r) => sum + r.amount, 0);
 
     return {
       pending: pending.length,
@@ -157,7 +157,7 @@ export const submitWithdrawalRequest = mutation({
     feeTxReference: v.string(),
     phone: v.string(),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const user = await requireAuth(ctx, args.userId);
 
     // Load platform config
@@ -242,7 +242,7 @@ export const payInstantFee = mutation({
     requestId: v.id("withdrawal_requests"),
     instantFeeTxReference: v.string(),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const user = await requireAuth(ctx, args.userId);
 
     const request = await ctx.db.get(args.requestId);
@@ -288,7 +288,7 @@ export const approveWithdrawal = mutation({
     sessionToken: v.optional(v.string()), // For logging
     requestId: v.id("withdrawal_requests"),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const admin = await requireAdmin(ctx, args.userId);
 
     const request = await ctx.db.get(args.requestId);
@@ -366,7 +366,7 @@ export const rejectWithdrawal = mutation({
     requestId: v.id("withdrawal_requests"),
     rejectionReason: v.string(),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const admin = await requireAdmin(ctx, args.userId);
 
     const request = await ctx.db.get(args.requestId);

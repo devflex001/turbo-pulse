@@ -20,7 +20,7 @@ export const listMatches = query({
     offset: v.optional(v.number()),
     includeFirstMarket: v.optional(v.boolean()),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     const pageSize = Math.max(1, Math.min(args.limit ?? 10, 50));
     const offset = Math.max(0, args.offset ?? 0);
 
@@ -138,7 +138,7 @@ export const getMatchMainOdds = query({
   args: {
     sourceMatchId: v.string(),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     const mainMarket = await ctx.db
       .query("sportsMarkets")
       .withIndex("by_sourceMatchId_and_marketKey", (q: any) =>
@@ -168,7 +168,7 @@ export const listCompetitions = query({
   args: {
     sport: v.optional(v.string()),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     // Only fetch upcoming fixtures - don't waste resources on ended matches
     const lowerBound = Date.now(); // Start from now
     const upperBound = Date.now() + 30 * 24 * 60 * 60 * 1000;
@@ -201,7 +201,7 @@ export const getMatchBySourceId = query({
   args: {
     sourceMatchId: v.string(),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     return await ctx.db
       .query("sportsMatches")
       .withIndex("by_source_and_sourceMatchId", (q: any) =>
@@ -215,7 +215,7 @@ export const getMatchWithMainOdds = query({
   args: {
     sourceMatchId: v.string(),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     const match = await ctx.db
       .query("sportsMatches")
       .withIndex("by_source_and_sourceMatchId", (q: any) =>
@@ -253,7 +253,7 @@ export const listMarkets = query({
   args: {
     sourceMatchId: v.string(),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     return await ctx.db
       .query("sportsMarkets")
       .withIndex("by_sourceMatchId_and_marketPriority", (q: any) =>
@@ -304,7 +304,7 @@ export const listOdds = query({
     sourceMatchId: v.string(),
     marketKey: v.string(),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     return await ctx.db
       .query("sportsOdds")
       .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q: any) =>
@@ -318,7 +318,7 @@ export const listOddsByMatch = query({
   args: {
     sourceMatchId: v.string(),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     return await ctx.db
       .query("sportsOdds")
       .withIndex("by_sourceMatchId_and_marketKey_and_priority", (q: any) =>
@@ -333,7 +333,7 @@ export const clearJunkEvents = mutation({
   args: {
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const cutoffTime = Date.now() - 24 * 60 * 60 * 1000; // 24 hours ago
 
     // Get old matches using index (ONLY 10 at a time to stay under read limits)
@@ -415,7 +415,7 @@ export const toggleFeaturedMatch = mutation({
     matchId: v.id("sportsMatches"),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const match = await ctx.db.get(args.matchId);
     if (!match) throw new Error("Match not found");
 
@@ -448,7 +448,7 @@ export const listFeaturedMatches = query({
     offset: v.optional(v.number()),
     includeFirstMarket: v.optional(v.boolean()),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     const pageSize = Math.max(1, Math.min(args.limit ?? 50, 100));
     const offset = Math.max(0, args.offset ?? 0);
     const fetchLimit = (Math.ceil(offset / pageSize) + 2) * pageSize;
@@ -506,7 +506,7 @@ export const deleteSportsMatch = mutation({
     matchId: v.id("sportsMatches"),
     sessionToken: v.string(),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken);
     if (!adminSession) throw new Error("Admin session required");
 

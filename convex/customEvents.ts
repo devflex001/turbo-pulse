@@ -406,7 +406,7 @@ export const createCustomEvent = mutation({
     competition: v.string(),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const now = Date.now()
     const startTimeIso = new Date(args.startTime).toISOString()
 
@@ -489,7 +489,7 @@ export const updateCustomEvent = mutation({
     competition: v.optional(v.string()),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const event = await ctx.db.get(args.eventId)
     if (!event) throw new Error("Event not found")
     if (event.status === "published")
@@ -562,7 +562,7 @@ export const updateCustomEventScore = mutation({
     awayScore: v.number(),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const event = await ctx.db.get(args.eventId)
     if (!event) throw new Error("Event not found")
     if (
@@ -612,7 +612,7 @@ export const markEventAsFinished = mutation({
     eventId: v.id("customEvents"),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const event = await ctx.db.get(args.eventId)
     if (!event) throw new Error("Event not found")
     if (event.eventStatus === "finished") throw new Error("Event already finished")
@@ -645,7 +645,7 @@ export const autoUpdateFinishedEvents = mutation({
   args: {
     eventIds: v.array(v.id("customEvents")),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const now = Date.now()
     const MATCH_DURATION = 105 * 60 * 1000 // 105 minutes
 
@@ -674,7 +674,7 @@ export const updateCustomMarket = mutation({
     isActive: v.optional(v.boolean()),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const market = await ctx.db.get(args.marketId)
     if (!market) throw new Error("Market not found")
 
@@ -741,7 +741,7 @@ export const createCustomOdds = mutation({
     ),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const event = await ctx.db.get(args.eventId)
     if (!event) throw new Error("Event not found")
     if (event.status === "published")
@@ -795,7 +795,7 @@ export const updateCustomOdds = mutation({
     isActive: v.optional(v.boolean()),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const odd = await ctx.db.get(args.oddId)
     if (!odd) throw new Error("Odd not found")
 
@@ -847,7 +847,7 @@ export const publishCustomEvent = mutation({
     eventId: v.id("customEvents"),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const event = await ctx.db.get(args.eventId)
     if (!event) throw new Error("Event not found")
     if (event.status === "published") throw new Error("Event already published")
@@ -885,7 +885,7 @@ export const unpublishCustomEvent = mutation({
     eventId: v.id("customEvents"),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const event = await ctx.db.get(args.eventId)
     if (!event) throw new Error("Event not found")
     if (event.status === "draft")
@@ -923,7 +923,7 @@ export const toggleFeaturedEvent = mutation({
     eventId: v.id("customEvents"),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const event = await ctx.db.get(args.eventId)
     if (!event) throw new Error("Event not found")
     if (event.status !== "published")
@@ -964,7 +964,7 @@ export const deleteCustomEvent = mutation({
     eventId: v.id("customEvents"),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const event = await ctx.db.get(args.eventId)
     if (!event) throw new Error("Event not found")
     if (event.status === "published")
@@ -1016,7 +1016,7 @@ export const getCustomEvent = query({
   args: {
     eventId: v.id("customEvents"),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     return await ctx.db.get(args.eventId)
   },
 })
@@ -1058,7 +1058,7 @@ export const getPublishedCustomEventsWithCache = query({
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     const pageSize = Math.max(1, Math.min(args.limit ?? 10, 50))
     const offset = Math.max(0, args.offset ?? 0)
     const fetchLimit = (Math.ceil(offset / pageSize) + 2) * pageSize
@@ -1092,7 +1092,7 @@ export const listCustomEvents = query({
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     const pageSize = Math.max(1, Math.min(args.limit ?? 10, 50))
     const offset = Math.max(0, args.offset ?? 0)
     const fetchLimit = (Math.ceil(offset / pageSize) + 2) * pageSize
@@ -1140,7 +1140,7 @@ export const listCustomMarkets = query({
   args: {
     eventId: v.id("customEvents"),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     return await ctx.db
       .query("customMarkets")
       .withIndex("by_eventId_and_priority", (q: any) =>
@@ -1154,7 +1154,7 @@ export const listCustomOdds = query({
   args: {
     marketId: v.id("customMarkets"),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     return await ctx.db
       .query("customOdds")
       .withIndex("by_marketId_and_priority", (q: any) =>
@@ -1168,7 +1168,7 @@ export const listCustomOddsByEvent = query({
   args: {
     eventId: v.id("customEvents"),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     return await ctx.db
       .query("customOdds")
       .withIndex("by_eventId", (q: any) => q.eq("eventId", args.eventId))
@@ -1180,7 +1180,7 @@ export const getCustomEventWithMarkets = query({
   args: {
     eventId: v.id("customEvents"),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     const event = await ctx.db.get(args.eventId)
     if (!event) return null
 
@@ -1200,7 +1200,7 @@ export const getEventBets = query({
   args: {
     eventId: v.id("customEvents"),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     const bets = await ctx.db
       .query("bets")
       .collect()
@@ -1224,7 +1224,7 @@ export const calculateSettlementSummary = query({
       winningOutcomeIds: v.array(v.string()),
     })),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     // Get all active bets for this event
     const allBets = await ctx.db.query("bets").collect()
     const eventBets = allBets.filter((bet: any) =>
@@ -1322,7 +1322,7 @@ export const settleCustomEvent = mutation({
     passphrase: v.optional(v.string()),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const event = await ctx.db.get(args.eventId)
     if (!event) throw new Error("Event not found")
 

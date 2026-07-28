@@ -264,7 +264,7 @@ export const getReferralHistory = query({
 
     // Enrich with referred user info
     const enriched = await Promise.all(
-      referrals.map(async (referral: any) => {
+      referrals.map(async (referral) => {
         let referredUser = null;
         if (referral.referredUserId) {
           referredUser = await ctx.db.get(referral.referredUserId);
@@ -535,17 +535,17 @@ export const getAllReferrals = query({
     // Filter by status if needed
     let filtered = allReferrals;
     if (args.status && args.status !== "all") {
-      filtered = allReferrals.filter((r: any) => r.status === args.status);
+      filtered = allReferrals.filter((r) => r.status === args.status);
     }
 
     // Sort descending and apply pagination
     const referrals = filtered
-      .sort((a: any, b: any) => b.createdAt - a.createdAt)
+      .sort((a, b) => b.createdAt - a.createdAt)
       .slice(offset, offset + limit);
 
     // Enrich with referrer and referred user details
     const enriched = await Promise.all(
-      referrals.map(async (referral: any) => {
+      referrals.map(async (referral) => {
         const referrer = await ctx.db.get(referral.referrerId);
         const referredUser = referral.referredUserId
           ? await ctx.db.get(referral.referredUserId)
@@ -593,18 +593,18 @@ export const getReferralSummary = query({
     }
 
     const allReferrals = await ctx.db.query("referrals").collect();
-    const completedReferrals = allReferrals.filter((r: any) => r.status === "completed");
-    const pendingReferrals = allReferrals.filter((r: any) => r.status === "pending");
+    const completedReferrals = allReferrals.filter((r) => r.status === "completed");
+    const pendingReferrals = allReferrals.filter((r) => r.status === "pending");
 
     const totalEarnings = completedReferrals.reduce(
-      (sum: any, r: any) => sum + (r.amountEarned || 0),
+      (sum, r) => sum + (r.amountEarned || 0),
       0
     );
 
     // Get top referrers
     const referrerStats: Record<string, { count: number; earnings: number }> = {};
 
-    allReferrals.forEach((referral: any) => {
+    allReferrals.forEach((referral) => {
       const referrerId = referral.referrerId.toString();
       if (!referrerStats[referrerId]) {
         referrerStats[referrerId] = { count: 0, earnings: 0 };
@@ -666,7 +666,7 @@ export const getReferralTrends = query({
     const trends: Record<string, { created: number; completed: number }> = {};
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
 
-    allReferrals.forEach((referral: any) => {
+    allReferrals.forEach((referral) => {
       if (referral.createdAt >= thirtyDaysAgo) {
         const date = new Date(referral.createdAt).toLocaleDateString("en-KE");
         if (!trends[date]) {
@@ -723,8 +723,8 @@ export const getReferrerPerformance = query({
       .withIndex("by_referrerId", (q: any) => q.eq("referrerId", args.referrerId))
       .collect();
 
-    const completed = referrals.filter((r: any) => r.status === "completed");
-    const pending = referrals.filter((r: any) => r.status === "pending");
+    const completed = referrals.filter((r) => r.status === "completed");
+    const pending = referrals.filter((r) => r.status === "pending");
 
     // Calculate conversion rate
     const conversionRate =
@@ -732,7 +732,7 @@ export const getReferrerPerformance = query({
 
     // Get referral details
     const referralDetails = await Promise.all(
-      referrals.map(async (referral: any) => {
+      referrals.map(async (referral) => {
         const referredUser = referral.referredUserId
           ? await ctx.db.get(referral.referredUserId)
           : null;
@@ -754,10 +754,9 @@ export const getReferrerPerformance = query({
       totalReferrals: referrals.length,
       completedCount: completed.length,
       pendingCount: pending.length,
-      totalEarnings: completed.reduce((sum: any, r: any) => sum + (r.amountEarned || 0), 0),
+      totalEarnings: completed.reduce((sum, r) => sum + (r.amountEarned || 0), 0),
       conversionRate: parseFloat(conversionRate.toFixed(2)),
-      referralDetails: referralDetails.sort((a: any, b: any) => b.createdAt - a.createdAt),
+      referralDetails: referralDetails.sort((a, b) => b.createdAt - a.createdAt),
     };
   },
 });
-

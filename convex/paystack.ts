@@ -66,7 +66,7 @@ export const saveConfig = mutation({
     userId: v.optional(v.id("users")),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const admin = await requireAdmin(ctx, args.userId)
 
     // Disable all other configs
@@ -115,7 +115,7 @@ export const switchToEnvVariables = mutation({
     userId: v.optional(v.id("users")),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const admin = await requireAdmin(ctx, args.userId)
 
     const existingConfigs = await ctx.db.query("paystack_config").collect()
@@ -153,7 +153,7 @@ export const activateConfig = mutation({
     userId: v.optional(v.id("users")),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const admin = await requireAdmin(ctx, args.userId)
 
     const configToActivate = await ctx.db.get(args.configId)
@@ -200,7 +200,7 @@ export const deleteConfig = mutation({
     userId: v.optional(v.id("users")),
     sessionToken: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const admin = await requireAdmin(ctx, args.userId)
 
     const configToDelete = await ctx.db.get(args.configId)
@@ -238,7 +238,7 @@ export const testConfig = action({
   args: {
     secretKey: v.string(),
   },
-  handler: async (ctx: ActionCtx, args: any) => {
+  handler: async (ctx: ActionCtx, args) => {
     try {
       const response = await fetch("https://api.paystack.co/transaction", {
         method: "GET",
@@ -274,7 +274,7 @@ export const createTransaction = mutation({
     email: v.string(),
     reference: v.string(),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     // Validate amount
     if (args.amount <= 0) {
       throw new Error("Amount must be greater than 0")
@@ -314,7 +314,7 @@ export const updateTransactionStatus = mutation({
     authorizationCode: v.optional(v.string()),
     cardType: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     // Find transaction by reference
     const transaction = await ctx.db
       .query("transactions")
@@ -449,7 +449,7 @@ export const getLatestTransaction = query({
   args: {
     reference: v.optional(v.string()),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     if (!args.reference) {
       // Get the most recent transaction
       const transactions = await ctx.db

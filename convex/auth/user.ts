@@ -10,7 +10,7 @@ export const getCurrentUser = query({
   args: {
     sessionToken: v.string(),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     // Find session
     const session = await ctx.db
       .query("sessions")
@@ -54,7 +54,7 @@ export const getUserById = query({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     const user = await ctx.db.get(args.userId);
 
     if (!user) {

@@ -22,7 +22,7 @@ export const getWalletBalance = query({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     // Get wallet for this specific user
     const wallet = await ctx.db
       .query("wallets")
@@ -36,7 +36,7 @@ export const getMyBets = query({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     const bets = await ctx.db
       .query("bets")
       .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
@@ -65,7 +65,7 @@ export const getTransactions = query({
   args: {
     userId: v.id("users"),
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     const txs = await ctx.db
       .query("transactions")
       .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
@@ -115,7 +115,7 @@ export const placeBet = mutation({
     stake: v.number(),
     potentialReturn: v.number(),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     let wallet = await ctx.db
       .query("wallets")
       .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
@@ -185,7 +185,7 @@ export const createTransaction = mutation({
     ),
     errorDetail: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const txId =
       "TX-" + Math.random().toString(36).substring(2, 8).toUpperCase();
 
@@ -258,7 +258,7 @@ export const updateTransactionStatus = mutation({
     ),
     errorDetail: v.optional(v.string()),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const transaction = await ctx.db
       .query("transactions")
       .withIndex("by_txId", (q: any) => q.eq("txId", args.txId))
@@ -346,7 +346,7 @@ export const settleSingleBet = mutation({
     betId: v.id("bets"),
     status: v.union(v.literal("won"), v.literal("lost")),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const bet = await ctx.db.get(args.betId);
     if (!bet) throw new Error("Bet not found");
     if (bet.status !== "active") return { success: true };
@@ -412,7 +412,7 @@ export const cancelBet = mutation({
   args: {
     betId: v.id("bets"),
   },
-  handler: async (ctx: MutationCtx, args: any) => {
+  handler: async (ctx: MutationCtx, args) => {
     const bet = await ctx.db.get(args.betId);
     if (!bet) throw new Error("Bet not found");
     if (bet.status !== "active") throw new Error("Bet is not active");
@@ -580,7 +580,7 @@ export const getDepositTrend = query({
   args: {
     daysBack: v.optional(v.number()), // defaults to 7 days
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     const daysBack = args.daysBack ?? 7;
     const now = Date.now();
     const startOfToday = new Date();
@@ -637,7 +637,7 @@ export const getUserRegistrationTrend = query({
   args: {
     daysBack: v.optional(v.number()), // defaults to 7 days
   },
-  handler: async (ctx: QueryCtx, args: any) => {
+  handler: async (ctx: QueryCtx, args) => {
     const daysBack = args.daysBack ?? 7;
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
