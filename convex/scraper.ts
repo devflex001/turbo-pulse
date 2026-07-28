@@ -83,6 +83,46 @@ export const getStatus = query({
   },
 });
 
+export const getAdminOverview = query({
+  args: {
+    limit: v.optional(v.number()),
+    offset: v.optional(v.number()),
+  },
+  handler: async (ctx: QueryCtx, args) => {
+    const settings = await ctx.db
+      .query("scraperSettings")
+      .withIndex("by_source", (q: any) => q.eq("source", KWIKBET_SOURCE))
+      .unique();
+
+    const limit = args.limit ?? 10;
+    const offset = args.offset ?? 0;
+
+    const allRuns = await ctx.db
+      .query("scrapeRuns")
+      .withIndex("by_source_and_startedAt", (q: any) => q.eq("source", KWIKBET_SOURCE))
+      .order("desc")
+      .take(100);
+
+    const runs = allRuns.slice(offset, offset + limit);
+
+    return {
+      settings: settings || {
+        source: KWIKBET_SOURCE,
+        enabled: false,
+        cadenceMinutes: DEFAULT_CADENCE_MINUTES,
+        dateWindowDays: DEFAULT_DATE_WINDOW_DAYS,
+        selectedSports: ["1"],
+        matchLimit: DEFAULT_PAGE_LIMIT,
+        lastRunAt: null,
+        nextRunAt: 0,
+        updatedAt: 0,
+      },
+      runs,
+      totalRuns: allRuns.length,
+    };
+  },
+});
+
 export const updateSettings = mutation({
   args: {
     enabled: v.optional(v.boolean()),
