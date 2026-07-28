@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { MessageWithLinks } from "@/components/support/message-with-links"
 
 type SupportMessage = {
   _id: Id<"support_messages"> | string
@@ -68,7 +69,7 @@ function WhatsAppHeader({ onBack }: { onBack: () => void }) {
 
 function GuestPrompt({ onBack }: { onBack: () => void }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-background">
+    <div className="flex h-full min-h-0 flex-1 flex-col justify-between bg-background">
       <WhatsAppHeader onBack={onBack} />
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-10 text-center">
         <div className="mb-4 flex size-16 items-center justify-center rounded-full bg-primary/15">
@@ -125,7 +126,7 @@ function NameEntryScreen({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-background">
+    <div className="flex h-full min-h-0 flex-1 flex-col justify-between bg-background">
       <WhatsAppHeader onBack={onBack} />
       <div className="flex flex-1 flex-col items-center justify-center px-6">
         <div className="w-full max-w-sm space-y-6">
@@ -173,20 +174,20 @@ function MessageBubble({ message }: { message: SupportMessage }) {
     <div className={cn("flex px-3", isOwn ? "justify-end" : "justify-start")}>
       <div
         className={cn(
-          "relative max-w-[78%] px-2.5 py-1.5 pb-1 shadow-sm",
+          "relative max-w-[85%] px-3 py-2 pb-5 shadow-sm",
           isOwn
             ? "rounded-lg rounded-tr-none bg-primary text-primary-foreground"
-            : "rounded-lg rounded-tl-none bg-muted text-foreground",
+            : "rounded-lg rounded-tl-none border border-border bg-muted/80 text-foreground",
           message.pending && "opacity-70"
         )}
       >
-        <p className="whitespace-pre-wrap break-words pr-12 text-[15px] leading-snug">
-          {message.body}
-        </p>
-        <span className={cn(
-          "absolute bottom-1 right-2 text-[11px]",
-          isOwn ? "text-primary-foreground/70" : "text-muted-foreground"
-        )}>
+        <MessageWithLinks text={message.body} isPrimary={isOwn} />
+        <span
+          className={cn(
+            "absolute bottom-1 right-2 text-[10px]",
+            isOwn ? "text-primary-foreground/70" : "text-muted-foreground"
+          )}
+        >
           {formatMessageTime(message.createdAt)}
         </span>
       </div>
@@ -290,7 +291,7 @@ function ChatThread({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-background">
+    <div className="flex h-full min-h-0 flex-1 flex-col justify-between bg-background">
       <WhatsAppHeader onBack={onBack} />
 
       <div className="min-h-0 flex-1 overflow-y-auto bg-muted/30 py-3">
