@@ -52,7 +52,7 @@ export const listUsers = query({
       // Query by phone using the index
       paginatedUsers = await ctx.db
         .query("users")
-        .withIndex("by_phone", (q) => q.eq("phone", searchTerm))
+        .withIndex("by_phone", (q: any) => q.eq("phone", searchTerm))
         .order("desc")
         .paginate(args.paginationOpts);
     } else {
@@ -65,10 +65,10 @@ export const listUsers = query({
 
     // Fetch ban status for each user
     const usersWithBans: UserWithBan[] = await Promise.all(
-      paginatedUsers.page.map(async (user) => {
+      paginatedUsers.page.map(async (user: any) => {
         const activeBan = await ctx.db
           .query("users_bans")
-          .withIndex("by_userId_and_isActive", (q) =>
+          .withIndex("by_userId_and_isActive", (q: any) =>
             q.eq("userId", user._id).eq("isActive", true)
           )
           .first();
@@ -113,7 +113,7 @@ export const getMyBanStatus = query({
     // Check for active ban
     const activeBan = await ctx.db
       .query("users_bans")
-      .withIndex("by_userId_and_isActive", (q) =>
+      .withIndex("by_userId_and_isActive", (q: any) =>
         q.eq("userId", user._id).eq("isActive", true)
       )
       .first();
@@ -125,8 +125,8 @@ export const getMyBanStatus = query({
     // Check for pending appeal
     const pendingAppeal = await ctx.db
       .query("ban_appeals")
-      .withIndex("by_banId", (q) => q.eq("banId", activeBan._id))
-      .filter((q) => q.eq(q.field("status"), "pending"))
+      .withIndex("by_banId", (q: any) => q.eq("banId", activeBan._id))
+      .filter((q: any) => q.eq(q.field("status"), "pending"))
       .first();
 
     return {
@@ -225,7 +225,7 @@ export const banUser = mutation({
     // Deactivate any existing active bans
     const existingBans = await ctx.db
       .query("users_bans")
-      .withIndex("by_userId_and_isActive", (q) =>
+      .withIndex("by_userId_and_isActive", (q: any) =>
         q.eq("userId", args.targetUserId).eq("isActive", true)
       )
       .collect();
@@ -301,7 +301,7 @@ export const unbanUser = mutation({
     // Deactivate all active bans
     const activeBans = await ctx.db
       .query("users_bans")
-      .withIndex("by_userId_and_isActive", (q) =>
+      .withIndex("by_userId_and_isActive", (q: any) =>
         q.eq("userId", args.targetUserId).eq("isActive", true)
       )
       .collect();
@@ -359,8 +359,8 @@ export const submitAppeal = mutation({
     // Check if there's already a pending appeal
     const existingAppeal = await ctx.db
       .query("ban_appeals")
-      .withIndex("by_banId", (q) => q.eq("banId", args.banId))
-      .filter((q) => q.eq(q.field("status"), "pending"))
+      .withIndex("by_banId", (q: any) => q.eq("banId", args.banId))
+      .filter((q: any) => q.eq(q.field("status"), "pending"))
       .first();
 
     if (existingAppeal) {
@@ -398,16 +398,16 @@ export const getUserStats = query({
 
     const allUsers = await ctx.db.query("users").collect();
     const totalUsers = allUsers.length;
-    const adminUsers = allUsers.filter((u) => u.role === "admin").length;
+    const adminUsers = allUsers.filter((u: any) => u.role === "admin").length;
 
     const activeBans = await ctx.db
       .query("users_bans")
-      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .withIndex("by_isActive", (q: any) => q.eq("isActive", true))
       .collect();
 
     const pendingAppeals = await ctx.db
       .query("ban_appeals")
-      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .withIndex("by_status", (q: any) => q.eq("status", "pending"))
       .collect();
 
     return {
