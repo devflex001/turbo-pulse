@@ -18,7 +18,7 @@ export async function getUserIdFromSessionToken(
     // Find session
     const session = await ctx.db
       .query("sessions")
-      .withIndex("by_sessionToken", (q) =>
+      .withIndex("by_sessionToken", (q: any) =>
         q.eq("sessionToken", sessionToken)
       )
       .unique();

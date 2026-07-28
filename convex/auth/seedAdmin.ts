@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalMutation } from "../_generated/server";
+import { internalMutation, MutationCtx } from "../_generated/server";
 import {
   hashPassword,
   normalizePhoneNumber,
@@ -21,7 +21,7 @@ export const seedAdminUser = internalMutation({
     password: v.string(),
     secret: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: any) => {
     const { phone, password, secret } = args;
 
     // Security check: In production, require secret
@@ -53,7 +53,7 @@ export const seedAdminUser = internalMutation({
     // Check if admin with this phone already exists
     const existingUser = await ctx.db
       .query("users")
-      .withIndex("by_phone", (q) => q.eq("phone", normalizedPhone))
+      .withIndex("by_phone", (q: any) => q.eq("phone", normalizedPhone))
       .unique();
 
     if (existingUser) {
@@ -105,10 +105,10 @@ export const seedAdminUser = internalMutation({
  */
 export const hasAdminUser = internalMutation({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx: MutationCtx) => {
     const admin = await ctx.db
       .query("users")
-      .withIndex("by_role", (q) => q.eq("role", "admin"))
+      .withIndex("by_role", (q: any) => q.eq("role", "admin"))
       .first();
 
     return {
