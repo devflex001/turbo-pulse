@@ -654,7 +654,7 @@ export function AdminUsersPanel() {
           </div>
         )}
 
-        {users.map((user, idx) => {
+        {users.map((user: any, idx: number) => {
           const userObj = user as {
             _id?: string
             id?: string
@@ -780,7 +780,7 @@ export function AdminUsersPanel() {
                 </tr>
               )}
 
-              {users.map((user, idx) => {
+              {users.map((user: any, idx: number) => {
                 const userObj = user as {
                   _id?: string
                   id?: string
@@ -920,7 +920,7 @@ export function AdminUsersPanel() {
 
       {/* Contextual hint when banned users exist */}
       {!isLoading &&
-        users.some((u) => {
+        users.some((u: any) => {
           const userObj = u as { activeBan?: unknown }
           return !!userObj.activeBan
         }) && (
