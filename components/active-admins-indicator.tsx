@@ -44,7 +44,7 @@ export function ActiveAdminsIndicator({ mobileStrip = false }: ActiveAdminsIndic
 
   // Filter out current admin
   const otherSessions =
-    activeAdmins?.filter((admin) => admin.adminName !== adminName) ?? []
+    activeAdmins?.filter((admin: { adminName: string; loginAt: number; lastActivityAt: number; userId: string }) => admin.adminName !== adminName) ?? []
 
   if (otherSessions.length === 0) return null
 

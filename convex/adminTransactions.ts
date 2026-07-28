@@ -1,5 +1,7 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
 import { requireAdmin } from "./auth/authorization";
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -22,7 +24,7 @@ export const listTransactions = query({
     search: v.optional(v.string()),
     userId: v.optional(v.id("users")), // Admin checking
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { paginationOpts: { numItems: number; cursor: string | null; id?: number }; typeFilter: "deposit" | "withdrawal"; statusFilter?: string; search?: string; userId?: Id<"users"> }) => {
     // Require admin authentication
     await requireAdmin(ctx, args.userId);
 
@@ -96,7 +98,7 @@ export const getAdminTransactionStats = query({
     type: v.union(v.literal("deposit"), v.literal("withdrawal")),
     userId: v.optional(v.id("users")), // Admin checking
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { type: "deposit" | "withdrawal"; userId?: Id<"users"> }) => {
     await requireAdmin(ctx, args.userId);
 
     const allTxs = await ctx.db

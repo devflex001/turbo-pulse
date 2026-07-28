@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import type { QueryCtx, MutationCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { requireAdmin, requireAuth } from "./auth/authorization";
 import { logAdminActionInternal } from "./audit/logs";
@@ -40,7 +41,7 @@ export const listUsers = query({
     search: v.optional(v.string()),
     userId: v.optional(v.id("users")), // Add userId from client
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { paginationOpts: { numItems: number; cursor: string | null; id?: number }; search?: string; userId?: Id<"users"> }) => {
     // Require admin authentication
     await requireAdmin(ctx, args.userId);
 
@@ -105,7 +106,7 @@ export const getMyBanStatus = query({
   args: {
     userId: v.optional(v.id("users")), // Add userId from client
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { userId?: Id<"users"> }) => {
     // Get current authenticated user
     const user = await requireAuth(ctx, args.userId);
 
@@ -157,7 +158,7 @@ export const editUser = mutation({
     targetUserId: v.id("users"),
     email: v.string(), // Maps to phone in this system
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: { userId?: Id<"users">; sessionToken?: string; targetUserId: Id<"users">; email: string }) => {
     // Require admin authentication
     const admin = await requireAdmin(ctx, args.userId);
 
@@ -212,7 +213,7 @@ export const banUser = mutation({
     reason: v.string(),
     durationHours: v.union(v.number(), v.null()), // null = permanent
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: { userId?: Id<"users">; sessionToken?: string; targetUserId: Id<"users">; reason: string; durationHours: number | null }) => {
     // Require admin authentication
     const admin = await requireAdmin(ctx, args.userId);
 
@@ -288,7 +289,7 @@ export const unbanUser = mutation({
     sessionToken: v.optional(v.string()), // For logging
     targetUserId: v.id("users"),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: { userId?: Id<"users">; sessionToken?: string; targetUserId: Id<"users"> }) => {
     // Require admin authentication
     const admin = await requireAdmin(ctx, args.userId);
 
@@ -341,7 +342,7 @@ export const submitAppeal = mutation({
     banId: v.id("users_bans"),
     message: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: { userId?: Id<"users">; banId: Id<"users_bans">; message: string }) => {
     // Require authentication
     const user = await requireAuth(ctx, args.userId);
 
@@ -391,7 +392,7 @@ export const getUserStats = query({
   args: {
     userId: v.optional(v.id("users")), // Admin ID checking
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { userId?: Id<"users"> }) => {
     // Require admin authentication
     await requireAdmin(ctx, args.userId);
 

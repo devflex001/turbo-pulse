@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import type { QueryCtx, MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { requireAdmin } from "./auth/authorization";
 import { notifyAdmins, notifyUser } from "./notifications";
@@ -40,7 +41,7 @@ export const listBets = query({
     statusFilter: v.optional(v.string()),
     userId: v.optional(v.id("users")), // Admin ID checking
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { paginationOpts: { numItems: number; cursor: string | null; id?: number }; search?: string; statusFilter?: string; userId?: Id<"users"> }) => {
     // Require admin authentication
     await requireAdmin(ctx, args.userId);
 
@@ -111,7 +112,7 @@ export const getAdminBetStats = query({
   args: {
     userId: v.optional(v.id("users")), // Admin ID checking
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { userId?: Id<"users"> }) => {
     await requireAdmin(ctx, args.userId);
 
     const allBets = await ctx.db.query("bets").collect();
@@ -166,7 +167,7 @@ export const updateBetStatus = mutation({
     userId: v.optional(v.id("users")), // Admin ID checking
     sessionToken: v.optional(v.string()), // For logging
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: MutationCtx, args: { betId: Id<"bets">; status: "active" | "won" | "lost" | "void" | "cancelled"; userId?: Id<"users">; sessionToken?: string }) => {
     // Require admin authentication
     const admin = await requireAdmin(ctx, args.userId);
 
