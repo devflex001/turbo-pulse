@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "../_generated/server";
-import type { MutationCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 
 /**
@@ -88,7 +88,7 @@ export const getRecentAdminLogs = query({
   args: {
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { limit?: number }) => {
     const limit = Math.min(args.limit ?? 20, 100);
     return await ctx.db
       .query("admin_logs")
@@ -107,7 +107,7 @@ export const getAdminLogs = query({
     resourceTypeFilter: v.optional(v.string()),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { adminNameFilter?: string; actionTypeFilter?: string; resourceTypeFilter?: string; limit?: number }) => {
     const limit = Math.min(args.limit ?? 100, 500);
 
     let logs;
@@ -116,7 +116,7 @@ export const getAdminLogs = query({
     if (args.adminNameFilter) {
       logs = await ctx.db
         .query("admin_logs")
-        .withIndex("by_adminName", (q) =>
+        .withIndex("by_adminName", (q: any) =>
           q.eq("adminName", args.adminNameFilter!)
         )
         .order("desc")
@@ -130,7 +130,7 @@ export const getAdminLogs = query({
 
     // Filter further if needed (for multiple filters)
     return {
-      logs: logs.filter((log) => {
+      logs: logs.filter((log: any) => {
         if (
           args.actionTypeFilter &&
           log.actionType !== args.actionTypeFilter
@@ -157,11 +157,11 @@ export const getAdminPersonalLogs = query({
     adminName: v.string(),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { adminName: string; limit?: number }) => {
     const limit = Math.min(args.limit ?? 50, 200);
     return await ctx.db
       .query("admin_logs")
-      .withIndex("by_adminName_and_timestamp", (q) =>
+      .withIndex("by_adminName_and_timestamp", (q: any) =>
         q.eq("adminName", args.adminName)
       )
       .order("desc")
@@ -177,11 +177,11 @@ export const getLogsByActionType = query({
     actionType: v.string(),
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { actionType: string; limit?: number }) => {
     const limit = Math.min(args.limit ?? 50, 200);
     return await ctx.db
       .query("admin_logs")
-      .withIndex("by_actionType_and_timestamp", (q) =>
+      .withIndex("by_actionType_and_timestamp", (q: any) =>
         q.eq("actionType", args.actionType as any)
       )
       .order("desc")
@@ -196,13 +196,13 @@ export const getAdminLogStats = query({
   args: {
     adminName: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx: QueryCtx, args: { adminName?: string }) => {
     let logs;
 
     if (args.adminName) {
       logs = await ctx.db
         .query("admin_logs")
-        .withIndex("by_adminName", (q) =>
+        .withIndex("by_adminName", (q: any) =>
           q.eq("adminName", args.adminName!)
         )
         .collect();
@@ -219,7 +219,7 @@ export const getAdminLogStats = query({
     const resourceCounts: Record<string, number> = {};
     const adminCounts: Record<string, number> = {};
 
-    logs.forEach((log) => {
+    logs.forEach((log: any) => {
       actionCounts[log.actionType] = (actionCounts[log.actionType] ?? 0) + 1;
       resourceCounts[log.resourceType] =
         (resourceCounts[log.resourceType] ?? 0) + 1;
