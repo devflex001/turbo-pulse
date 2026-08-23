@@ -301,3 +301,47 @@ export const testConfig = action({
     }
   },
 })
+
+/**
+ * Update callback URLs in all configs
+ */
+export const updateCallbackUrls = mutation({
+  args: {
+    callbackUrl: v.string(),
+    timeoutUrl: v.string(),
+    userId: v.optional(v.id("users")),
+    sessionToken: v.optional(v.string()),
+  },
+  handler: async (ctx: MutationCtx, args) => {
+    const admin = await requireAdmin(ctx, args.userId)
+
+    const allConfigs = await ctx.db.query("daraja_config").collect()
+
+    for (const config of allConfigs) {
+      await ctx.db.patch(config._id, {
+        callbackUrl: args.callbackUrl,
+        timeoutUrl: args.timeoutUrl,
+        updatedAt: Date.now(),
+        updatedBy: admin.phone ?? admin._id.toString(),
+      })
+    }
+
+    if (args.sessionToken) {
+      const adminSession = await getAdminSessionByTokenInternal(ctx, args.sessionToken)
+      if (adminSession) {
+        await logAdminActionInternal(ctx, {
+          adminName: adminSession.adminName,
+          userId: admin._id,
+          actionType: "update_payment_gateway_config",
+          resourceType: "daraja_config",
+          resourceDescription: "M-Pesa callback URLs updated",
+          details: {
+            newValue: `Callback: ${args.callbackUrl}, Timeout: ${args.timeoutUrl}`,
+          },
+        })
+      }
+    }
+
+    return { success: true, message: "Callback URLs updated" }
+  },
+})

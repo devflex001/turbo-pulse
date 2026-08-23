@@ -93,9 +93,8 @@ export class MPesaService {
       console.log(`[M-Pesa] Consumer Secret char codes: ${Array.from(consumerSecret.substring(0, 10)).map(c => c.charCodeAt(0)).join(',')}`);
 
       if (!consumerKey || !consumerSecret) {
-        throw new Error(
-          `M-Pesa credentials not configured. Consumer Key: ${!consumerKey ? "EMPTY" : "OK"}, Consumer Secret: ${!consumerSecret ? "EMPTY" : "OK"}. Check your Daraja config in the database or add MPESA_CONSUMER_KEY and MPESA_CONSUMER_SECRET to environment variables.`
-        );
+        console.error(`[M-Pesa] Missing credentials: Key=${!consumerKey ? "EMPTY" : "OK"}, Secret=${!consumerSecret ? "EMPTY" : "OK"}`);
+        throw new Error(`Payment service not configured. Please contact support.`);
       }
 
       // Construct auth string carefully
@@ -129,20 +128,17 @@ export class MPesaService {
         console.error(`[M-Pesa] Response headers:`, response.headers);
 
         if (response.status === 400) {
-          throw new Error(
-            `Bad Request (400) from M-Pesa. Possible causes:\n1. Consumer Key/Secret are invalid or revoked\n2. The Daraja app is not approved\n3. Credentials are for wrong environment\n4. Check Daraja dashboard: https://developer.safaricom.co.ke\nError: ${errorBody}`
-          );
+          console.error(`[M-Pesa] 400 Bad Request details: ${errorBody}`);
+          throw new Error(`Payment service temporarily unavailable. Please try again.`);
         }
 
         if (response.status === 403) {
-          throw new Error(
-            `Access Denied (403). Check that consumer key and secret are correct and the app is approved by Safaricom.`
-          );
+          console.error(`[M-Pesa] 403 Access Denied details: ${errorBody}`);
+          throw new Error(`Payment service access error. Please try again.`);
         }
 
-        throw new Error(
-          `Failed to get access token: ${response.status} ${response.statusText} - ${errorBody}`
-        );
+        console.error(`[M-Pesa] ${response.status} error details: ${errorBody}`);
+        throw new Error(`Payment service error. Please try again later.`);
       }
 
       const data = (await response.json()) as AccessTokenResponse;
