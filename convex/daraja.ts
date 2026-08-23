@@ -11,9 +11,18 @@ import { getAdminSessionByTokenInternal } from "./admin/sessions"
 export const getConfig = query(async (ctx: QueryCtx) => {
   // Try to get enabled config from database
   const allConfigs = await ctx.db.query("daraja_config").collect()
+
+  console.log(`[Daraja] Found ${allConfigs.length} configs in database`);
+  allConfigs.forEach((config: any, idx: number) => {
+    console.log(`  Config ${idx}: isEnabled=${config.isEnabled}, useEnvVariables=${config.useEnvVariables}, source=DB`);
+  });
+
   const dbConfig = allConfigs.find((config: any) => config.isEnabled === true)
 
   if (dbConfig && !dbConfig.useEnvVariables) {
+    console.log(`[Daraja] Using enabled DB config`);
+    console.log(`  Consumer Key: ${dbConfig.consumerKey ? `${dbConfig.consumerKey.substring(0, 5)}...${dbConfig.consumerKey.substring(dbConfig.consumerKey.length - 5)}` : "EMPTY"} (length: ${dbConfig.consumerKey?.length || 0})`);
+    console.log(`  Consumer Secret: ${dbConfig.consumerSecret ? `${dbConfig.consumerSecret.substring(0, 5)}...${dbConfig.consumerSecret.substring(dbConfig.consumerSecret.length - 5)}` : "EMPTY"} (length: ${dbConfig.consumerSecret?.length || 0})`);
     return {
       ...dbConfig,
       source: "database",
@@ -22,6 +31,9 @@ export const getConfig = query(async (ctx: QueryCtx) => {
 
   // If there's any config in DB, use the first one even if not marked enabled
   if (allConfigs.length > 0 && !allConfigs[0].useEnvVariables) {
+    console.log(`[Daraja] Using first DB config (not enabled but available)`);
+    console.log(`  Consumer Key: ${allConfigs[0].consumerKey ? `${allConfigs[0].consumerKey.substring(0, 5)}...${allConfigs[0].consumerKey.substring(allConfigs[0].consumerKey.length - 5)}` : "EMPTY"} (length: ${allConfigs[0].consumerKey?.length || 0})`);
+    console.log(`  Consumer Secret: ${allConfigs[0].consumerSecret ? `${allConfigs[0].consumerSecret.substring(0, 5)}...${allConfigs[0].consumerSecret.substring(allConfigs[0].consumerSecret.length - 5)}` : "EMPTY"} (length: ${allConfigs[0].consumerSecret?.length || 0})`);
     return {
       ...allConfigs[0],
       source: "database",
@@ -29,6 +41,10 @@ export const getConfig = query(async (ctx: QueryCtx) => {
   }
 
   // Fall back to environment variables
+  console.log(`[Daraja] No DB config found, falling back to environment variables`);
+  console.log(`  MPESA_CONSUMER_KEY: ${process.env.MPESA_CONSUMER_KEY ? `${process.env.MPESA_CONSUMER_KEY.substring(0, 5)}...` : "EMPTY"}`);
+  console.log(`  MPESA_CONSUMER_SECRET: ${process.env.MPESA_CONSUMER_SECRET ? `${process.env.MPESA_CONSUMER_SECRET.substring(0, 5)}...` : "EMPTY"}`);
+
   return {
     consumerKey: process.env.MPESA_CONSUMER_KEY || "",
     consumerSecret: process.env.MPESA_CONSUMER_SECRET || "",

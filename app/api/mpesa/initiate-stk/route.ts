@@ -79,8 +79,22 @@ export async function POST(request: NextRequest) {
     const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
     const darajaConfig = await convex.query(api.daraja.getConfig)
 
+    // ── LOG CREDENTIALS FETCHED FROM DB ────────────────────────────────────
+    console.log("[M-Pesa STK] Credentials fetched from DB:");
+    console.log(`  Source: ${(darajaConfig as any).source}`);
+    console.log(`  Consumer Key: ${darajaConfig.consumerKey ? `${darajaConfig.consumerKey.substring(0, 5)}...${darajaConfig.consumerKey.substring(darajaConfig.consumerKey.length - 5)}` : "EMPTY"} (length: ${darajaConfig.consumerKey?.length || 0})`);
+    console.log(`  Consumer Secret: ${darajaConfig.consumerSecret ? `${darajaConfig.consumerSecret.substring(0, 5)}...${darajaConfig.consumerSecret.substring(darajaConfig.consumerSecret.length - 5)}` : "EMPTY"} (length: ${darajaConfig.consumerSecret?.length || 0})`);
+    console.log(`  Business Code: ${darajaConfig.businessCode}`);
+    console.log(`  Shortcode: ${darajaConfig.shortcode}`);
+    console.log(`  Passkey: ${darajaConfig.passkey ? `${darajaConfig.passkey.substring(0, 5)}...` : "EMPTY"}`);
+    console.log(`  Callback URL: ${darajaConfig.callbackUrl}`);
+    console.log(`  Is Production: ${(darajaConfig as any).isProduction}`);
+
     // ── Initiate STK Push ────────────────────────────────────────────────────
-    const mpesa = initializeMPesaService(false, {
+    const isProduction = (darajaConfig as any).isProduction === true;
+    console.log(`[M-Pesa STK] Using environment: ${isProduction ? "PRODUCTION" : "SANDBOX"}`);
+
+    const mpesa = initializeMPesaService(isProduction, {
       consumerKey: darajaConfig.consumerKey,
       consumerSecret: darajaConfig.consumerSecret,
       businessCode: darajaConfig.businessCode,

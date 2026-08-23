@@ -79,35 +79,60 @@ export class MPesaService {
       const consumerKey = this.config.consumerKey.trim();
       const consumerSecret = this.config.consumerSecret.trim();
 
+      console.log(`[M-Pesa] ========== TOKEN REQUEST ==========`);
+      console.log(`[M-Pesa] Base URL: ${this.baseUrl}`);
+      console.log(`[M-Pesa] Sandbox Mode: ${this.baseUrl === SANDBOX_BASE_URL}`);
+      console.log(`[M-Pesa] Consumer Key length: ${consumerKey.length}`);
+      console.log(`[M-Pesa] Consumer Key (first 20): ${consumerKey.substring(0, 20)}`);
+      console.log(`[M-Pesa] Consumer Key (last 20): ${consumerKey.substring(consumerKey.length - 20)}`);
+      console.log(`[M-Pesa] Consumer Key char codes: ${Array.from(consumerKey.substring(0, 10)).map(c => c.charCodeAt(0)).join(',')}`);
+
+      console.log(`[M-Pesa] Consumer Secret length: ${consumerSecret.length}`);
+      console.log(`[M-Pesa] Consumer Secret (first 20): ${consumerSecret.substring(0, 20)}`);
+      console.log(`[M-Pesa] Consumer Secret (last 20): ${consumerSecret.substring(consumerSecret.length - 20)}`);
+      console.log(`[M-Pesa] Consumer Secret char codes: ${Array.from(consumerSecret.substring(0, 10)).map(c => c.charCodeAt(0)).join(',')}`);
+
       if (!consumerKey || !consumerSecret) {
         throw new Error(
-          "Consumer key or secret is empty. Check environment variables."
+          `M-Pesa credentials not configured. Consumer Key: ${!consumerKey ? "EMPTY" : "OK"}, Consumer Secret: ${!consumerSecret ? "EMPTY" : "OK"}. Check your Daraja config in the database or add MPESA_CONSUMER_KEY and MPESA_CONSUMER_SECRET to environment variables.`
         );
       }
 
-      const auth = Buffer.from(`${consumerKey}:${consumerSecret}`).toString(
-        "base64"
-      );
+      // Construct auth string carefully
+      const authString = `${consumerKey}:${consumerSecret}`;
+      console.log(`[M-Pesa] Auth string length: ${authString.length}`);
+      console.log(`[M-Pesa] Auth string: ${authString.substring(0, 30)}...`);
 
-      console.log(`[M-Pesa] Requesting token from: ${this.baseUrl}/oauth/v1/generate`);
-      console.log(`[M-Pesa] Using sandbox mode: ${this.baseUrl === SANDBOX_BASE_URL}`);
+      const auth = Buffer.from(authString).toString("base64");
 
-      const response = await fetch(
-        `${this.baseUrl}/oauth/v1/generate?grant_type=client_credentials`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Basic ${auth}`,
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-        }
-      );
+      console.log(`[M-Pesa] Base64 auth length: ${auth.length}`);
+      console.log(`[M-Pesa] Base64 auth (first 50): ${auth.substring(0, 50)}`);
+
+      const url = `${this.baseUrl}/oauth/v1/generate?grant_type=client_credentials`;
+      console.log(`[M-Pesa] Full URL: ${url}`);
+      console.log(`[M-Pesa] Authorization header: Basic ${auth.substring(0, 30)}...`);
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Basic ${auth}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      });
 
       if (!response.ok) {
         const errorBody = await response.text();
-        console.error(`[M-Pesa] Auth failed: ${response.status}`);
-        console.error(`[M-Pesa] Error body:`, errorBody);
+        console.error(`[M-Pesa] ✗ Token request failed`);
+        console.error(`[M-Pesa] Status: ${response.status} ${response.statusText}`);
+        console.error(`[M-Pesa] Error body: ${errorBody}`);
+        console.error(`[M-Pesa] Response headers:`, response.headers);
+
+        if (response.status === 400) {
+          throw new Error(
+            `Bad Request (400) from M-Pesa. Possible causes:\n1. Consumer Key/Secret are invalid or revoked\n2. The Daraja app is not approved\n3. Credentials are for wrong environment\n4. Check Daraja dashboard: https://developer.safaricom.co.ke\nError: ${errorBody}`
+          );
+        }
 
         if (response.status === 403) {
           throw new Error(
@@ -129,7 +154,8 @@ export class MPesaService {
       this.accessToken = data.access_token;
       this.tokenExpiry = Date.now() + data.expires_in * 1000;
 
-      console.log(`[M-Pesa] Token obtained successfully. Expires in ${data.expires_in}s`);
+      console.log(`[M-Pesa] ✓ Token obtained successfully. Expires in ${data.expires_in}s`);
+      console.log(`[M-Pesa] =====================================`);
 
       return data.access_token;
     } catch (error) {
