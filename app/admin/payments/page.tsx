@@ -125,6 +125,45 @@ function TransactionDetailsModal({ tx, open, onClose }: DetailsModalProps) {
   const isPaystack = tx.txId.includes("PAYSTACK")
   const gateway = isPaystack ? "Paystack" : "M-Pesa"
 
+  // Determine display status and message based on feedback
+  const getFeedbackDisplay = () => {
+    if (tx.feedback) {
+      return {
+        message: tx.feedback,
+        type: tx.feedbackType || "success"
+      }
+    }
+
+    // Fallback based on status and result code
+    if (tx.status === "success") {
+      return {
+        message: "The service request is processed successfully.",
+        type: "success"
+      }
+    }
+
+    if (tx.status === "cancelled" || tx.resultCode === "1" || tx.resultCode === "1032") {
+      return {
+        message: "Request cancelled by user.",
+        type: "error"
+      }
+    }
+
+    if (tx.status === "failed" || tx.resultCode === "2") {
+      return {
+        message: tx.errorDetail || "No response from user.",
+        type: "error"
+      }
+    }
+
+    return {
+      message: "Transaction pending.",
+      type: "warning"
+    }
+  }
+
+  const feedback = getFeedbackDisplay()
+
   return (
     <ResponsiveModal
       open={open}
@@ -169,6 +208,41 @@ function TransactionDetailsModal({ tx, open, onClose }: DetailsModalProps) {
           )}
         </div>
 
+        {/* Status Message - Detailed Feedback */}
+        <div className="rounded-lg border border-border p-3 space-y-2 bg-muted/30">
+          <div className="flex items-start gap-2">
+            {feedback.type === "success" && (
+              <div className="h-5 w-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg className="w-3 h-3 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+            )}
+            {feedback.type === "error" && (
+              <div className="h-5 w-5 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg className="w-3 h-3 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </div>
+            )}
+            {feedback.type === "warning" && (
+              <div className="h-5 w-5 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg className="w-3 h-3 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+            )}
+            <div className="flex-1">
+              <p className={`text-sm font-medium ${feedback.type === "success" ? "text-emerald-700 dark:text-emerald-400" :
+                  feedback.type === "error" ? "text-rose-700 dark:text-rose-400" :
+                    "text-amber-700 dark:text-amber-400"
+                }`}>
+                {feedback.message}
+              </p>
+            </div>
+          </div>
+        </div>
+
         <Separator />
 
         <div className="space-y-2">
@@ -204,19 +278,6 @@ function TransactionDetailsModal({ tx, open, onClose }: DetailsModalProps) {
             )}
           </div>
         </div>
-
-        {(tx.feedback || tx.errorDetail) && (
-          <>
-            <Separator />
-            <div className="space-y-1.5">
-              <span className="font-semibold text-muted-foreground block">System Status Message</span>
-              <div className="p-2.5 rounded-lg border border-border bg-muted/40 font-medium">
-                {tx.feedback && <p className="text-foreground">{tx.feedback}</p>}
-                {tx.errorDetail && <p className="text-destructive font-mono text-[10px] mt-0.5">{tx.errorDetail}</p>}
-              </div>
-            </div>
-          </>
-        )}
 
         <div className="pt-2 flex justify-end">
           <Button type="button" variant="outline" className="w-full sm:w-auto h-8 text-xs font-semibold" onClick={onClose}>
